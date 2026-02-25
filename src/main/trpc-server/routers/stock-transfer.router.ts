@@ -11,7 +11,7 @@ export const stockTransferRouter = router({
       z.object({
         fromLocationId: z.string().uuid().optional(),
         toLocationId: z.string().uuid().optional(),
-        status: z.enum(['draft', 'in_transit', 'received', 'cancelled']).optional(),
+        status: z.enum(['draft', 'in_transit', 'partial', 'received', 'cancelled']).optional(),
         page: z.number().int().positive().default(1),
         pageSize: z.number().int().positive().max(100).default(20),
       }).optional()

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -14,10 +14,12 @@ import path from 'path'
 
 
 function createWindow(): void {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1080,
-    height: 1000,
+    width,
+    height,
+    resizable: true,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -72,7 +74,7 @@ async function runMigrations() {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(async() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  electronApp.setAppUserModelId('com.mini-pos')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

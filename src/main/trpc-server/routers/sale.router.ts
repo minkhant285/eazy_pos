@@ -190,6 +190,23 @@ export const saleRouter = router({
       }
     }),
 
+  /** GET /sale.profitSummary — daily revenue / COGS / gross profit for a date range */
+  profitSummary: publicProcedure
+    .input(
+      z.object({
+        locationId: z.string().uuid(),
+        fromDate: z.string(),
+        toDate: z.string(),
+      })
+    )
+    .query(({ input }) => {
+      try {
+        return SaleService.getDailyProfitSummary(input.locationId, input.fromDate, input.toDate)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
   /** GET /sale.topProducts */
   topProducts: publicProcedure
     .input(

@@ -206,7 +206,7 @@ export function receiveStockTransfer(
   return db.transaction((tx) => {
     const transfer = getStockTransferById(transferId);
 
-    if (transfer.status !== "in_transit") {
+    if (!["in_transit", "partial"].includes(transfer.status)) {
       throw new ValidationError(`Cannot receive transfer in status: ${transfer.status}`);
     }
 
@@ -250,10 +250,17 @@ export function receiveStockTransfer(
         .run();
     }
 
-    // Mark as received
+    // Determine new status: "received" if all items fully received, "partial" otherwise
+    const allFullyReceived = transfer.items.every((item) => {
+      const recv = receivedItems.find((r) => r.transferItemId === item.id);
+      const addedNow = recv?.qtyReceived ?? 0;
+      return item.qtyReceived + addedNow >= item.qtySent;
+    });
+    const newStatus = allFullyReceived ? "received" : "partial";
+
     tx.update(stockTransfers)
       .set({
-        status: "received",
+        status: newStatus,
         receivedBy,
         receivedAt: now(),
         updatedAt: now(),
@@ -270,7 +277,7 @@ export function cancelStockTransfer(transferId: string, cancelledBy: string) {
   return db.transaction((tx) => {
     const transfer = getStockTransferById(transferId);
 
-    if (!["in_transit"].includes(transfer.status)) {
+    if (!["in_transit", "partial"].includes(transfer.status)) {
       throw new ValidationError(`Cannot cancel transfer in status: ${transfer.status}`);
     }
 

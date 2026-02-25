@@ -14,7 +14,10 @@ export type TranslationKey =
   | 'cancel' | 'save_changes' | 'create_customer'
   | 'delete_customer' | 'delete_warning' | 'delete' | 'pts' | 'no_customers'
   | 'coming_soon' | 'dark_mode' | 'light_mode' | 'collapse' | 'admin'
-  | 'cash' | 'card' | 'qr_code' | 'completed' | 'voided';
+  | 'cash' | 'card' | 'qr_code' | 'completed' | 'voided'
+  | 'ledger' | 'expenses'
+  | 'revenue_summary' | 'total_revenue' | 'total_cost' | 'gross_profit' | 'profit_margin'
+  | 'expense_breakdown' | 'this_month' | 'no_expenses';
 
 export type Translations = Record<TranslationKey, string>;
 
@@ -53,6 +56,10 @@ export const translations: Record<LangCode, Translations> = {
     coming_soon: 'This page is coming soon',
     dark_mode: 'Dark Mode', light_mode: 'Light Mode', collapse: 'Collapse', admin: 'Admin',
     cash: 'Cash', card: 'Card', qr_code: 'QR Code', completed: 'completed', voided: 'voided',
+    ledger: 'Stock Ledger', expenses: 'Expenses',
+    revenue_summary: 'Revenue Summary', total_revenue: 'Revenue', total_cost: 'Cost of Goods',
+    gross_profit: 'Gross Profit', profit_margin: 'Margin',
+    expense_breakdown: 'Expense Breakdown', this_month: 'This Month', no_expenses: 'No expenses',
   },
   my: {
     overview: 'အကျဉ်းချုပ်', sales_group: 'အရောင်းများ', inventory: 'ကုန်ပစ္စည်းစာရင်း',
@@ -83,6 +90,10 @@ export const translations: Record<LangCode, Translations> = {
     coming_soon: 'ဤစာမျက်နှာ မကြာမီရရှိနိုင်မည်',
     dark_mode: 'အမှောင်ပုံစံ', light_mode: 'အလင်းပုံစံ', collapse: 'ချုံ့ရန်', admin: 'စီမံခန့်ခွဲသူ',
     cash: 'နတ်ငွေ', card: 'ကတ်', qr_code: 'QR ကုဒ်', completed: 'ပြီးစီး', voided: 'ပျက်ပြယ်',
+    ledger: 'စတော့မှတ်တမ်း', expenses: 'ကုန်ကျစရိတ်',
+    revenue_summary: 'ဝင်ငွေအကျဉ်းချုပ်', total_revenue: 'ဝင်ငွေ', total_cost: 'ကုန်ကျငွေ',
+    gross_profit: 'အမြတ်ကြမ်း', profit_margin: 'မာဂျင်',
+    expense_breakdown: 'ကုန်ကျစရိတ်ခွဲခြမ်း', this_month: 'ဤလ', no_expenses: 'ကုန်ကျမှုမရှိ',
   },
   zh: {
     overview: '概览', sales_group: '销售', inventory: '库存管理',
@@ -112,5 +123,9 @@ export const translations: Record<LangCode, Translations> = {
     coming_soon: '此页面即将上线',
     dark_mode: '深色模式', light_mode: '浅色模式', collapse: '收起', admin: '管理员',
     cash: '现金', card: '银行卡', qr_code: '二维码', completed: '已完成', voided: '已作废',
+    ledger: '库存台账', expenses: '费用',
+    revenue_summary: '营收摘要', total_revenue: '总营收', total_cost: '销货成本',
+    gross_profit: '毛利润', profit_margin: '利润率',
+    expense_breakdown: '费用分类', this_month: '本月', no_expenses: '暂无费用',
   },
 };

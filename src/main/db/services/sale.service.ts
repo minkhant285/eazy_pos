@@ -445,6 +445,31 @@ export function getSalesByPaymentMethod(locationId: string, fromDate: string, to
     .all();
 }
 
+/** Daily profit summary (revenue, COGS, gross profit) grouped by date */
+export function getDailyProfitSummary(locationId: string, fromDate: string, toDate: string) {
+  return db
+    .select({
+      date: sql<string>`DATE(${sales.createdAt})`,
+      revenue: sql<number>`SUM(${sales.totalAmount})`,
+      cogs: sql<number>`SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+      grossProfit: sql<number>`SUM(${sales.totalAmount}) - SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+      transactions: sql<number>`COUNT(DISTINCT ${sales.id})`,
+    })
+    .from(sales)
+    .innerJoin(saleItems, eq(saleItems.saleId, sales.id))
+    .where(
+      and(
+        eq(sales.locationId, locationId),
+        eq(sales.status, "completed"),
+        gte(sales.createdAt, fromDate),
+        lte(sales.createdAt, toDate)
+      )
+    )
+    .groupBy(sql`DATE(${sales.createdAt})`)
+    .orderBy(sql`DATE(${sales.createdAt})`)
+    .all();
+}
+
 /** Top selling products */
 export function getTopSellingProducts(
   locationId: string,

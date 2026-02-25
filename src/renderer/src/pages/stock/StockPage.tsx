@@ -127,9 +127,10 @@ const SetQtyModal: React.FC<SetQtyModalProps> = ({ product, locationId, onClose,
 // ── Main StockPage ────────────────────────────────────────────
 
 export const StockPage: React.FC = () => {
-  const t   = useAppStore((s) => s.theme);
-  const tr  = useAppStore((s) => s.tr);
-  const sym = useAppStore((s) => s.currency.symbol);
+  const t                  = useAppStore((s) => s.theme);
+  const tr                 = useAppStore((s) => s.tr);
+  const sym                = useAppStore((s) => s.currency.symbol);
+  const lowStockThreshold  = useAppStore((s) => s.lowStockThreshold);
 
   const [locationId, setLocationId] = useState("");
   const [search, setSearch]         = useState("");
@@ -311,7 +312,7 @@ export const StockPage: React.FC = () => {
                       {uninitialized && (
                         <span style={{ fontSize: "9px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "1px 6px", borderRadius: "4px" }}>UNINITIALIZED</span>
                       )}
-                      {item.isLowStock && !uninitialized && (
+                      {!uninitialized && Number(item.qtyAvailable) <= lowStockThreshold && (
                         <span style={{ fontSize: "9px", fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "1px 6px", borderRadius: "4px" }}>LOW</span>
                       )}
                     </div>

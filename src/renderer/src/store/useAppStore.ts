@@ -25,6 +25,10 @@ interface AppState {
   // ── Currency ─────────────────────────────────────────────────
   currency: Currency;
   setCurrency: (c: Currency) => void;
+
+  // ── Inventory ─────────────────────────────────────────────────
+  lowStockThreshold: number;
+  setLowStockThreshold: (n: number) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -53,11 +57,15 @@ export const useAppStore = create<AppState>()(
       // ── Currency ───────────────────────────────────────────────
       currency: CURRENCIES[0], // default: THB ฿
       setCurrency: (currency) => set({ currency }),
+
+      // ── Inventory ──────────────────────────────────────────────
+      lowStockThreshold: 10,
+      setLowStockThreshold: (lowStockThreshold) => set({ lowStockThreshold }),
     }),
     {
       name: 'mkpos-app-store',
-      // Persist theme, lang, and currency preferences — not nav state
-      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency }),
+      // Persist theme, lang, currency, and inventory preferences — not nav state
+      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency, lowStockThreshold: s.lowStockThreshold }),
       // Rehydrate derived fields after persist load
       onRehydrateStorage: () => (state) => {
         if (state) {

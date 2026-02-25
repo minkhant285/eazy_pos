@@ -1,7 +1,7 @@
 export type PageId =
   | 'dashboard' | 'customers' | 'products' | 'categories'
-  | 'stock' | 'transfers' | 'suppliers' | 'purchase'
-  | 'locations' | 'users' | 'sales' | 'settings';
+  | 'stock' | 'transfers' | 'ledger' | 'suppliers' | 'purchase'
+  | 'expenses' | 'locations' | 'users' | 'sales' | 'settings';
 
 export type LangCode = 'en' | 'my' | 'zh';
 

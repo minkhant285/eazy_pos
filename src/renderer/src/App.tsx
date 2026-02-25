@@ -40,8 +40,10 @@ import { LocationsPage } from './pages/locations/LocationsPage';
 import { UsersPage } from './pages/users/UsersPage';
 import { SalesPage } from './pages/sales/SalesPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
+import { LedgerPage } from './pages/ledger/LedgerPage';
+import { ExpensePage } from './pages/expenses/ExpensePage';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'products', 'stock', 'transfers', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'products', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses'] as const;
 
 const App: React.FC = () => {
 	const t = useTheme();
@@ -61,6 +63,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${t.scrollThumb}; border-radius: 2px; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
         button:focus { outline: none; }
       `}</style>
 
@@ -81,12 +84,14 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'products' && <ProductsPage />}
 						{page === 'stock' && <StockPage />}
 						{page === 'transfers' && <TransfersPage />}
+					{page === 'ledger' && <LedgerPage />}
 						{page === 'purchase' && <PurchasePage />}
 						{page === 'suppliers' && <SuppliersPage />}
 						{page === 'locations' && <LocationsPage />}
 						{page === 'users' && <UsersPage />}
 						{page === 'sales' && <SalesPage />}
-					{page === 'settings' && <SettingsPage />}
+						{page === 'settings' && <SettingsPage />}
+						{page === 'expenses' && <ExpensePage />}
 						{!IMPLEMENTED_PAGES.includes(page as typeof IMPLEMENTED_PAGES[number]) && (
 							<ComingSoon label={String(pageLabel)} />
 						)}

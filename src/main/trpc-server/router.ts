@@ -59,6 +59,7 @@ import { saleRouter }             from './routers/sale.router'
 import { purchaseOrderRouter }    from './routers/purchase-order.router'
 import { stockAdjustmentRouter }  from './routers/stock-adjustment.router'
 import { stockTransferRouter }    from './routers/stock-transfer.router'
+import { expenseRouter }          from './routers/expense.router'
 
 export const appRouter = router({
   user:             userRouter,
@@ -72,6 +73,7 @@ export const appRouter = router({
   purchaseOrder:    purchaseOrderRouter,
   stockAdjustment:  stockAdjustmentRouter,
   stockTransfer:    stockTransferRouter,
+  expense:          expenseRouter,
 })
 
 /** Export the type — import this in your React app */

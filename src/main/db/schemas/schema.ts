@@ -387,7 +387,7 @@ export const stockTransfers = sqliteTable("stock_transfers", {
     .notNull()
     .references(() => locations.id),
   status: text("status", {
-    enum: ["draft", "in_transit", "received", "cancelled"],
+    enum: ["draft", "in_transit", "partial", "received", "cancelled"],
   })
     .notNull()
     .default("draft"),
@@ -411,6 +411,45 @@ export const stockTransferItems = sqliteTable("stock_transfer_items", {
   unitCost: real("unit_cost").notNull(),
   notes: text("notes"),
 });
+
+// ============================================================
+// EXPENSE CATEGORIES & EXPENSES
+// ============================================================
+
+export const expenseCategories = sqliteTable("expense_categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  color: text("color").notNull().default("#8b5cf6"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
+export const expenses = sqliteTable(
+  "expenses",
+  {
+    id: text("id").primaryKey(),
+    expenseNo: text("expense_no").notNull().unique(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => expenseCategories.id),
+    locationId: text("location_id").references(() => locations.id),
+    amount: real("amount").notNull(),
+    description: text("description").notNull(),
+    paymentMethod: text("payment_method", {
+      enum: ["cash", "card", "bank_transfer", "other"],
+    })
+      .notNull()
+      .default("cash"),
+    expenseDate: text("expense_date").notNull(),
+    notes: text("notes"),
+    createdBy: text("created_by").references(() => users.id),
+    ...timestamps,
+  },
+  (t) => [
+    index("idx_expenses_category").on(t.categoryId),
+    index("idx_expenses_date").on(t.expenseDate),
+  ],
+);
 
 // ============================================================
 // RELATIONS
@@ -451,4 +490,14 @@ export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many })
   supplier: one(suppliers, { fields: [purchaseOrders.supplierId], references: [suppliers.id] }),
   location: one(locations, { fields: [purchaseOrders.locationId], references: [locations.id] }),
   items: many(purchaseOrderItems),
+}));
+
+export const expenseCategoriesRelations = relations(expenseCategories, ({ many }) => ({
+  expenses: many(expenses),
+}));
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  category: one(expenseCategories, { fields: [expenses.categoryId], references: [expenseCategories.id] }),
+  location: one(locations, { fields: [expenses.locationId], references: [locations.id] }),
+  createdByUser: one(users, { fields: [expenses.createdBy], references: [users.id] }),
 }));

@@ -10,15 +10,15 @@ export const Sidebar: React.FC = () => {
 	const page = useAppStore((s) => s.page);
 	const setPage = useAppStore((s) => s.setPage);
 	const collapsed = useAppStore((s) => s.sidebarCollapsed);
-	const toggleSidebar = useAppStore((s) => s.toggleTheme);
+	const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
 
 	const groups: NavGroup[] = [
 		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
-		{ label: tr.inventory, items: [{ id: "products", label: tr.products, icon: "product" }, { id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }] },
-		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }] },
+		{ label: tr.inventory, items: [{ id: "products", label: tr.products, icon: "product" }, { id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
+		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },
 		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }] },
 	];
 
@@ -106,7 +106,7 @@ export const Sidebar: React.FC = () => {
 			{/* Collapse toggle */}
 			<div style={{ padding: "6px", borderTop: `1px solid ${t.borderMid}`, flexShrink: 0 }}>
 				<button
-					onClick={toggleSidebar}
+					onClick={() => setSidebarCollapsed(!collapsed)}
 					style={{
 						width: "100%", display: "flex", alignItems: "center",
 						justifyContent: collapsed ? "center" : "flex-start",
