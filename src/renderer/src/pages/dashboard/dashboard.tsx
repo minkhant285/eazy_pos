@@ -1,46 +1,6 @@
-// import { useNavigate } from 'react-router-dom'
-
-// function Dashboard() {
-//     const navigate = useNavigate()
-
-//     return (
-//         <div>
-//             <h1>Dashboard</h1>
-//             <div className="flex flex-col space-y-4 gap-1">
-//                 <button className="bg-blue-500 text-white px-2 py-2 rounded" onClick={() => navigate('/stock')}>
-//                     GO TO STOCK
-//                 </button>
-//                 <button className="bg-blue-500 text-white px-2 py-2 rounded" onClick={() => navigate('/purchase')}>
-//                     GO TO PURCHASE
-//                 </button>
-//                 <button className="bg-blue-500 text-white px-2 py-2 rounded" onClick={() => navigate('/sale')}>
-//                     GO TO SALE
-//                 </button>
-//                 <button className="bg-blue-500 text-white px-2 py-2 rounded" onClick={() => navigate('/customer')}>
-//                     GO TO CUSTOMER
-//                 </button>
-//                 <button className="bg-blue-500 text-white px-2 py-2 rounded" onClick={() => navigate('/setting')}>
-//                     GO TO SETTING
-//                 </button>
-
-//             </div>
-//         </div>
-//     )
-// }
-
-
-
 import React from "react";
 import { useAppStore } from "../../store/useAppStore";
 import type { RecentSale } from "../../types";
-
-const recentSales: RecentSale[] = [
-	{ id: "RCP-240001", customer: "Aung Kyaw Zin", amount: "฿ 4,200", method: "cash", time: "09:14 AM", status: "completed" },
-	{ id: "RCP-240002", customer: "Walk-in", amount: "฿ 1,550", method: "qr_code", time: "10:02 AM", status: "completed" },
-	{ id: "RCP-240003", customer: "Nwe Nwe Aye", amount: "฿ 12,800", method: "card", time: "10:45 AM", status: "completed" },
-	{ id: "RCP-240004", customer: "Su Su Hlaing", amount: "฿ 320", method: "cash", time: "11:30 AM", status: "voided" },
-	{ id: "RCP-240005", customer: "Zaw Lin Htut", amount: "฿ 8,750", method: "card", time: "12:15 PM", status: "completed" },
-];
 
 const METHOD_COLOR: Record<string, string> = { cash: "#10b981", card: "#3b82f6", qr_code: "#8b5cf6" };
 const METHOD_BG: Record<string, string> = { cash: "rgba(16,185,129,0.12)", card: "rgba(59,130,246,0.12)", qr_code: "rgba(139,92,246,0.12)" };
@@ -54,18 +14,27 @@ const STAT_ICONS = [
 export const DashboardPage: React.FC = () => {
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const sym = useAppStore((s) => s.currency.symbol);
+
+	const recentSales: RecentSale[] = [
+		{ id: "RCP-240001", customer: "Aung Kyaw Zin", amount: `${sym} 4,200`, method: "cash", time: "09:14 AM", status: "completed" },
+		{ id: "RCP-240002", customer: "Walk-in", amount: `${sym} 1,550`, method: "qr_code", time: "10:02 AM", status: "completed" },
+		{ id: "RCP-240003", customer: "Nwe Nwe Aye", amount: `${sym} 12,800`, method: "card", time: "10:45 AM", status: "completed" },
+		{ id: "RCP-240004", customer: "Su Su Hlaing", amount: `${sym} 320`, method: "cash", time: "11:30 AM", status: "voided" },
+		{ id: "RCP-240005", customer: "Zaw Lin Htut", amount: `${sym} 8,750`, method: "card", time: "12:15 PM", status: "completed" },
+	];
 
 	const stats = [
-		{ label: tr.todays_revenue, value: "฿ 84,320", change: "+12.4%", up: true, grad: "linear-gradient(135deg,#8b5cf6,#7c3aed)" },
+		{ label: tr.todays_revenue, value: `${sym} 84,320`, change: "+12.4%", up: true, grad: "linear-gradient(135deg,#8b5cf6,#7c3aed)" },
 		{ label: tr.total_customers, value: "1,284", change: "+5.1%", up: true, grad: "linear-gradient(135deg,#06b6d4,#2563eb)" },
 		{ label: tr.transactions, value: "342", change: "+8.7%", up: true, grad: "linear-gradient(135deg,#10b981,#0d9488)" },
 		{ label: tr.low_stock_alerts, value: "17", change: "-3", up: false, grad: "linear-gradient(135deg,#f59e0b,#ea580c)" },
 	];
 
 	const payments = [
-		{ label: tr.cash, pct: 48, amt: "฿ 40,474", color: "#10b981" },
-		{ label: tr.card, pct: 35, amt: "฿ 29,512", color: "#3b82f6" },
-		{ label: tr.qr_code, pct: 17, amt: "฿ 14,334", color: "#8b5cf6" },
+		{ label: tr.cash, pct: 48, amt: `${sym} 40,474`, color: "#10b981" },
+		{ label: tr.card, pct: 35, amt: `${sym} 29,512`, color: "#3b82f6" },
+		{ label: tr.qr_code, pct: 17, amt: `${sym} 14,334`, color: "#8b5cf6" },
 	];
 
 	const topProducts = [

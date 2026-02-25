@@ -19,7 +19,7 @@ export const Sidebar: React.FC = () => {
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
 		{ label: tr.inventory, items: [{ id: "products", label: tr.products, icon: "product" }, { id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }] },
-		{ label: tr.settings, items: [{ id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }] },
+		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }] },
 	];
 
 	return (

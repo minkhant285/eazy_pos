@@ -18,6 +18,7 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClose, onSuccess }) => {
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const sym = useAppStore((s) => s.currency.symbol);
 	const isNew = !product;
 
 	const [form, setForm] = useState({
@@ -89,8 +90,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 						</select>
 					</div>
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-						{field("Cost Price (฿)", "costPrice", "0", "number")}
-						{field("Selling Price (฿) *", "sellingPrice", "0", "number")}
+						{field(`Cost Price (${sym})` as string, "costPrice", "0", "number")}
+						{field(`Selling Price (${sym}) *` as string, "sellingPrice", "0", "number")}
 					</div>
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 						{field("Unit of Measure", "unitOfMeasure", "pcs")}
@@ -115,6 +116,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 export const ProductsPage: React.FC = () => {
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const sym = useAppStore((s) => s.currency.symbol);
 
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<FilterKey>("all");
@@ -209,8 +211,8 @@ export const ProductsPage: React.FC = () => {
 							{p.barcode && <p style={{ color: t.textFaint, fontSize: "10.5px" }}>{p.barcode}</p>}
 						</div>
 						<span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{(p as any).categoryName ?? "—"}</span>
-						<span style={{ color: t.textSubtle, fontSize: "12px" }}>฿{Number(p.costPrice).toLocaleString()}</span>
-						<span style={{ color: t.text, fontSize: "13px", fontWeight: 500 }}>฿{Number(p.sellingPrice).toLocaleString()}</span>
+						<span style={{ color: t.textSubtle, fontSize: "12px" }}>{sym}{Number(p.costPrice).toLocaleString()}</span>
+						<span style={{ color: t.text, fontSize: "13px", fontWeight: 500 }}>{sym}{Number(p.sellingPrice).toLocaleString()}</span>
 						<span style={{ color: t.textMuted, fontSize: "11px" }}>{p.unitOfMeasure}</span>
 						<span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 9px", borderRadius: "20px", whiteSpace: "nowrap", background: p.isActive ? "rgba(16,185,129,0.12)" : t.inputBg, color: p.isActive ? "#10b981" : t.textFaint }}>{p.isActive ? tr.active : tr.inactive}</span>
 						<div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }}>

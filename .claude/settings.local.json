@@ -3,7 +3,9 @@
     "allow": [
       "mcp__ide__getDiagnostics",
       "Bash(python3 -c \"\ncontent = open\\('/Users/minkhant/Desktop/html/electron/mkjournal/src/renderer/src/App.tsx'\\).read\\(\\)\nold = \\\\\"\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'dashboard' && <DashboardPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'customers' && <CustomersPage />}\\\\\"\nnew = \\\\\"\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'dashboard'  && <DashboardPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'customers'  && <CustomersPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'categories' && <CategoriesPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'products'   && <ProductsPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'stock'      && <StockPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'transfers'  && <TransfersPage />}\\\\\"\nif old in content:\n    open\\('/Users/minkhant/Desktop/html/electron/mkjournal/src/renderer/src/App.tsx','w'\\).write\\(content.replace\\(old, new, 1\\)\\)\n    print\\('REPLACED'\\)\nelse:\n    print\\('NOT FOUND'\\)\n\")",
-      "Bash(tree -L 3 /Users/minkhant/Desktop/html/electron/mkjournal/src/main 2>/dev/null || find /Users/minkhant/Desktop/html/electron/mkjournal/src/main -type f -name \"*.ts\" -o -name \"*.tsx\" | sort)"
+      "Bash(tree -L 3 /Users/minkhant/Desktop/html/electron/mkjournal/src/main 2>/dev/null || find /Users/minkhant/Desktop/html/electron/mkjournal/src/main -type f -name \"*.ts\" -o -name \"*.tsx\" | sort)",
+      "Bash(npx tsc --noEmit 2>&1 | grep -v \"npm warn\")",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

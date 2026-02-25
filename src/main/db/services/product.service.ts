@@ -176,6 +176,7 @@ export function listProducts(params?: ProductFilter) {
       taxRate: products.taxRate,
       reorderPoint: products.reorderPoint,
       isActive: products.isActive,
+      imageUrl: products.imageUrl,
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))

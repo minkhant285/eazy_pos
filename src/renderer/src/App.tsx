@@ -39,8 +39,9 @@ import { SuppliersPage } from './pages/suppliers/SuppliersPage';
 import { LocationsPage } from './pages/locations/LocationsPage';
 import { UsersPage } from './pages/users/UsersPage';
 import { SalesPage } from './pages/sales/SalesPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'products', 'stock', 'transfers', 'purchase', 'suppliers', 'locations', 'users', 'sales'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'products', 'stock', 'transfers', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings'] as const;
 
 const App: React.FC = () => {
 	const t = useTheme();
@@ -85,6 +86,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'locations' && <LocationsPage />}
 						{page === 'users' && <UsersPage />}
 						{page === 'sales' && <SalesPage />}
+					{page === 'settings' && <SettingsPage />}
 						{!IMPLEMENTED_PAGES.includes(page as typeof IMPLEMENTED_PAGES[number]) && (
 							<ComingSoon label={String(pageLabel)} />
 						)}

@@ -16,7 +16,8 @@ const STATUS_COLORS: Record<POStatus, { bg: string; text: string }> = {
 interface POItem { productId: string; productName: string; qtyOrdered: number; unitCost: number; }
 
 export const PurchasePage: React.FC = () => {
-  const t = useAppStore((s) => s.theme);
+  const t = useAppStore((s) => s.theme)
+  const sym = useAppStore((s) => s.currency.symbol);
   const tr = useAppStore((s) => s.tr);
 
   const [statusFilter, setStatusFilter] = useState<POStatus | undefined>(undefined);
@@ -160,7 +161,7 @@ export const PurchasePage: React.FC = () => {
               <span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{locationName}</span>
               <span style={{ display: "inline-flex", padding: "3px 9px", borderRadius: "6px", fontSize: "10px", fontWeight: 700, background: sc.bg, color: sc.text, textTransform: "capitalize", width: "fit-content" }}>{status}</span>
               <span style={{ color: t.textMuted, fontSize: "12px" }}>{itemCount} items</span>
-              <span style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>฿{totalAmt.toLocaleString()}</span>
+              <span style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>{sym}{totalAmt.toLocaleString()}</span>
               <div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }}>
                 {status === "draft" && (
                   <button onClick={() => sendMut.mutate({ id: o.id })} title="Mark as Sent" style={{ padding: "4px 8px", borderRadius: "6px", border: "none", background: "rgba(59,130,246,0.15)", color: "#3b82f6", cursor: "pointer", fontSize: "10px", fontWeight: 700, fontFamily: "inherit" }}>
@@ -284,7 +285,7 @@ export const PurchasePage: React.FC = () => {
                     </div>
                   ))}
                   <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
-                    <span style={{ color: t.text, fontSize: "13px", fontWeight: 700 }}>Total: ฿{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: t.text, fontSize: "13px", fontWeight: 700 }}>Total: {sym}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               )}

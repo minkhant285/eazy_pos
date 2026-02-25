@@ -153,6 +153,58 @@ export const stockRouter = router({
       }
     }),
 
+  /**
+   * GET /stock.allProducts
+   * All active products for a location, including those with no stock record.
+   * Products with no record appear with qty 0 and hasRecord=false.
+   */
+  allProducts: publicProcedure
+    .input(
+      z.object({
+        locationId: z.string().uuid(),
+        page: z.number().int().positive().default(1),
+        pageSize: z.number().int().positive().max(200).default(50),
+        search: z.string().optional(),
+      })
+    )
+    .query(({ input }) => {
+      try {
+        return StockService.listAllProductsForLocation(input.locationId, input)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /**
+   * POST /stock.setQty
+   * Set stock quantity to an exact value for any product/location.
+   * Works regardless of whether a stock record exists.
+   * Records a ledger entry automatically.
+   */
+  setQty: publicProcedure
+    .input(
+      z.object({
+        productId: z.string().uuid(),
+        locationId: z.string().uuid(),
+        qty: z.number().nonnegative(),
+        unitCost: z.number().nonnegative(),
+        createdBy: z.string().uuid().optional(),
+      })
+    )
+    .mutation(({ input }) => {
+      try {
+        return StockService.setStockQty(
+          input.productId,
+          input.locationId,
+          input.qty,
+          input.unitCost,
+          input.createdBy
+        )
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
   /** POST /stock.updateReserved — reserve qty for pending orders */
   updateReserved: publicProcedure
     .input(

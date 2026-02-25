@@ -29,6 +29,7 @@ type Tab = 'history' | 'pos'
 const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({ onShowVoucher }) => {
   const t = useAppStore((s) => s.theme)
   const tr = useAppStore((s) => s.tr)
+  const sym = useAppStore((s) => s.currency.symbol)
 
   const [statusFilter, setStatusFilter] = useState<SaleStatus | undefined>(undefined)
   const [page, setPage] = useState(1)
@@ -144,7 +145,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                 <span style={{ color: t.textMuted, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{locationName}</span>
                 <span style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: sc.bg, color: sc.text, textTransform: 'capitalize', width: 'fit-content' }}>{status.replace('_', ' ')}</span>
                 <span style={{ color: t.textMuted, fontSize: '11px' }}>{METHOD_LABELS[payMethod] ?? payMethod}</span>
-                <span style={{ color: t.text, fontSize: '13px', fontWeight: 700 }}>฿{totalAmt.toLocaleString()}</span>
+                <span style={{ color: t.text, fontSize: '13px', fontWeight: 700 }}>{sym}{totalAmt.toLocaleString()}</span>
               </div>
             )
           })
@@ -225,9 +226,9 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 12px', borderBottom: i < (detail as any).items.length - 1 ? `1px solid ${t.borderMid}` : 'none' }}>
                             <div>
                               <p style={{ color: t.text, fontSize: '13px', fontWeight: 500 }}>{item.productName ?? '—'}</p>
-                              <p style={{ color: t.textFaint, fontSize: '11px' }}>Qty: {item.qty} × ฿{Number(item.unitPrice).toLocaleString()}</p>
+                              <p style={{ color: t.textFaint, fontSize: '11px' }}>Qty: {item.qty} × {sym}{Number(item.unitPrice).toLocaleString()}</p>
                             </div>
-                            <span style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>฿{(Number(item.qty) * Number(item.unitPrice) - Number(item.discountAmount ?? 0)).toLocaleString()}</span>
+                            <span style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>{sym}{(Number(item.qty) * Number(item.unitPrice) - Number(item.discountAmount ?? 0)).toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
@@ -242,7 +243,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                         {((detail as any).payments as any[]).map((pay: any, i: number) => (
                           <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', borderBottom: i < (detail as any).payments.length - 1 ? `1px solid ${t.borderMid}` : 'none' }}>
                             <span style={{ color: t.textMuted, fontSize: '12px' }}>{METHOD_LABELS[pay.method] ?? pay.method}</span>
-                            <span style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>฿{Number(pay.amount).toLocaleString()}</span>
+                            <span style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
                           </div>
                         ))}
                       </div>
@@ -252,9 +253,9 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                   {/* Totals */}
                   <div style={{ borderTop: `1px solid ${t.borderMid}`, paddingTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {[
-                      ['Subtotal', `฿${Number((detail as any).subtotal ?? 0).toLocaleString()}`],
-                      ['Discount', `−฿${Number((detail as any).discountAmount ?? 0).toLocaleString()}`],
-                      ['Tax', `฿${Number((detail as any).taxAmount ?? 0).toLocaleString()}`],
+                      ['Subtotal', `${sym}${Number((detail as any).subtotal ?? 0).toLocaleString()}`],
+                      ['Discount', `−${sym}${Number((detail as any).discountAmount ?? 0).toLocaleString()}`],
+                      ['Tax', `${sym}${Number((detail as any).taxAmount ?? 0).toLocaleString()}`],
                     ].map(([label, val]) => (
                       <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: t.textMuted, fontSize: '12px' }}>{label}</span>
@@ -263,7 +264,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', paddingTop: '8px', borderTop: `1px solid ${t.borderMid}` }}>
                       <span style={{ color: t.text, fontSize: '14px', fontWeight: 700 }}>Total</span>
-                      <span style={{ color: t.text, fontSize: '16px', fontWeight: 800 }}>฿{Number((detail as any).totalAmount ?? 0).toLocaleString()}</span>
+                      <span style={{ color: t.text, fontSize: '16px', fontWeight: 800 }}>{sym}{Number((detail as any).totalAmount ?? 0).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

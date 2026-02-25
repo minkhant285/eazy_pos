@@ -344,3 +344,124 @@ export function updateReservedQty(productId: string, locationId: string, delta: 
     .where(and(eq(stock.productId, productId), eq(stock.locationId, locationId)))
     .run();
 }
+
+// ─── All-products inventory view (includes products with no stock record) ───
+
+/**
+ * List ALL active products for a location, LEFT JOINing stock.
+ * Products with no stock record show qty 0 and hasRecord=false.
+ * This lets the UI display and initialize stock for every product.
+ */
+export function listAllProductsForLocation(
+  locationId: string,
+  params?: { page?: number; pageSize?: number; search?: string }
+) {
+  const page = params?.page ?? 1;
+  const pageSize = params?.pageSize ?? 50;
+  const offset = (page - 1) * pageSize;
+
+  const conditions: any[] = [eq(products.isActive, true)];
+  if (params?.search) {
+    conditions.push(
+      sql`(${products.name} LIKE ${"%" + params.search + "%"} OR ${products.sku} LIKE ${"%" + params.search + "%"})`
+    );
+  }
+  const where = and(...conditions);
+
+  const data = db
+    .select({
+      productId: products.id,
+      sku: products.sku,
+      barcode: products.barcode,
+      name: products.name,
+      description: products.description,
+      categoryId: products.categoryId,
+      unitOfMeasure: products.unitOfMeasure,
+      costPrice: products.costPrice,
+      sellingPrice: products.sellingPrice,
+      taxRate: products.taxRate,
+      reorderPoint: products.reorderPoint,
+      reorderQty: products.reorderQty,
+      isSerialized: products.isSerialized,
+      imageUrl: products.imageUrl,
+      qtyOnHand:    sql<number>`COALESCE(${stock.qtyOnHand}, 0)`,
+      qtyReserved:  sql<number>`COALESCE(${stock.qtyReserved}, 0)`,
+      qtyAvailable: sql<number>`COALESCE(${stock.qtyAvailable}, 0)`,
+      hasRecord:    sql<boolean>`CASE WHEN ${stock.id} IS NOT NULL THEN 1 ELSE 0 END`,
+      isLowStock:   sql<boolean>`CASE WHEN COALESCE(${stock.qtyOnHand},0) <= ${products.reorderPoint} AND ${products.reorderPoint} > 0 THEN 1 ELSE 0 END`,
+      stockValue:   sql<number>`COALESCE(${stock.qtyOnHand}, 0) * ${products.costPrice}`,
+    })
+    .from(products)
+    .leftJoin(
+      stock,
+      and(eq(stock.productId, products.id), eq(stock.locationId, locationId))
+    )
+    .where(where)
+    .limit(pageSize)
+    .offset(offset)
+    .all();
+
+  const total =
+    db.select({ c: sql<number>`COUNT(*)` }).from(products).where(where).get()?.c ?? 0;
+
+  return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+}
+
+/**
+ * Set the stock quantity for a product at a location to any value.
+ * Works whether a stock record exists or not.
+ * Records a ledger entry (opening_balance for first-time, adjustment otherwise).
+ */
+export function setStockQty(
+  productId: string,
+  locationId: string,
+  newQty: number,
+  unitCost: number,
+  createdBy?: string
+) {
+  return db.transaction((tx) => {
+    const existing = getStock(productId, locationId);
+    const currentQty = existing?.qtyOnHand ?? 0;
+    const delta = newQty - currentQty;
+
+    if (delta === 0) return { qtyBefore: currentQty, qtyAfter: newQty };
+
+    if (existing) {
+      tx.update(stock)
+        .set({ qtyOnHand: newQty, updatedAt: now() })
+        .where(and(eq(stock.productId, productId), eq(stock.locationId, locationId)))
+        .run();
+    } else {
+      tx.insert(stock)
+        .values({ id: newId(), productId, locationId, qtyOnHand: newQty, qtyReserved: 0 })
+        .run();
+    }
+
+    const movementType =
+      currentQty === 0 && delta > 0
+        ? ("opening_balance" as const)
+        : delta > 0
+        ? ("adjustment_in" as const)
+        : ("adjustment_out" as const);
+
+    tx.insert(stockLedger)
+      .values({
+        id: newId(),
+        productId,
+        locationId,
+        movementType,
+        qty: Math.abs(delta),
+        qtyBefore: currentQty,
+        qtyAfter: newQty,
+        unitCost,
+        totalCost: Math.abs(delta) * unitCost,
+        notes: "Manual stock set",
+        createdBy: createdBy ?? null,
+        referenceType: null,
+        referenceId: null,
+      })
+      .run();
+
+    return { qtyBefore: currentQty, qtyAfter: newQty };
+  });
+}

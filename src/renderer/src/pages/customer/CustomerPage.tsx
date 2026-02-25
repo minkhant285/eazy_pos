@@ -11,7 +11,8 @@ interface ModalState { open: boolean; customer: Customer | null; }
 const PAGE_SIZE = 20;
 
 export const CustomersPage: React.FC = () => {
-	const t = useAppStore((s) => s.theme);
+	const t = useAppStore((s) => s.theme)
+	const sym = useAppStore((s) => s.currency.symbol);
 	const tr = useAppStore((s) => s.tr);
 
 	const [search, setSearch] = useState("");
@@ -169,7 +170,7 @@ export const CustomersPage: React.FC = () => {
 
 						{/* Balance */}
 						<span style={{ fontSize: "13px", fontWeight: 500, color: Number(c.outstandingBalance) > 0 ? "#ef4444" : t.textFaint }}>
-							{Number(c.outstandingBalance) > 0 ? `฿ ${Number(c.outstandingBalance).toLocaleString()}` : "—"}
+							{Number(c.outstandingBalance) > 0 ? `${sym} ${Number(c.outstandingBalance).toLocaleString()}` : "—"}
 						</span>
 
 						{/* Status */}

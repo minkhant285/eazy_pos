@@ -17,7 +17,7 @@ const CreateProductSchema = z.object({
   reorderPoint: z.number().nonnegative().optional(),
   reorderQty: z.number().nonnegative().optional(),
   isSerialized: z.boolean().optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().optional(),
 })
 
 const ProductFilterSchema = z.object({

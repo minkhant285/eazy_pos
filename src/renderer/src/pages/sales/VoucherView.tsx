@@ -56,6 +56,7 @@ interface Props {
 
 export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
   const t = useAppStore((s) => s.theme)
+  const sym = useAppStore((s) => s.currency.symbol)
   const printRef = useRef<HTMLDivElement>(null)
 
   const handlePrint = () => {
@@ -178,11 +179,11 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
                 <div key={i}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span className="item-name" style={{ color: t.text, fontSize: '12px', fontWeight: 600, flex: 1, marginRight: '8px' }}>{item.productName ?? '—'}</span>
-                    <span className="item-price" style={{ color: t.text, fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>฿{Number(item.totalAmount).toLocaleString()}</span>
+                    <span className="item-price" style={{ color: t.text, fontSize: '12px', fontWeight: 700, whiteSpace: 'nowrap' }}>{sym}{Number(item.totalAmount).toLocaleString()}</span>
                   </div>
                   <span style={{ color: t.textFaint, fontSize: '10px' }}>
-                    {item.qty} × ฿{Number(item.unitPrice).toLocaleString()}
-                    {item.discountAmount > 0 ? ` (−฿${Number(item.discountAmount).toLocaleString()})` : ''}
+                    {item.qty} × {sym}{Number(item.unitPrice).toLocaleString()}
+                    {item.discountAmount > 0 ? ` (−{sym}${Number(item.discountAmount).toLocaleString()})` : ''}
                   </span>
                 </div>
               ))}
@@ -194,23 +195,23 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: t.textMuted, fontSize: '11px' }}>Subtotal</span>
-                <span style={{ color: t.textMuted, fontSize: '11px' }}>฿{Number(sale.subtotal).toLocaleString()}</span>
+                <span style={{ color: t.textMuted, fontSize: '11px' }}>{sym}{Number(sale.subtotal).toLocaleString()}</span>
               </div>
               {sale.discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: t.textMuted, fontSize: '11px' }}>Discount</span>
-                  <span style={{ color: '#ef4444', fontSize: '11px' }}>−฿{Number(sale.discountAmount).toLocaleString()}</span>
+                  <span style={{ color: '#ef4444', fontSize: '11px' }}>−{sym}{Number(sale.discountAmount).toLocaleString()}</span>
                 </div>
               )}
               {sale.taxAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: t.textMuted, fontSize: '11px' }}>Tax</span>
-                  <span style={{ color: t.textMuted, fontSize: '11px' }}>฿{Number(sale.taxAmount).toLocaleString()}</span>
+                  <span style={{ color: t.textMuted, fontSize: '11px' }}>{sym}{Number(sale.taxAmount).toLocaleString()}</span>
                 </div>
               )}
               <div className="total-row" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '7px', borderTop: `1px solid ${t.borderMid}`, marginTop: '4px' }}>
                 <span style={{ color: t.text, fontSize: '15px', fontWeight: 900 }}>TOTAL</span>
-                <span style={{ color: '#7c3aed', fontSize: '17px', fontWeight: 900 }}>฿{Number(sale.totalAmount).toLocaleString()}</span>
+                <span style={{ color: '#7c3aed', fontSize: '17px', fontWeight: 900 }}>{sym}{Number(sale.totalAmount).toLocaleString()}</span>
               </div>
             </div>
 
@@ -221,13 +222,13 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
               {sale.payments.map((pay, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: t.textMuted, fontSize: '11px' }}>{METHOD_LABELS[pay.method] ?? pay.method}</span>
-                  <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>฿{Number(pay.amount).toLocaleString()}</span>
+                  <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
                 </div>
               ))}
               {sale.changeAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: t.textMuted, fontSize: '11px' }}>Change</span>
-                  <span className="green" style={{ color: '#10b981', fontSize: '11px', fontWeight: 700 }}>฿{Number(sale.changeAmount).toLocaleString()}</span>
+                  <span className="green" style={{ color: '#10b981', fontSize: '11px', fontWeight: 700 }}>{sym}{Number(sale.changeAmount).toLocaleString()}</span>
                 </div>
               )}
             </div>
