@@ -102,7 +102,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 				{/* Footer */}
 				<div style={{ padding: "16px 22px", borderTop: `1px solid ${t.borderMid}`, display: "flex", gap: "10px" }}>
 					<button onClick={onClose} disabled={isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-					<button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(124,58,237,0.35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
+					<button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px var(--primary-35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
 						{isPending ? "..." : isNew ? "Create Product" : tr.save_changes}
 					</button>
 				</div>
@@ -166,7 +166,7 @@ export const ProductsPage: React.FC = () => {
 					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.products}</h1>
 					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} products</p>
 				</div>
-				<button onClick={() => setModal({ open: true, product: null })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(124,58,237,0.3)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+				<button onClick={() => setModal({ open: true, product: null })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
 					<Icon name="plus" size={13} /> New Product
 				</button>
 			</div>
@@ -228,7 +228,7 @@ export const ProductsPage: React.FC = () => {
 					{totalPages > 1 && (
 						<div style={{ display: "flex", gap: "3px" }}>
 							{pageButtons.map((p) => (
-								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
 							))}
 						</div>
 					)}

@@ -455,7 +455,7 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 							</div>
 							<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
 								<div style={{ height: "29px" }} />
-								<button onClick={addItem} disabled={!selectedProductId || Number(qty) <= 0} style={{ width: "38px", height: "38px", borderRadius: "11px", border: "none", background: selectedProductId && Number(qty) > 0 ? "#7c3aed" : t.inputBg, color: selectedProductId && Number(qty) > 0 ? "#fff" : t.textFaint, cursor: selectedProductId ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+								<button onClick={addItem} disabled={!selectedProductId || Number(qty) <= 0} style={{ width: "38px", height: "38px", borderRadius: "11px", border: "none", background: selectedProductId && Number(qty) > 0 ? "var(--primary)" : t.inputBg, color: selectedProductId && Number(qty) > 0 ? "#fff" : t.textFaint, cursor: selectedProductId ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
 									<Icon name="plus" size={14} />
 								</button>
 							</div>
@@ -469,7 +469,7 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 											<p style={{ color: t.text, fontSize: "13px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
 											<p style={{ color: t.textFaint, fontSize: "11px" }}>{item.productSku}</p>
 										</div>
-										<span style={{ color: "#a78bfa", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>× {item.qtySent}</span>
+										<span style={{ color: "var(--primary-light)", fontSize: "13px", fontWeight: 700, flexShrink: 0 }}>× {item.qtySent}</span>
 										<button onClick={() => removeItem(item.productId)} style={{ width: "24px", height: "24px", borderRadius: "6px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="close" size={11} /></button>
 									</div>
 								))}
@@ -484,7 +484,7 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 
 				<div style={{ padding: "16px 22px", borderTop: `1px solid ${t.borderMid}`, display: "flex", gap: "10px" }}>
 					<button onClick={onClose} disabled={create.isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-					<button onClick={handleSubmit} disabled={create.isPending || !canSubmit} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canSubmit ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(124,58,237,0.35)", opacity: create.isPending || !canSubmit ? 0.7 : 1 }}>
+					<button onClick={handleSubmit} disabled={create.isPending || !canSubmit} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canSubmit ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px var(--primary-35)", opacity: create.isPending || !canSubmit ? 0.7 : 1 }}>
 						{create.isPending ? "Creating…" : "Create Transfer"}
 					</button>
 				</div>
@@ -540,7 +540,7 @@ export const TransfersPage: React.FC = () => {
 					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.transfers}</h1>
 					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} stock transfers</p>
 				</div>
-				<button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(124,58,237,0.3)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+				<button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
 					<Icon name="plus" size={13} /> New Transfer
 				</button>
 			</div>
@@ -576,7 +576,7 @@ export const TransfersPage: React.FC = () => {
 							onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = t.surfaceHover; }}
 							onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
 						>
-							<span style={{ color: "#a78bfa", fontSize: "12px", fontWeight: 700, fontFamily: "monospace" }}>{row.transferNo}</span>
+							<span style={{ color: "var(--primary-light)", fontSize: "12px", fontWeight: 700, fontFamily: "monospace" }}>{row.transferNo}</span>
 							<div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
 								<Icon name="location" size={11} style={{ color: t.textFaint, flexShrink: 0 }} />
 								<span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{locName(row.fromLocationId)}</span>
@@ -609,7 +609,7 @@ export const TransfersPage: React.FC = () => {
 					{totalPages > 1 && (
 						<div style={{ display: "flex", gap: "3px" }}>
 							{pageButtons.map((p) => (
-								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
 							))}
 						</div>
 					)}

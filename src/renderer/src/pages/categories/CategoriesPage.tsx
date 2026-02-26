@@ -48,7 +48,7 @@ export const CategoriesPage: React.FC = () => {
 					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.categories}</h1>
 					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{filtered.length} categories</p>
 				</div>
-				<button onClick={() => openModal()} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px rgba(124,58,237,0.3)", fontFamily: "inherit" }}>
+				<button onClick={() => openModal()} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit" }}>
 					<Icon name="plus" size={13} /> New Category
 				</button>
 			</div>
@@ -80,8 +80,8 @@ export const CategoriesPage: React.FC = () => {
 							onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
 						>
 							<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-								<div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-									<Icon name="category" size={12} style={{ color: "#a78bfa" }} />
+								<div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+									<Icon name="category" size={12} style={{ color: "var(--primary-light)" }} />
 								</div>
 								<span style={{ color: t.text, fontSize: "13px", fontWeight: 600 }}>{c.name}</span>
 							</div>
@@ -146,7 +146,7 @@ export const CategoriesPage: React.FC = () => {
 						</div>
 						<div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>
 							<button onClick={() => setModal({ open: false, category: null })} disabled={isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-							<button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(124,58,237,0.35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
+							<button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px var(--primary-35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
 								{isPending ? "..." : isNew ? "Create" : tr.save_changes}
 							</button>
 						</div>

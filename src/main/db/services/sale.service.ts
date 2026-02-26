@@ -1,14 +1,16 @@
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { db } from "../db";
-import { sales, saleItems, payments, products, customers, users, locations } from "../schemas/schema";
+import { sales, saleItems, payments, products, productVariants, customers, users, locations } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
+import { upsertVariantStock } from "./variant.service";
 import { addLoyaltyPoints } from "./customer.service";
 
 // ─── Types ───────────────────────────────────────────────────
 
 export type CartItem = {
   productId: string;
+  variantId?: string;       // Optional variant ID
   qty: number;
   unitPrice?: number;       // Override price (e.g. price-level or negotiated)
   discountAmount?: number;  // Line-level discount
@@ -91,7 +93,31 @@ export function createSale(input: CreateSaleInput) {
         throw new ValidationError(`Product not available: ${cartItem.productId}`);
       }
 
-      const unitPrice = cartItem.unitPrice ?? product.sellingPrice;
+      let unitPrice: number;
+      let unitCost: number;
+      let stockResult: { qtyBefore: number; qtyAfter: number };
+
+      if (cartItem.variantId) {
+        const variant = tx
+          .select()
+          .from(productVariants)
+          .where(eq(productVariants.id, cartItem.variantId))
+          .get();
+
+        if (!variant || !variant.isActive) {
+          throw new ValidationError(`Variant not available: ${cartItem.variantId}`);
+        }
+
+        unitPrice = cartItem.unitPrice ?? variant.sellingPrice;
+        unitCost = variant.costPrice;
+        stockResult = upsertVariantStock(cartItem.variantId, input.locationId, -cartItem.qty);
+      } else {
+        unitPrice = cartItem.unitPrice ?? product.sellingPrice;
+        unitCost = product.costPrice;
+        stockResult = upsertStock(product.id, input.locationId, -cartItem.qty);
+      }
+
+      const { qtyBefore, qtyAfter } = stockResult;
       const discount = cartItem.discountAmount ?? 0;
       const lineNet = cartItem.qty * unitPrice - discount;
       const lineTax = lineNet * product.taxRate;
@@ -100,16 +126,14 @@ export function createSale(input: CreateSaleInput) {
       subtotal += cartItem.qty * unitPrice;
       totalTax += lineTax;
 
-      // ── Update stock ──
-      const { qtyBefore, qtyAfter } = upsertStock(product.id, input.locationId, -cartItem.qty);
-
       saleItemRows.push({
         id: newId(),
         saleId,
         productId: product.id,
+        variantId: cartItem.variantId ?? null,
         qty: cartItem.qty,
         unitPrice,
-        unitCost: product.costPrice,
+        unitCost,
         discountAmount: discount,
         taxAmount: lineTax,
         totalAmount: lineTotal,
@@ -118,12 +142,13 @@ export function createSale(input: CreateSaleInput) {
       ledgerEntries.push({
         productId: product.id,
         locationId: input.locationId,
+        variantId: cartItem.variantId,
         movementType: "sale_out" as const,
         qty: cartItem.qty,
         qtyBefore,
         qtyAfter,
-        unitCost: product.costPrice,
-        totalCost: cartItem.qty * product.costPrice,
+        unitCost,
+        totalCost: cartItem.qty * unitCost,
         referenceType: "sale" as const,
         referenceId: saleId,
         createdBy: input.cashierId,
@@ -225,6 +250,7 @@ export function getSaleById(id: string) {
     .select({
       id: saleItems.id,
       productId: saleItems.productId,
+      variantId: saleItems.variantId,
       productName: products.name,
       productSku: products.sku,
       qty: saleItems.qty,
@@ -302,9 +328,18 @@ export function voidSale(saleId: string, voidedBy: string, reason: string) {
 
     // Reverse each line item's stock movement
     for (const item of sale.items) {
-      const { qtyBefore, qtyAfter } = upsertStock(item.productId, sale.locationId, item.qty);
+      let qtyBefore: number;
+      let qtyAfter: number;
+
+      if (item.variantId) {
+        ({ qtyBefore, qtyAfter } = upsertVariantStock(item.variantId, sale.locationId, item.qty));
+      } else {
+        ({ qtyBefore, qtyAfter } = upsertStock(item.productId, sale.locationId, item.qty));
+      }
+
       appendLedger({
         productId: item.productId,
+        variantId: item.variantId ?? undefined,
         locationId: sale.locationId,
         movementType: "return_in",
         qty: item.qty,
@@ -361,10 +396,18 @@ export function processSaleReturn(
         );
       }
 
-      const { qtyBefore, qtyAfter } = upsertStock(ret.productId, sale.locationId, ret.qty);
+      let qtyBefore: number;
+      let qtyAfter: number;
+
+      if (originalItem.variantId) {
+        ({ qtyBefore, qtyAfter } = upsertVariantStock(originalItem.variantId, sale.locationId, ret.qty));
+      } else {
+        ({ qtyBefore, qtyAfter } = upsertStock(ret.productId, sale.locationId, ret.qty));
+      }
 
       appendLedger({
         productId: ret.productId,
+        variantId: originalItem.variantId ?? undefined,
         locationId: sale.locationId,
         movementType: "return_in",
         qty: ret.qty,

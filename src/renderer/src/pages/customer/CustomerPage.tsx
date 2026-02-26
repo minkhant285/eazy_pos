@@ -67,8 +67,8 @@ export const CustomersPage: React.FC = () => {
 					style={{
 						display: "flex", alignItems: "center", gap: "6px",
 						padding: "9px 16px", borderRadius: "12px", border: "none",
-						background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700,
-						cursor: "pointer", boxShadow: "0 4px 16px rgba(124,58,237,0.3)",
+						background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700,
+						cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)",
 						fontFamily: "inherit", whiteSpace: "nowrap",
 					}}
 				>
@@ -147,7 +147,7 @@ export const CustomersPage: React.FC = () => {
 					>
 						{/* Avatar + name */}
 						<div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
-							<div style={{ width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,#8b5cf6,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "11px", fontWeight: 700 }}>
+							<div style={{ width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0, background: "linear-gradient(135deg,var(--primary-light),var(--primary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "11px", fontWeight: 700 }}>
 								{c.name.charAt(0)}
 							</div>
 							<div style={{ minWidth: 0 }}>
@@ -196,7 +196,7 @@ export const CustomersPage: React.FC = () => {
 					{totalPages > 1 && (
 						<div style={{ display: "flex", gap: "3px" }}>
 							{pageButtons.map((p) => (
-								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>
+								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>
 									{p}
 								</button>
 							))}

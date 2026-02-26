@@ -12,6 +12,7 @@ export * as PurchaseOrderService from "./purchase-order.service";
 export * as StockAdjustmentService from "./stock-adjustment.service";
 export * as StockTransferService from "./stock-transfer.service";
 export * as ExpenseService       from "./expense.service";
+export * as VariantService       from "./variant.service";
 
 // ============================================================
 // QUICK REFERENCE — Function Index

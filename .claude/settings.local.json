@@ -5,7 +5,19 @@
       "Bash(python3 -c \"\ncontent = open\\('/Users/minkhant/Desktop/html/electron/mkjournal/src/renderer/src/App.tsx'\\).read\\(\\)\nold = \\\\\"\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'dashboard' && <DashboardPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'customers' && <CustomersPage />}\\\\\"\nnew = \\\\\"\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'dashboard'  && <DashboardPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'customers'  && <CustomersPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'categories' && <CategoriesPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'products'   && <ProductsPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'stock'      && <StockPage />}\\\\n\\\\t\\\\t\\\\t\\\\t\\\\t\\\\t{page === 'transfers'  && <TransfersPage />}\\\\\"\nif old in content:\n    open\\('/Users/minkhant/Desktop/html/electron/mkjournal/src/renderer/src/App.tsx','w'\\).write\\(content.replace\\(old, new, 1\\)\\)\n    print\\('REPLACED'\\)\nelse:\n    print\\('NOT FOUND'\\)\n\")",
       "Bash(tree -L 3 /Users/minkhant/Desktop/html/electron/mkjournal/src/main 2>/dev/null || find /Users/minkhant/Desktop/html/electron/mkjournal/src/main -type f -name \"*.ts\" -o -name \"*.tsx\" | sort)",
       "Bash(npx tsc --noEmit 2>&1 | grep -v \"npm warn\")",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(npx tsc --noEmit 2>&1 | head -60)",
+      "Bash(npm run build:mac 2>&1)",
+      "Bash(electron-builder --mac 2>&1)",
+      "Bash(ELECTRON_BUILDER_BINARIES_MIRROR=\"https://github.com/electron-userland/electron-builder-binaries/releases/download/\" npm run build:mac 2>&1)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(mkdir -p ~/Library/Caches/electron-builder/dmg-builder@1.2.0 && tar -xzf /tmp/dmgbuild.tar.gz -C ~/Library/Caches/electron-builder/dmg-builder@1.2.0/ && ls ~/Library/Caches/electron-builder/dmg-builder@1.2.0/)",
+      "Bash(yarn add @tanstack/react-table)",
+      "Bash(LC_ALL=C find src/renderer/src -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.4\\)/var\\(--primary-40\\)/g')",
+      "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.3\\)/var\\(--primary-30\\)/g')",
+      "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.2\\)/var\\(--primary-20\\)/g')",
+      "Bash(xargs sed -i '' 's/#a78bfa/var\\(--primary-light\\)/g')"
     ]
   }
 }

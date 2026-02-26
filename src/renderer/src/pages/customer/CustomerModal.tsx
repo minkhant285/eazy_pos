@@ -125,7 +125,7 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 					<button
 						onClick={handleSubmit}
 						disabled={isPending || !form.name.trim()}
-						style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(124,58,237,0.35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}
+						style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px var(--primary-35)", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}
 					>
 						{isPending ? "..." : isNew ? tr.create_customer : tr.save_changes}
 					</button>

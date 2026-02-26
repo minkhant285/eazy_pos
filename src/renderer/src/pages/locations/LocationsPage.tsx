@@ -52,7 +52,7 @@ export const LocationsPage: React.FC = () => {
           <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Locations</h1>
           <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{locations.length} locations</p>
         </div>
-        <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           <Icon name="plus" size={13} /> New Location
         </button>
       </div>
@@ -73,8 +73,8 @@ export const LocationsPage: React.FC = () => {
               onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon name="location" size={16} style={{ color: "#a78bfa" }} />
+                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name="location" size={16} style={{ color: "var(--primary-light)" }} />
                   </div>
                   <div>
                     <p style={{ color: t.text, fontSize: "14px", fontWeight: 700 }}>{l.name}</p>
@@ -142,7 +142,7 @@ export const LocationsPage: React.FC = () => {
             </div>
             <div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>
               <button onClick={closeModal} disabled={isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-              <button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
+              <button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
                 {isPending ? "..." : modal.id ? tr.save_changes : "Create"}
               </button>
             </div>

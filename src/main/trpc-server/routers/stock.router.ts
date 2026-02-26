@@ -165,6 +165,7 @@ export const stockRouter = router({
         page: z.number().int().positive().default(1),
         pageSize: z.number().int().positive().max(200).default(50),
         search: z.string().optional(),
+        isActive: z.boolean().optional(),
       })
     )
     .query(({ input }) => {

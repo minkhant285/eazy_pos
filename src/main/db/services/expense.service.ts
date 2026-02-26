@@ -188,6 +188,7 @@ export function listExpenses(params?: ExpenseFilter) {
       categoryId: expenses.categoryId,
       categoryName: expenseCategories.name,
       categoryColor: expenseCategories.color,
+      locationId: expenses.locationId,
       locationName: locations.name,
       amount: expenses.amount,
       description: expenses.description,

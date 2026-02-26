@@ -28,12 +28,12 @@ const METHOD_COLOR: Record<string, string> = {
 	cash:           "#10b981",
 	credit_card:    "#3b82f6",
 	debit_card:     "#2563eb",
-	qr_code:        "#8b5cf6",
+	qr_code:        "var(--primary-light)",
 	store_credit:   "#f59e0b",
 	loyalty_points: "#ec4899",
 };
 
-const PIE_FALLBACK = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6", "#ef4444"];
+const PIE_FALLBACK = ["var(--primary-light)", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6", "#ef4444"];
 
 // ─────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ export const DashboardPage: React.FC = () => {
 	};
 
 	const stats = [
-		{ label: tr.todays_revenue, value: summaryLoading ? "…" : fmt(revenue), change: fmtPct(revenue, prevRevenue), grad: "linear-gradient(135deg,#8b5cf6,#7c3aed)" },
+		{ label: tr.todays_revenue, value: summaryLoading ? "…" : fmt(revenue), change: fmtPct(revenue, prevRevenue), grad: "linear-gradient(135deg,var(--primary-light),var(--primary))" },
 		{ label: tr.total_customers, value: (customersData?.total ?? 0).toLocaleString(), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#06b6d4,#2563eb)" },
 		{ label: tr.transactions, value: summaryLoading ? "…" : transactions.toLocaleString(), change: fmtPct(transactions, prevTx), grad: "linear-gradient(135deg,#10b981,#0d9488)" },
 		{ label: tr.low_stock_alerts, value: (lowStockData?.total ?? 0).toLocaleString(), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#f59e0b,#ea580c)" },
@@ -167,7 +167,7 @@ export const DashboardPage: React.FC = () => {
 				label: tr.total_revenue,
 				data: chartDays.map((d) => d.revenue),
 				backgroundColor: "rgba(139, 92, 246, 0.75)",
-				borderColor: "#8b5cf6",
+				borderColor: "var(--primary-light)",
 				borderWidth: 1,
 				borderRadius: 4,
 				borderSkipped: false as const,
@@ -312,7 +312,7 @@ export const DashboardPage: React.FC = () => {
 						{/* Today's summary pills */}
 						<div style={{ display: "flex", gap: "8px" }}>
 							{[
-								{ label: tr.total_revenue, val: revenue,     color: "#8b5cf6" },
+								{ label: tr.total_revenue, val: revenue,     color: "var(--primary-light)" },
 								{ label: tr.total_cost,   val: todayCogs,   color: "#f59e0b" },
 								{ label: tr.gross_profit, val: todayGross,  color: "#10b981" },
 							].map((item) => (
@@ -379,7 +379,7 @@ export const DashboardPage: React.FC = () => {
 								</svg>
 								{salesFetching ? "…" : "Refresh"}
 							</button>
-							<button onClick={() => setPage("sales")} style={{ color: "#8b5cf6", fontSize: "12px", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+							<button onClick={() => setPage("sales")} style={{ color: "var(--primary-light)", fontSize: "12px", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
 								{tr.view_all}
 							</button>
 						</div>
@@ -413,7 +413,7 @@ export const DashboardPage: React.FC = () => {
 						</p>
 					) : paymentRows.map((p) => {
 						const pct   = totalPayAmt > 0 ? Math.round((Number(p.totalAmount) / totalPayAmt) * 100) : 0;
-						const color = METHOD_COLOR[p.method] ?? "#8b5cf6";
+						const color = METHOD_COLOR[p.method] ?? "var(--primary-light)";
 						return (
 							<div key={p.method} style={{ marginBottom: "14px" }}>
 								<div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>

@@ -130,7 +130,7 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
                 New Sale
               </button>
             )}
-            <button onClick={handlePrint} style={{ ...btnBase, background: '#7c3aed', color: '#fff' }}>
+            <button onClick={handlePrint} style={{ ...btnBase, background: 'var(--primary)', color: '#fff' }}>
               Print
             </button>
             <button
@@ -148,7 +148,7 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
 
             {/* Store name */}
             <div className="center" style={{ textAlign: 'center', marginBottom: '14px' }}>
-              <p className="store-name" style={{ color: t.text, fontWeight: 900, fontSize: '18px' }}>MKJournal POS</p>
+              <p className="store-name" style={{ color: t.text, fontWeight: 900, fontSize: '18px' }}>Easy POS</p>
               {sale.locationName && (
                 <p style={{ color: t.textMuted, fontSize: '11px', marginTop: '3px' }}>{sale.locationName}</p>
               )}
@@ -211,7 +211,7 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
               )}
               <div className="total-row" style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '7px', borderTop: `1px solid ${t.borderMid}`, marginTop: '4px' }}>
                 <span style={{ color: t.text, fontSize: '15px', fontWeight: 900 }}>TOTAL</span>
-                <span style={{ color: '#7c3aed', fontSize: '17px', fontWeight: 900 }}>{sym}{Number(sale.totalAmount).toLocaleString()}</span>
+                <span style={{ color: 'var(--primary)', fontSize: '17px', fontWeight: 900 }}>{sym}{Number(sale.totalAmount).toLocaleString()}</span>
               </div>
             </div>
 

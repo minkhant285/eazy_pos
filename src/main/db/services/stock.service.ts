@@ -256,6 +256,7 @@ export function upsertStock(
 export function appendLedger(entry: {
   productId: string;
   locationId: string;
+  variantId?: string;
   movementType: typeof stockLedger.$inferInsert["movementType"];
   qty: number;
   qtyBefore: number;
@@ -271,6 +272,7 @@ export function appendLedger(entry: {
     .values({
       id: newId(),
       ...entry,
+      variantId: entry.variantId ?? null,
       unitCost: entry.unitCost ?? null,
       totalCost: entry.totalCost ?? null,
       referenceType: entry.referenceType ?? null,
@@ -354,13 +356,18 @@ export function updateReservedQty(productId: string, locationId: string, delta: 
  */
 export function listAllProductsForLocation(
   locationId: string,
-  params?: { page?: number; pageSize?: number; search?: string }
+  params?: { page?: number; pageSize?: number; search?: string; isActive?: boolean }
 ) {
   const page = params?.page ?? 1;
   const pageSize = params?.pageSize ?? 50;
   const offset = (page - 1) * pageSize;
 
-  const conditions: any[] = [eq(products.isActive, true)];
+  const conditions: any[] = [];
+  if (params?.isActive !== undefined) {
+    conditions.push(eq(products.isActive, params.isActive));
+  } else {
+    conditions.push(eq(products.isActive, true));
+  }
   if (params?.search) {
     conditions.push(
       sql`(${products.name} LIKE ${"%" + params.search + "%"} OR ${products.sku} LIKE ${"%" + params.search + "%"})`
@@ -390,6 +397,7 @@ export function listAllProductsForLocation(
       hasRecord:    sql<boolean>`CASE WHEN ${stock.id} IS NOT NULL THEN 1 ELSE 0 END`,
       isLowStock:   sql<boolean>`CASE WHEN COALESCE(${stock.qtyOnHand},0) <= ${products.reorderPoint} AND ${products.reorderPoint} > 0 THEN 1 ELSE 0 END`,
       stockValue:   sql<number>`COALESCE(${stock.qtyOnHand}, 0) * ${products.costPrice}`,
+      hasVariants:  sql<number>`EXISTS (SELECT 1 FROM product_variants WHERE product_id = ${products.id} AND is_active = 1)`,
     })
     .from(products)
     .leftJoin(

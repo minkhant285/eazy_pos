@@ -1,6 +1,6 @@
 import { eq, like, and, sql, or } from "drizzle-orm";
 import { db } from "../db";
-import { products, productPriceHistory, categories, stock } from "../schemas/schema";
+import { products, productPriceHistory, categories, stock, stockLedger, saleItems } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, PaginationParams } from "../utils";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -177,6 +177,7 @@ export function listProducts(params?: ProductFilter) {
       reorderPoint: products.reorderPoint,
       isActive: products.isActive,
       imageUrl: products.imageUrl,
+      hasVariants: sql<number>`EXISTS (SELECT 1 FROM product_variants WHERE product_id = ${products.id} AND is_active = 1)`,
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
@@ -224,6 +225,35 @@ export function updateProduct(id: string, input: UpdateProductInput, changedBy?:
 export function deactivateProduct(id: string) {
   getProductById(id);
   db.update(products).set({ isActive: false, updatedAt: now() }).where(eq(products.id, id)).run();
+}
+
+/** Hard-delete a product permanently.
+ *  Refuses if the product has any sales history (audit trail must be preserved).
+ *  Cleans up non-cascaded tables (stock, stockLedger, priceHistory) before deleting.
+ *  variantAttributes / productVariants / etc. are cascade-deleted automatically. */
+export function deleteProduct(id: string) {
+  getProductById(id); // throws NotFoundError if missing
+
+  const soldCount =
+    db.select({ c: sql<number>`COUNT(*)` })
+      .from(saleItems)
+      .where(eq(saleItems.productId, id))
+      .get()?.c ?? 0;
+
+  if (soldCount > 0) {
+    throw new ValidationError(
+      "This product has sales history and cannot be permanently deleted. Use Deactivate instead to hide it from inventory."
+    );
+  }
+
+  // Remove non-cascaded dependent rows first
+  db.delete(stockLedger).where(eq(stockLedger.productId, id)).run();
+  db.delete(stock).where(eq(stock.productId, id)).run();
+  db.delete(productPriceHistory).where(eq(productPriceHistory.productId, id)).run();
+
+  // Delete the product — CASCADE removes: variantAttributes → variantOptions →
+  // productVariantOptions, productVariants → variantStock
+  db.delete(products).where(eq(products.id, id)).run();
 }
 
 /** Reactivate a product */

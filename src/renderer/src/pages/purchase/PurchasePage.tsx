@@ -138,7 +138,7 @@ const PODetailDrawer: React.FC<PODetailDrawerProps> = ({ poId, onClose, onRefetc
                 </div>
                 <div style={fieldStyle}>
                   <span style={fieldLabel}>Total Amount</span>
-                  <span style={{ ...fieldValue, color: "#7c3aed", fontWeight: 800, fontSize: "15px" }}>
+                  <span style={{ ...fieldValue, color: "var(--primary)", fontWeight: 800, fontSize: "15px" }}>
                     {sym}{Number((po as any)?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -213,7 +213,7 @@ const PODetailDrawer: React.FC<PODetailDrawerProps> = ({ poId, onClose, onRefetc
                     <span style={{ color: t.text, fontSize: "12px", fontWeight: 700 }}>{totalOrdered}</span>
                     <span style={{ color: "#10b981", fontSize: "12px", fontWeight: 700 }}>{totalReceived}</span>
                     <span style={{ color: "#f59e0b", fontSize: "12px", fontWeight: 700 }}>{totalOrdered - totalReceived}</span>
-                    <span style={{ color: "#7c3aed", fontSize: "12px", fontWeight: 800 }}>
+                    <span style={{ color: "var(--primary)", fontSize: "12px", fontWeight: 800 }}>
                       {sym}{Number((po as any)?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -523,7 +523,7 @@ export const PurchasePage: React.FC = () => {
           <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Purchase Orders</h1>
           <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} orders</p>
         </div>
-        <button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           <Icon name="plus" size={13} /> New Order
         </button>
       </div>
@@ -536,7 +536,7 @@ export const PurchasePage: React.FC = () => {
           const col    = s ? STATUS_COLORS[s] : null;
           return (
             <button key={String(s)} onClick={() => { setStatusFilter(s); setPage(1); }}
-              style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize", background: active ? (col?.bg ?? "#7c3aed20") : t.inputBg, color: active ? (col?.text ?? "#7c3aed") : t.textMuted }}>
+              style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize", background: active ? (col?.bg ?? "var(--primary)20") : t.inputBg, color: active ? (col?.text ?? "var(--primary)") : t.textMuted }}>
               {label}
             </button>
           );
@@ -617,7 +617,7 @@ export const PurchasePage: React.FC = () => {
           {totalPages > 1 && (
             <div style={{ display: "flex", gap: "3px" }}>
               {pageButtons.map((p) => (
-                <button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+                <button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
               ))}
             </div>
           )}
@@ -692,7 +692,7 @@ export const PurchasePage: React.FC = () => {
                           <span style={{ color: t.text, fontWeight: 600 }}>{p.name}</span>
                           <span style={{ color: t.textFaint, fontSize: "11px", marginLeft: "8px" }}>{(p as any).sku}</span>
                         </div>
-                        <span style={{ color: "#7c3aed", fontSize: "12px" }}><Icon name="plus" size={12} /></span>
+                        <span style={{ color: "var(--primary)", fontSize: "12px" }}><Icon name="plus" size={12} /></span>
                       </div>
                     ))}
                   </div>
@@ -723,7 +723,7 @@ export const PurchasePage: React.FC = () => {
 
             <div style={{ padding: "0 22px 22px", display: "flex", gap: "10px", flexShrink: 0 }}>
               <button onClick={closeCreate} disabled={createMut.isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-              <button onClick={handleCreate} disabled={createMut.isPending || !canCreate} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canCreate ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: createMut.isPending || !canCreate ? 0.7 : 1 }}>
+              <button onClick={handleCreate} disabled={createMut.isPending || !canCreate} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canCreate ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: createMut.isPending || !canCreate ? 0.7 : 1 }}>
                 {createMut.isPending ? "Creating..." : "Create Draft PO"}
               </button>
             </div>

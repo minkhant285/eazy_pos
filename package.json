@@ -1,8 +1,8 @@
 {
-  "name": "mini-pos",
+  "name": "easy-pos",
   "version": "1.0.0",
-  "description": "Mini-POS — Point of Sale desktop app",
-  "productName": "Mini-POS",
+  "description": "Easy POS — Point of Sale desktop app",
+  "productName": "Easy POS",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
@@ -17,14 +17,15 @@
     "build": "npm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux"
+    "build:win": "npm run build && electron-builder --win --x64",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-table": "^8.21.3",
     "@trpc/client": "^11.10.0",
     "@trpc/react-query": "^11.10.0",
     "@trpc/server": "^11.10.0",
@@ -62,13 +63,5 @@
     "tailwindcss": "^4.2.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.6"
-  },
-  "build": {
-    "extraResources": [
-      {
-        "from": "./drizzle",
-        "to": "drizzle"
-      }
-    ]
   }
 }

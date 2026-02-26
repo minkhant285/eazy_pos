@@ -21,7 +21,7 @@ export const Topbar: React.FC = () => {
 		}}>
 			{/* Breadcrumb */}
 			<div style={{ display: "flex", alignItems: "center", gap: "6px", color: t.textFaint, fontSize: "12px" }}>
-				<span style={{ fontWeight: 700 }}>MKPOS</span>
+				<span style={{ fontWeight: 700 }}>EasyPOS</span>
 				<span>/</span>
 				<span style={{ color: t.textSubtle, fontWeight: 500 }}>{pageLabel}</span>
 			</div>
@@ -44,7 +44,7 @@ export const Topbar: React.FC = () => {
 					<span style={{
 						position: "absolute", top: "7px", right: "7px",
 						width: "5px", height: "5px", borderRadius: "50%",
-						background: "#8b5cf6", border: `1.5px solid ${t.surface}`,
+						background: "var(--primary-light)", border: `1.5px solid ${t.surface}`,
 					}} />
 				</button>
 
@@ -54,7 +54,7 @@ export const Topbar: React.FC = () => {
 				<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 					<div style={{
 						width: "30px", height: "30px", borderRadius: "50%",
-						background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+						background: "linear-gradient(135deg,var(--primary-light),var(--primary))",
 						display: "flex", alignItems: "center", justifyContent: "center",
 						color: "#fff", fontSize: "12px", fontWeight: 700,
 					}}>M</div>

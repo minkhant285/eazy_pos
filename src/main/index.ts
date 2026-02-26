@@ -19,6 +19,7 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width,
     height,
+    title: 'Easy POS',
     resizable: true,
     show: false,
     autoHideMenuBar: true,
@@ -72,9 +73,11 @@ async function runMigrations() {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+app.setName('Easy POS')
+
 app.whenReady().then(async() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.mini-pos')
+  electronApp.setAppUserModelId('com.easy-pos')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

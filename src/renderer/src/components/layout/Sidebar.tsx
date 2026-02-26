@@ -17,7 +17,7 @@ export const Sidebar: React.FC = () => {
 	const groups: NavGroup[] = [
 		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
-		{ label: tr.inventory, items: [{ id: "products", label: tr.products, icon: "product" }, { id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
+		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },
 		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }] },
 	];
@@ -40,9 +40,9 @@ export const Sidebar: React.FC = () => {
 			}}>
 				<div style={{
 					width: "28px", height: "28px", borderRadius: "8px", flexShrink: 0,
-					background: "linear-gradient(135deg,#8b5cf6,#7c3aed)",
+					background: "linear-gradient(135deg,var(--primary-light),var(--primary))",
 					display: "flex", alignItems: "center", justifyContent: "center",
-					boxShadow: "0 4px 14px rgba(124,58,237,0.4)",
+					boxShadow: "0 4px 14px var(--primary-40)",
 				}}>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
 						<path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
@@ -52,7 +52,7 @@ export const Sidebar: React.FC = () => {
 				</div>
 				{!collapsed && (
 					<span style={{ marginLeft: "9px", fontWeight: 800, fontSize: "14px", color: t.text, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
-						MK<span style={{ color: "#8b5cf6" }}>POS</span>
+						Easy<span style={{ color: "var(--primary-light)" }}>POS</span>
 					</span>
 				)}
 			</div>

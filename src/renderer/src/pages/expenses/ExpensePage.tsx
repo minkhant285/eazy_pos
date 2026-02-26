@@ -12,7 +12,7 @@ const PAYMENT_METHODS = [
 ]
 
 const PRESET_COLORS = [
-  '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b',
+  'var(--primary-light)', '#3b82f6', '#10b981', '#f59e0b',
   '#ef4444', '#ec4899', '#06b6d4', '#6366f1',
   '#84cc16', '#f97316',
 ]
@@ -201,7 +201,7 @@ export const ExpensePage: React.FC = () => {
   const btn = (variant: 'primary' | 'ghost' | 'danger'): React.CSSProperties => ({
     padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer',
     fontFamily: 'inherit', fontSize: '13px', fontWeight: 600,
-    background: variant === 'primary' ? '#7c3aed' : variant === 'danger' ? '#ef4444' : t.inputBg,
+    background: variant === 'primary' ? 'var(--primary)' : variant === 'danger' ? '#ef4444' : t.inputBg,
     color: variant === 'ghost' ? t.textMuted : '#fff',
   })
   const label: React.CSSProperties = { color: t.textMuted, fontSize: '11px', fontWeight: 600, marginBottom: '5px', display: 'block' }
@@ -311,7 +311,7 @@ export const ExpensePage: React.FC = () => {
                   display: 'grid', gridTemplateColumns: '110px 1.4fr 130px 120px 100px 120px 60px',
                   gap: '8px', padding: '11px 16px', alignItems: 'center',
                   borderBottom: `1px solid ${t.borderMid}`,
-                  borderLeft: `3px solid ${row.categoryColor ?? '#8b5cf6'}`,
+                  borderLeft: `3px solid ${row.categoryColor ?? 'var(--primary-light)'}`,
                 }}
               >
                 <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{row.expenseDate}</span>
@@ -323,8 +323,8 @@ export const ExpensePage: React.FC = () => {
 
                 <span style={{
                   fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', width: 'fit-content',
-                  background: `${row.categoryColor ?? '#8b5cf6'}22`,
-                  color: row.categoryColor ?? '#8b5cf6',
+                  background: `${row.categoryColor ?? 'var(--primary-light)'}22`,
+                  color: row.categoryColor ?? 'var(--primary-light)',
                 }}>
                   {row.categoryName ?? '—'}
                 </span>
@@ -369,7 +369,7 @@ export const ExpensePage: React.FC = () => {
                     style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: page === 1 ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: t.inputBg, color: page === 1 ? t.textFaint : t.textMuted }}>‹</button>
                   {pageButtons.map((p) => (
                     <button key={p} onClick={() => setPage(p)}
-                      style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? '#7c3aed' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}>{p}</button>
+                      style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? 'var(--primary)' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}>{p}</button>
                   ))}
                   <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                     style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: page === totalPages ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: t.inputBg, color: page === totalPages ? t.textFaint : t.textMuted }}>›</button>
@@ -565,7 +565,7 @@ export const ExpensePage: React.FC = () => {
                   <input
                     value={catColor}
                     onChange={(e) => setCatColor(e.target.value)}
-                    placeholder="#8b5cf6"
+                    placeholder="var(--primary-light)"
                     style={{ ...inp, width: '120px' }}
                   />
                 </div>

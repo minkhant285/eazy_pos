@@ -71,7 +71,7 @@ export const UsersPage: React.FC = () => {
 					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Users</h1>
 					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} users</p>
 				</div>
-				<button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+				<button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
 					<Icon name="plus" size={13} /> New User
 				</button>
 			</div>
@@ -86,7 +86,7 @@ export const UsersPage: React.FC = () => {
 					const label = r ?? "All";
 					const active = roleFilter === r;
 					return (
-						<button key={String(r)} onClick={() => { setRoleFilter(r); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "#7c3aed" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
+						<button key={String(r)} onClick={() => { setRoleFilter(r); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "var(--primary)" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
 							{label}
 						</button>
 					);
@@ -117,7 +117,7 @@ export const UsersPage: React.FC = () => {
 							onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
 						>
 							<div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
-								<div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "rgba(124,58,237,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "12px", fontWeight: 700, color: "#a78bfa" }}>
+								<div style={{ width: "30px", height: "30px", borderRadius: "50%", background: "var(--primary-20)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "12px", fontWeight: 700, color: "var(--primary-light)" }}>
 									{u.name.charAt(0).toUpperCase()}
 								</div>
 								<span style={{ color: t.text, fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name}</span>
@@ -144,7 +144,7 @@ export const UsersPage: React.FC = () => {
 					{totalPages > 1 && (
 						<div style={{ display: "flex", gap: "3px" }}>
 							{pageButtons.map((p) => (
-								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+								<button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
 							))}
 						</div>
 					)}
@@ -180,7 +180,7 @@ export const UsersPage: React.FC = () => {
 						</div>
 						<div style={{ display: "flex", gap: "10px", marginTop: "18px" }}>
 							<button onClick={() => setPwdModal(null)} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-							<button onClick={() => changePwdMut.mutate({ id: pwdModal.id, newPassword: newPwd })} disabled={changePwdMut.isPending || newPwd.length < 6} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: changePwdMut.isPending || newPwd.length < 6 ? 0.7 : 1 }}>
+							<button onClick={() => changePwdMut.mutate({ id: pwdModal.id, newPassword: newPwd })} disabled={changePwdMut.isPending || newPwd.length < 6} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: changePwdMut.isPending || newPwd.length < 6 ? 0.7 : 1 }}>
 								{changePwdMut.isPending ? "..." : "Update"}
 							</button>
 						</div>
@@ -231,7 +231,7 @@ export const UsersPage: React.FC = () => {
 						</div>
 						<div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>
 							<button onClick={closeModal} disabled={isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-							<button onClick={handleSubmit} disabled={isPending || !form.name.trim() || !form.email.trim() || (!modal.id && form.password.length < 6)} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() || !form.email.trim() || (!modal.id && form.password.length < 6) ? 0.7 : 1 }}>
+							<button onClick={handleSubmit} disabled={isPending || !form.name.trim() || !form.email.trim() || (!modal.id && form.password.length < 6)} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() || !form.email.trim() || (!modal.id && form.password.length < 6) ? 0.7 : 1 }}>
 								{isPending ? "..." : modal.id ? tr.save_changes : "Create"}
 							</button>
 						</div>

@@ -47,8 +47,7 @@ const PAGE_SIZE = 50
 // ── LedgerPage ────────────────────────────────────────────────
 
 export const LedgerPage: React.FC = () => {
-  const t   = useAppStore((s) => s.theme)
-  const sym = useAppStore((s) => s.currency.symbol)
+  const t = useAppStore((s) => s.theme)
 
   const [locationId,   setLocationId]   = useState('')
   const [movementType, setMovementType] = useState('')
@@ -64,7 +63,7 @@ export const LedgerPage: React.FC = () => {
 
   const { data, isLoading } = trpc.stock.ledger.useQuery({
     locationId:   locationId   || undefined,
-    movementType: movementType || undefined,
+    movementType: (movementType || undefined) as any,
     fromDate:     fromDate     || undefined,
     toDate:       toDate       || undefined,
     page,
@@ -318,7 +317,7 @@ export const LedgerPage: React.FC = () => {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? '#7c3aed' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}
+                  style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? 'var(--primary)' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}
                 >{p}</button>
               ))}
               <button

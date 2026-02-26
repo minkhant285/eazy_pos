@@ -15,6 +15,13 @@
       "when": 1772014940007,
       "tag": "0001_tan_mattie_franklin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1772073428852,
+      "tag": "0002_daffy_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

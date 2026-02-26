@@ -4,6 +4,7 @@ import type { LangCode, PageId, ThemeTokens } from '../types';
 import { darkTheme, lightTheme } from '../constants/themes';
 import { translations, type Translations } from '../constants/translations';
 import { type Currency, CURRENCIES } from '../constants/currencies';
+import { PRIMARY_PRESETS, type FontScale } from '../constants/primaryPresets';
 
 interface AppState {
   // ── Nav ──────────────────────────────────────────────────────
@@ -25,6 +26,12 @@ interface AppState {
   // ── Currency ─────────────────────────────────────────────────
   currency: Currency;
   setCurrency: (c: Currency) => void;
+
+  // ── Appearance ────────────────────────────────────────────────
+  primaryPresetId: string;
+  setPrimaryPresetId: (id: string) => void;
+  fontScale: FontScale;
+  setFontScale: (scale: FontScale) => void;
 
   // ── Inventory ─────────────────────────────────────────────────
   lowStockThreshold: number;
@@ -58,6 +65,12 @@ export const useAppStore = create<AppState>()(
       currency: CURRENCIES[0], // default: THB ฿
       setCurrency: (currency) => set({ currency }),
 
+      // ── Appearance ─────────────────────────────────────────────
+      primaryPresetId: 'violet',
+      setPrimaryPresetId: (primaryPresetId) => set({ primaryPresetId }),
+      fontScale: 'md' as FontScale,
+      setFontScale: (fontScale) => set({ fontScale }),
+
       // ── Inventory ──────────────────────────────────────────────
       lowStockThreshold: 10,
       setLowStockThreshold: (lowStockThreshold) => set({ lowStockThreshold }),
@@ -65,7 +78,7 @@ export const useAppStore = create<AppState>()(
     {
       name: 'mkpos-app-store',
       // Persist theme, lang, currency, and inventory preferences — not nav state
-      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency, lowStockThreshold: s.lowStockThreshold }),
+      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency, lowStockThreshold: s.lowStockThreshold, primaryPresetId: s.primaryPresetId, fontScale: s.fontScale }),
       // Rehydrate derived fields after persist load
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -78,9 +91,14 @@ export const useAppStore = create<AppState>()(
 );
 
 // ── Convenience selectors ─────────────────────────────────────
-export const useTheme    = () => useAppStore((s) => s.theme);
-export const useTr       = () => useAppStore((s) => s.tr);
-export const useIsDark   = () => useAppStore((s) => s.isDark);
-export const usePage     = () => useAppStore((s) => s.page);
-export const useLang     = () => useAppStore((s) => s.lang);
-export const useCurrency = () => useAppStore((s) => s.currency);
+export const useTheme         = () => useAppStore((s) => s.theme);
+export const useTr            = () => useAppStore((s) => s.tr);
+export const useIsDark        = () => useAppStore((s) => s.isDark);
+export const usePage          = () => useAppStore((s) => s.page);
+export const useLang          = () => useAppStore((s) => s.lang);
+export const useCurrency      = () => useAppStore((s) => s.currency);
+export const usePrimaryPreset = () => {
+  const id = useAppStore((s) => s.primaryPresetId);
+  return PRIMARY_PRESETS.find((p) => p.id === id) ?? PRIMARY_PRESETS[0];
+};
+export const useFontScale     = () => useAppStore((s) => s.fontScale);

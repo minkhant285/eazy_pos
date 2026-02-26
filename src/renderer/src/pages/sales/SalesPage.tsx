@@ -98,7 +98,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
             <button
               key={String(s)}
               onClick={() => { setStatusFilter(s); setPage(1) }}
-              style={{ padding: '6px 13px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', background: active ? (col?.bg ?? 'rgba(124,58,237,0.15)') : t.inputBg, color: active ? (col?.text ?? '#7c3aed') : t.textMuted }}
+              style={{ padding: '6px 13px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', background: active ? (col?.bg ?? 'var(--primary-15)') : t.inputBg, color: active ? (col?.text ?? 'var(--primary)') : t.textMuted }}
             >
               {label}
             </button>
@@ -157,7 +157,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
           {totalPages > 1 && (
             <div style={{ display: 'flex', gap: '3px' }}>
               {pageButtons.map((p) => (
-                <button key={p} onClick={(e) => { e.stopPropagation(); setPage(p) }} style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? '#7c3aed' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}>
+                <button key={p} onClick={(e) => { e.stopPropagation(); setPage(p) }} style={{ width: '27px', height: '27px', borderRadius: '7px', border: 'none', fontSize: '12px', cursor: 'pointer', fontFamily: 'inherit', background: p === page ? 'var(--primary)' : t.inputBg, color: p === page ? '#fff' : t.textMuted }}>
                   {p}
                 </button>
               ))}
@@ -186,7 +186,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
                 {detail && (
                   <button
                     onClick={() => { setDetailId(null); onShowVoucher(detail as unknown as SaleDetail) }}
-                    style={{ padding: '6px 13px', borderRadius: '9px', border: 'none', background: '#7c3aed', color: '#fff', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ padding: '6px 13px', borderRadius: '9px', border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
                   >
                     Print Voucher
                   </button>
@@ -294,7 +294,7 @@ export const SalesPage: React.FC = () => {
           display: 'flex', alignItems: 'center', gap: '7px',
           padding: '8px 16px', borderRadius: '11px', border: 'none',
           fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          background: active ? '#7c3aed' : t.inputBg,
+          background: active ? 'var(--primary)' : t.inputBg,
           color: active ? '#fff' : t.textMuted,
           transition: 'all 0.15s',
         }}

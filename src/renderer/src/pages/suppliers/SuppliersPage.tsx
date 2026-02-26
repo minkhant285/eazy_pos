@@ -68,7 +68,7 @@ export const SuppliersPage: React.FC = () => {
           <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Suppliers</h1>
           <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} suppliers</p>
         </div>
-        <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           <Icon name="plus" size={13} /> New Supplier
         </button>
       </div>
@@ -82,7 +82,7 @@ export const SuppliersPage: React.FC = () => {
         {(["all", "active", "inactive"] as const).map((f) => {
           const active = f === "all" ? isActive === undefined : f === "active" ? isActive === true : isActive === false;
           return (
-            <button key={f} onClick={() => { setIsActive(f === "all" ? undefined : f === "active"); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "#7c3aed" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
+            <button key={f} onClick={() => { setIsActive(f === "all" ? undefined : f === "active"); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "var(--primary)" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
               {f}
             </button>
           );
@@ -110,8 +110,8 @@ export const SuppliersPage: React.FC = () => {
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             <div style={{ display: "flex", alignItems: "center", gap: "9px", minWidth: 0 }}>
-              <div style={{ width: "30px", height: "30px", borderRadius: "9px", background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon name="supplier" size={13} style={{ color: "#a78bfa" }} />
+              <div style={{ width: "30px", height: "30px", borderRadius: "9px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Icon name="supplier" size={13} style={{ color: "var(--primary-light)" }} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <p style={{ color: t.text, fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</p>
@@ -134,7 +134,7 @@ export const SuppliersPage: React.FC = () => {
           {totalPages > 1 && (
             <div style={{ display: "flex", gap: "3px" }}>
               {pageButtons.map((p) => (
-                <button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+                <button key={p} onClick={() => setPage(p)} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
               ))}
             </div>
           )}
@@ -200,7 +200,7 @@ export const SuppliersPage: React.FC = () => {
             </div>
             <div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>
               <button onClick={closeModal} disabled={isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-              <button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
+              <button onClick={handleSubmit} disabled={isPending || !form.name.trim()} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isPending || !form.name.trim() ? 0.7 : 1 }}>
                 {isPending ? "..." : modal.id ? tr.save_changes : "Create"}
               </button>
             </div>

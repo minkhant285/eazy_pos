@@ -1,9 +1,220 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
+  type ColumnDef,
+  type ExpandedState,
+  type GroupingState,
+} from "@tanstack/react-table";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
 import { ProductModal, type ProductForEdit } from "./ProductModal";
 import type { IconKey } from "../../constants/icons";
+
+// ── Variant Stock Modal ───────────────────────────────────────
+
+interface VariantStockModalProps {
+  productId: string;
+  productName: string;
+  locationId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+type VariantRow = {
+  id: string;
+  optionLabel: string;
+  groupKey: string;
+  subLabel: string;
+  sku: string;
+  qtyOnHand: number;
+  hasStockRecord: boolean;
+};
+
+const VARIANT_COLS = "1fr 160px 90px 170px";
+
+const VariantStockModal: React.FC<VariantStockModalProps> = ({ productId, productName, locationId, onClose, onSuccess }) => {
+  const t = useAppStore((s) => s.theme);
+  const [qtyInputs, setQtyInputs] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<ExpandedState>(true);
+
+  const { data: variants, isLoading, refetch } = trpc.variant.listWithStock.useQuery(
+    { productId, locationId },
+    { enabled: !!productId && !!locationId }
+  );
+
+  const setStock = trpc.variant.setStock.useMutation({
+    onSuccess: () => { refetch(); onSuccess(); },
+  });
+
+  // Parse optionLabel "Color: Red / Size: XL" → groupKey + subLabel
+  const tableData = useMemo<VariantRow[]>(() => {
+    return (variants ?? []).map((v: any) => {
+      const parts = (v.optionLabel ?? "").split(" / ");
+      return {
+        id: v.id,
+        optionLabel: v.optionLabel ?? "",
+        groupKey: parts[0] ?? "—",
+        subLabel: parts.length > 1 ? parts.slice(1).join(" / ") : "",
+        sku: v.sku,
+        qtyOnHand: v.qtyOnHand,
+        hasStockRecord: v.hasStockRecord,
+      };
+    });
+  }, [variants]);
+
+  // Group by first attribute only when there are 2+ attributes
+  const isMultiAttr = useMemo(() => tableData.some((r) => r.subLabel !== ""), [tableData]);
+  const groupingState = useMemo<GroupingState>(() => isMultiAttr ? ["groupKey"] : [], [isMultiAttr]);
+
+  const columns = useMemo<ColumnDef<VariantRow>[]>(() => [
+    { id: "groupKey", accessorKey: "groupKey", enableGrouping: true },
+  ], []);
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { grouping: groupingState, expanded },
+    onExpandedChange: setExpanded,
+    getCoreRowModel: getCoreRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    groupedColumnMode: false,
+    autoResetExpanded: false,
+  });
+
+  const inputStyle: React.CSSProperties = {
+    background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "8px",
+    padding: "6px 10px", color: t.text, fontSize: "13px", outline: "none",
+    fontFamily: "inherit", width: "80px", textAlign: "right" as const,
+  };
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={onClose}
+    >
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ position: "relative", width: "100%", maxWidth: "720px", margin: "0 16px", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "20px", boxShadow: "0 24px 80px rgba(0,0,0,0.35)", overflow: "hidden", animation: "slideUp 0.22s ease", maxHeight: "85vh", display: "flex", flexDirection: "column" }}
+      >
+        {/* Header */}
+        <div style={{ padding: "18px 22px 14px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+          <div>
+            <h2 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>Variant Stock</h2>
+            <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{productName}</p>
+          </div>
+          <button onClick={onClose} style={{ width: "28px", height: "28px", borderRadius: "8px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icon name="close" size={13} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {isLoading && (
+            <p style={{ padding: "40px", textAlign: "center", color: t.textFaint, fontSize: "13px" }}>Loading...</p>
+          )}
+          {!isLoading && (!variants || variants.length === 0) && (
+            <p style={{ padding: "40px", textAlign: "center", color: t.textFaint, fontSize: "13px" }}>
+              No active variants found. Add attributes and generate variants in the Products tab first.
+            </p>
+          )}
+          {!isLoading && variants && variants.length > 0 && (
+            <>
+              {/* Sticky column headers */}
+              <div style={{ display: "grid", gridTemplateColumns: VARIANT_COLS, gap: "8px", padding: "9px 18px", borderBottom: `1px solid ${t.borderMid}`, background: t.inputBg, position: "sticky", top: 0, zIndex: 1 }}>
+                {["Variant", "SKU", "On Hand", "Set Qty"].map((h) => (
+                  <span key={h} style={{ color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{h}</span>
+                ))}
+              </div>
+
+              {/* TanStack Table rows */}
+              {table.getRowModel().rows.map((row) => {
+                // ── Group header row ───────────────────────────────
+                if (row.getIsGrouped()) {
+                  return (
+                    <div
+                      key={row.id}
+                      onClick={row.getToggleExpandedHandler()}
+                      style={{ padding: "8px 18px", background: `${t.inputBg}99`, borderBottom: `1px solid ${t.borderMid}`, display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", userSelect: "none" as const }}
+                    >
+                      <span style={{ color: t.textFaint, fontSize: "11px", width: "14px", display: "inline-block" }}>
+                        {row.getIsExpanded() ? "▾" : "▸"}
+                      </span>
+                      <span style={{ color: "var(--primary)", fontWeight: 700, fontSize: "13px" }}>
+                        {String(row.groupingValue)}
+                      </span>
+                      <span style={{ color: t.textFaint, fontSize: "11px" }}>
+                        — {row.subRows.length} variant{row.subRows.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  );
+                }
+
+                // ── Leaf row ───────────────────────────────────────
+                const v = row.original;
+                const inputVal = qtyInputs[v.id] ?? "";
+                return (
+                  <div
+                    key={row.id}
+                    style={{ display: "grid", gridTemplateColumns: VARIANT_COLS, gap: "8px", padding: "10px 18px", paddingLeft: isMultiAttr ? "40px" : "18px", borderBottom: `1px solid ${t.borderMid}`, alignItems: "center" }}
+                  >
+                    <div>
+                      <p style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>
+                        {isMultiAttr ? (v.subLabel || v.optionLabel) : v.optionLabel}
+                      </p>
+                      {!v.hasStockRecord && (
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "1px 5px", borderRadius: "4px" }}>UNSET</span>
+                      )}
+                    </div>
+                    <span style={{ color: t.textFaint, fontSize: "11px", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.sku}</span>
+                    <span style={{ color: v.hasStockRecord ? t.text : t.textFaint, fontSize: "13px", fontWeight: 600 }}>
+                      {v.hasStockRecord ? Number(v.qtyOnHand).toLocaleString() : "—"}
+                    </span>
+                    <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                      <input
+                        type="number" min="0" step="1"
+                        value={inputVal}
+                        onChange={(e) => setQtyInputs((p) => ({ ...p, [v.id]: e.target.value }))}
+                        placeholder={v.hasStockRecord ? String(v.qtyOnHand) : "0"}
+                        style={inputStyle}
+                      />
+                      <button
+                        onClick={() => {
+                          const qty = Number(inputVal);
+                          if (inputVal === "" || isNaN(qty) || qty < 0) return;
+                          setStock.mutate({ variantId: v.id, locationId, qty });
+                          setQtyInputs((p) => { const n = { ...p }; delete n[v.id]; return n; });
+                        }}
+                        disabled={inputVal === "" || setStock.isPending}
+                        style={{ padding: "6px 10px", borderRadius: "7px", border: "none", background: inputVal !== "" ? "var(--primary)" : t.inputBg, color: inputVal !== "" ? "#fff" : t.textFaint, fontSize: "11px", fontWeight: 700, cursor: inputVal !== "" ? "pointer" : "not-allowed", fontFamily: "inherit", whiteSpace: "nowrap" as const }}
+                      >
+                        Set
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "12px 22px", borderTop: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "flex-end", flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: "9px 18px", borderRadius: "11px", border: "none", background: t.inputBg, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 50;
 const COLS = "40px 80px 1.5fr 55px 85px 90px 80px 80px";
@@ -113,7 +324,7 @@ const SetQtyModal: React.FC<SetQtyModalProps> = ({ product, locationId, onClose,
             <button
               onClick={handleSave}
               disabled={setQtyMutation.isPending || qty === ""}
-              style={{ flex: 2, padding: "11px", borderRadius: "11px", border: "none", background: setQtyMutation.isPending || qty === "" ? t.inputBg : "#7c3aed", color: setQtyMutation.isPending || qty === "" ? t.textFaint : "#fff", fontSize: "13px", fontWeight: 700, cursor: setQtyMutation.isPending || qty === "" ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
+              style={{ flex: 2, padding: "11px", borderRadius: "11px", border: "none", background: setQtyMutation.isPending || qty === "" ? t.inputBg : "var(--primary)", color: setQtyMutation.isPending || qty === "" ? t.textFaint : "#fff", fontSize: "13px", fontWeight: 700, cursor: setQtyMutation.isPending || qty === "" ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "all 0.15s" }}
             >
               {setQtyMutation.isPending ? "Saving..." : "Save"}
             </button>
@@ -135,7 +346,9 @@ export const StockPage: React.FC = () => {
   const [locationId, setLocationId] = useState("");
   const [search, setSearch]         = useState("");
   const [page, setPage]             = useState(1);
-  const [editQty, setEditQty]       = useState<any | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive">("active");
+  const [editQty, setEditQty]           = useState<any | null>(null);
+  const [variantStockItem, setVariantStockItem] = useState<any | null>(null);
   const [productModal, setProductModal] = useState<null | "create" | ProductForEdit>(null);
 
   const { data: locationsData } = trpc.location.list.useQuery({ isActive: true, pageSize: 100 });
@@ -146,7 +359,7 @@ export const StockPage: React.FC = () => {
   }, [locations, locationId]);
 
   const { data: inventoryData, isLoading, refetch } = trpc.stock.allProducts.useQuery(
-    { locationId, page, pageSize: PAGE_SIZE, search: search || undefined },
+    { locationId, page, pageSize: PAGE_SIZE, search: search || undefined, isActive: statusFilter === "active" },
     { enabled: !!locationId }
   );
   const { data: valueData }    = trpc.stock.inventoryValue.useQuery({ locationId }, { enabled: !!locationId });
@@ -164,9 +377,10 @@ export const StockPage: React.FC = () => {
   }).filter((p) => p >= 1 && p <= totalPages);
 
   const handleSearchChange = (v: string) => { setSearch(v); setPage(1); };
+  const handleStatusChange = (s: "active" | "inactive") => { setStatusFilter(s); setPage(1); setSearch(""); };
 
   const summaryCards: { label: string; value: string; color: string; icon: IconKey }[] = [
-    { label: "Total Value",      value: `${sym}${Number(valueData?.totalValue ?? 0).toLocaleString()}`, color: "#7c3aed", icon: "product" },
+    { label: "Total Value",      value: `${sym}${Number(valueData?.totalValue ?? 0).toLocaleString()}`, color: "var(--primary)", icon: "product" },
     { label: "Total SKUs",       value: String(valueData?.totalItems ?? 0),                         color: "#3b82f6", icon: "stock"   },
     { label: "Low Stock Alerts", value: String(lowStockCount),  color: lowStockCount > 0  ? "#ef4444" : "#10b981", icon: "bell"    },
     { label: "Not Initialized",  value: String(uninitializedCount), color: uninitializedCount > 0 ? "#f59e0b" : "#10b981", icon: "plus" },
@@ -203,7 +417,7 @@ export const StockPage: React.FC = () => {
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <button
             onClick={() => setProductModal("create")}
-            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "#7c3aed", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
             <Icon name="plus" size={13} style={{ color: "#fff" }} />
             Add Product
@@ -249,18 +463,41 @@ export const StockPage: React.FC = () => {
         </div>
       )}
 
-      {/* Search */}
+      {/* Filter bar */}
       {locationId && (
-        <div style={{ position: "relative", maxWidth: "280px" }}>
-          <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}>
-            <Icon name="search" size={13} />
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          {/* Active / Inactive toggle */}
+          <div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px" }}>
+            {(["active", "inactive"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => handleStatusChange(s)}
+                style={{
+                  padding: "5px 13px", borderRadius: "8px", border: "none", cursor: "pointer",
+                  fontSize: "12px", fontWeight: 500, fontFamily: "inherit", textTransform: "capitalize",
+                  background: statusFilter === s ? t.surface : "transparent",
+                  color: statusFilter === s ? t.text : t.textMuted,
+                  boxShadow: statusFilter === s ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
+                  transition: "all 0.15s",
+                }}
+              >
+                {s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
           </div>
-          <input
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search products..."
-            style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px 9px 33px", color: t.text, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-          />
+
+          {/* Search */}
+          <div style={{ position: "relative", maxWidth: "260px", flex: 1 }}>
+            <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}>
+              <Icon name="search" size={13} />
+            </div>
+            <input
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Search products..."
+              style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px 9px 33px", color: t.text, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+            />
+          </div>
         </div>
       )}
 
@@ -289,7 +526,7 @@ export const StockPage: React.FC = () => {
               return (
                 <div
                   key={item.productId}
-                  onClick={() => setEditQty(item)}
+                  onClick={() => item.hasVariants ? setVariantStockItem(item) : setEditQty(item)}
                   style={{ display: "grid", gridTemplateColumns: COLS, gap: "8px", padding: "10px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, cursor: "pointer", transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
@@ -309,11 +546,14 @@ export const StockPage: React.FC = () => {
                   <div style={{ minWidth: 0 }}>
                     <p style={{ color: t.text, fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</p>
                     <div style={{ display: "flex", gap: "4px", marginTop: "2px", flexWrap: "wrap" }}>
-                      {uninitialized && (
+                      {uninitialized && !item.hasVariants && (
                         <span style={{ fontSize: "9px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "1px 6px", borderRadius: "4px" }}>UNINITIALIZED</span>
                       )}
-                      {!uninitialized && Number(item.qtyAvailable) <= lowStockThreshold && (
+                      {!uninitialized && Number(item.qtyAvailable) <= lowStockThreshold && !item.hasVariants && (
                         <span style={{ fontSize: "9px", fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "1px 6px", borderRadius: "4px" }}>LOW</span>
+                      )}
+                      {item.hasVariants && (
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "var(--primary)", background: "var(--primary-10)", padding: "1px 6px", borderRadius: "4px" }}>VARIANTS</span>
                       )}
                     </div>
                   </div>
@@ -343,7 +583,7 @@ export const StockPage: React.FC = () => {
                       title="Edit product"
                       onClick={() => setProductModal(rowToProduct(item))}
                       style={{ width: "28px", height: "28px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(124,58,237,0.15)")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--primary-15)")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = t.inputBg)}
                     >
                       <Icon name="edit" size={12} />
@@ -360,12 +600,23 @@ export const StockPage: React.FC = () => {
             {totalPages > 1 && (
               <div style={{ display: "flex", gap: "3px" }}>
                 {pageButtons.map((p) => (
-                  <button key={p} onClick={(e) => { e.stopPropagation(); setPage(p); }} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "#7c3aed" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
+                  <button key={p} onClick={(e) => { e.stopPropagation(); setPage(p); }} style={{ width: "27px", height: "27px", borderRadius: "7px", border: "none", fontSize: "12px", cursor: "pointer", fontFamily: "inherit", background: p === page ? "var(--primary)" : t.inputBg, color: p === page ? "#fff" : t.textMuted }}>{p}</button>
                 ))}
               </div>
             )}
           </div>
         </div>
+      )}
+
+      {/* Variant Stock modal */}
+      {variantStockItem && (
+        <VariantStockModal
+          productId={variantStockItem.productId}
+          productName={variantStockItem.name}
+          locationId={locationId}
+          onClose={() => setVariantStockItem(null)}
+          onSuccess={() => refetch()}
+        />
       )}
 
       {/* Set Qty modal */}

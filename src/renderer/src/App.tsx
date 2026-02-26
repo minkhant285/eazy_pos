@@ -24,13 +24,13 @@
 
 
 import React from 'react';
-import { useAppStore, useTheme, useTr } from './store/useAppStore';
+import { useAppStore, useTheme, useTr, usePrimaryPreset, useFontScale } from './store/useAppStore';
+import { buildCssVars, FONT_ZOOM } from './constants/primaryPresets';
 import { Sidebar } from './components/layout/Sidebar';
 import { Topbar } from './components/layout/Topbar';
 import { DashboardPage } from './pages/dashboard/dashboard';
 import { CustomersPage } from './pages/customer/CustomerPage';
 import { CategoriesPage } from './pages/categories/CategoriesPage';
-import { ProductsPage } from './pages/products/ProductsPage';
 import { StockPage } from './pages/stock/StockPage';
 import { TransfersPage } from './pages/transfers/TransfersPage';
 import { ComingSoon } from './components/ui/ComingSoon';
@@ -43,12 +43,14 @@ import { SettingsPage } from './pages/settings/SettingsPage';
 import { LedgerPage } from './pages/ledger/LedgerPage';
 import { ExpensePage } from './pages/expenses/ExpensePage';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'products', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses'] as const;
 
 const App: React.FC = () => {
 	const t = useTheme();
 	const tr = useTr();
 	const page = useAppStore((s) => s.page);
+	const preset = usePrimaryPreset();
+	const fontScale = useFontScale();
 
 	const pageLabel = tr[page as keyof typeof tr] ?? page;
 
@@ -56,6 +58,8 @@ const App: React.FC = () => {
 		<>
 			<style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap');
+        :root { ${buildCssVars(preset)} }
+        html { zoom: ${FONT_ZOOM[fontScale]}; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: background 0.25s; }
         input::placeholder { color: ${t.textFaint}; }
@@ -81,7 +85,6 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'dashboard' && <DashboardPage />}
 						{page === 'customers' && <CustomersPage />}
 						{page === 'categories' && <CategoriesPage />}
-						{page === 'products' && <ProductsPage />}
 						{page === 'stock' && <StockPage />}
 						{page === 'transfers' && <TransfersPage />}
 					{page === 'ledger' && <LedgerPage />}

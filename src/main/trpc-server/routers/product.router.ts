@@ -117,6 +117,18 @@ export const productRouter = router({
       }
     }),
 
+  /** POST /product.delete — permanent hard-delete (blocked if product has sales history) */
+  delete: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        ProductService.deleteProduct(input.id)
+        return { success: true }
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
   /** POST /product.activate */
   activate: publicProcedure
     .input(z.object({ id: z.string().uuid() }))

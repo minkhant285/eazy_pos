@@ -95,6 +95,76 @@ export const products = sqliteTable("products", {
 });
 
 // ============================================================
+// VARIANT ATTRIBUTES (e.g. "Color", "Size")
+// ============================================================
+export const variantAttributes = sqliteTable("variant_attributes", {
+  id: text("id").primaryKey(),
+  productId: text("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  ...timestamps,
+});
+
+// ============================================================
+// VARIANT OPTIONS (e.g. "Red", "Blue", "S", "M")
+// ============================================================
+export const variantOptions = sqliteTable("variant_options", {
+  id: text("id").primaryKey(),
+  attributeId: text("attribute_id").notNull().references(() => variantAttributes.id, { onDelete: "cascade" }),
+  value: text("value").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  ...timestamps,
+});
+
+// ============================================================
+// PRODUCT VARIANTS (one row per combination e.g. Red/S, Red/M)
+// ============================================================
+export const productVariants = sqliteTable("product_variants", {
+  id: text("id").primaryKey(),
+  productId: text("product_id").notNull().references(() => products.id, { onDelete: "cascade" }),
+  sku: text("sku").notNull().unique(),
+  barcode: text("barcode").unique(),
+  costPrice: real("cost_price").notNull().default(0),
+  sellingPrice: real("selling_price").notNull(),
+  imageUrl: text("image_url"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
+// ============================================================
+// PRODUCT VARIANT OPTIONS (junction: variant ↔ option)
+// ============================================================
+export const productVariantOptions = sqliteTable(
+  "product_variant_options",
+  {
+    id: text("id").primaryKey(),
+    variantId: text("variant_id").notNull().references(() => productVariants.id, { onDelete: "cascade" }),
+    optionId: text("option_id").notNull().references(() => variantOptions.id, { onDelete: "cascade" }),
+  },
+  (t) => ({
+    uniqVariantOption: index("uniq_variant_option").on(t.variantId, t.optionId),
+  })
+);
+
+// ============================================================
+// VARIANT STOCK (independent inventory per variant per location)
+// ============================================================
+export const variantStock = sqliteTable(
+  "variant_stock",
+  {
+    id: text("id").primaryKey(),
+    variantId: text("variant_id").notNull().references(() => productVariants.id, { onDelete: "cascade" }),
+    locationId: text("location_id").notNull().references(() => locations.id),
+    qtyOnHand: real("qty_on_hand").notNull().default(0),
+    qtyReserved: real("qty_reserved").notNull().default(0),
+    qtyAvailable: real("qty_available").generatedAlwaysAs(sql`qty_on_hand - qty_reserved`),
+    ...timestamps,
+  },
+  (t) => ({
+    uniqVariantLocation: index("uniq_variant_location").on(t.variantId, t.locationId),
+  })
+);
+
+// ============================================================
 // PRODUCT PRICE HISTORY
 // Tracks price changes over time for reporting accuracy
 // ============================================================
@@ -148,6 +218,7 @@ export const stockLedger = sqliteTable(
     locationId: text("location_id")
       .notNull()
       .references(() => locations.id),
+    variantId: text("variant_id").references(() => productVariants.id),
 
     // Movement type
     movementType: text("movement_type", {
@@ -268,6 +339,7 @@ export const saleItems = sqliteTable("sale_items", {
   productId: text("product_id")
     .notNull()
     .references(() => products.id),
+  variantId: text("variant_id").references(() => productVariants.id),
   qty: real("qty").notNull(),
   unitPrice: real("unit_price").notNull(),       // Price at time of sale
   unitCost: real("unit_cost").notNull(),         // Cost at time of sale (for COGS)
@@ -460,6 +532,8 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   stockLedger: many(stockLedger),
   priceHistory: many(productPriceHistory),
   saleItems: many(saleItems),
+  variantAttributes: many(variantAttributes),
+  variants: many(productVariants),
 }));
 
 export const stockRelations = relations(stock, ({ one }) => ({
@@ -471,6 +545,7 @@ export const stockLedgerRelations = relations(stockLedger, ({ one }) => ({
   product: one(products, { fields: [stockLedger.productId], references: [products.id] }),
   location: one(locations, { fields: [stockLedger.locationId], references: [locations.id] }),
   createdByUser: one(users, { fields: [stockLedger.createdBy], references: [users.id] }),
+  variant: one(productVariants, { fields: [stockLedger.variantId], references: [productVariants.id] }),
 }));
 
 export const salesRelations = relations(sales, ({ one, many }) => ({
@@ -484,6 +559,7 @@ export const salesRelations = relations(sales, ({ one, many }) => ({
 export const saleItemsRelations = relations(saleItems, ({ one }) => ({
   sale: one(sales, { fields: [saleItems.saleId], references: [sales.id] }),
   product: one(products, { fields: [saleItems.productId], references: [products.id] }),
+  variant: one(productVariants, { fields: [saleItems.variantId], references: [productVariants.id] }),
 }));
 
 export const purchaseOrdersRelations = relations(purchaseOrders, ({ one, many }) => ({
@@ -500,4 +576,30 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
   category: one(expenseCategories, { fields: [expenses.categoryId], references: [expenseCategories.id] }),
   location: one(locations, { fields: [expenses.locationId], references: [locations.id] }),
   createdByUser: one(users, { fields: [expenses.createdBy], references: [users.id] }),
+}));
+
+export const variantAttributesRelations = relations(variantAttributes, ({ one, many }) => ({
+  product: one(products, { fields: [variantAttributes.productId], references: [products.id] }),
+  options: many(variantOptions),
+}));
+
+export const variantOptionsRelations = relations(variantOptions, ({ one, many }) => ({
+  attribute: one(variantAttributes, { fields: [variantOptions.attributeId], references: [variantAttributes.id] }),
+  variantLinks: many(productVariantOptions),
+}));
+
+export const productVariantsRelations = relations(productVariants, ({ one, many }) => ({
+  product: one(products, { fields: [productVariants.productId], references: [products.id] }),
+  options: many(productVariantOptions),
+  stock: many(variantStock),
+}));
+
+export const productVariantOptionsRelations = relations(productVariantOptions, ({ one }) => ({
+  variant: one(productVariants, { fields: [productVariantOptions.variantId], references: [productVariants.id] }),
+  option: one(variantOptions, { fields: [productVariantOptions.optionId], references: [variantOptions.id] }),
+}));
+
+export const variantStockRelations = relations(variantStock, ({ one }) => ({
+  variant: one(productVariants, { fields: [variantStock.variantId], references: [productVariants.id] }),
+  location: one(locations, { fields: [variantStock.locationId], references: [locations.id] }),
 }));

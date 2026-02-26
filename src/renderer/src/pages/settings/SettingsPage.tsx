@@ -3,6 +3,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { CURRENCIES } from '../../constants/currencies'
 import { LANG_OPTIONS } from '../../constants/translations'
+import { PRIMARY_PRESETS, FONT_SCALES } from '../../constants/primaryPresets'
 
 const APP_VERSION = '1.0.0'
 
@@ -49,8 +50,12 @@ export const SettingsPage: React.FC = () => {
   const setLang             = useAppStore((s) => s.setLang)
   const currency            = useAppStore((s) => s.currency)
   const setCurrency         = useAppStore((s) => s.setCurrency)
-  const lowStockThreshold   = useAppStore((s) => s.lowStockThreshold)
+  const lowStockThreshold    = useAppStore((s) => s.lowStockThreshold)
   const setLowStockThreshold = useAppStore((s) => s.setLowStockThreshold)
+  const primaryPresetId      = useAppStore((s) => s.primaryPresetId)
+  const setPrimaryPresetId   = useAppStore((s) => s.setPrimaryPresetId)
+  const fontScale            = useAppStore((s) => s.fontScale)
+  const setFontScale         = useAppStore((s) => s.setFontScale)
 
   const [thresholdInput, setThresholdInput] = useState(String(lowStockThreshold))
 
@@ -67,9 +72,9 @@ export const SettingsPage: React.FC = () => {
   const optionBtn = (active: boolean): React.CSSProperties => ({
     padding: '10px 16px',
     borderRadius: '10px',
-    border: `1.5px solid ${active ? '#7c3aed' : t.border}`,
-    background: active ? 'rgba(124,58,237,0.08)' : t.inputBg,
-    color: active ? '#7c3aed' : t.text,
+    border: `1.5px solid ${active ? 'var(--primary)' : t.border}`,
+    background: active ? 'var(--primary-08)' : t.inputBg,
+    color: active ? 'var(--primary)' : t.text,
     cursor: 'pointer',
     fontFamily: 'inherit',
     fontSize: '13px',
@@ -99,18 +104,75 @@ export const SettingsPage: React.FC = () => {
             <div style={{ display: 'inline-flex', background: t.inputBg, borderRadius: '10px', padding: '3px', border: `1px solid ${t.border}` }}>
               <button
                 onClick={() => !isDark && toggleTheme()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: isDark ? 700 : 500, transition: 'all 0.15s', background: isDark ? (t.surface) : 'transparent', color: isDark ? '#7c3aed' : t.textMuted, boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.18)' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: isDark ? 700 : 500, transition: 'all 0.15s', background: isDark ? (t.surface) : 'transparent', color: isDark ? 'var(--primary)' : t.textMuted, boxShadow: isDark ? '0 1px 4px rgba(0,0,0,0.18)' : 'none' }}
               >
-                <Icon name="moon" size={13} style={{ color: isDark ? '#7c3aed' : t.textFaint }} />
+                <Icon name="moon" size={13} style={{ color: isDark ? 'var(--primary)' : t.textFaint }} />
                 Dark
               </button>
               <button
                 onClick={() => isDark && toggleTheme()}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: !isDark ? 700 : 500, transition: 'all 0.15s', background: !isDark ? (t.surface) : 'transparent', color: !isDark ? '#7c3aed' : t.textMuted, boxShadow: !isDark ? '0 1px 4px rgba(0,0,0,0.18)' : 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '12px', fontWeight: !isDark ? 700 : 500, transition: 'all 0.15s', background: !isDark ? (t.surface) : 'transparent', color: !isDark ? 'var(--primary)' : t.textMuted, boxShadow: !isDark ? '0 1px 4px rgba(0,0,0,0.18)' : 'none' }}
               >
-                <Icon name="sun" size={13} style={{ color: !isDark ? '#7c3aed' : t.textFaint }} />
+                <Icon name="sun" size={13} style={{ color: !isDark ? 'var(--primary)' : t.textFaint }} />
                 Light
               </button>
+            </div>
+          </Section>
+
+          <Section title="Accent Color" description="Choose the primary accent color used throughout the app" t={t}>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {PRIMARY_PRESETS.map((preset) => {
+                const active = primaryPresetId === preset.id
+                return (
+                  <button
+                    key={preset.id}
+                    title={preset.label}
+                    onClick={() => setPrimaryPresetId(preset.id)}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '50%',
+                      border: active ? `3px solid ${preset.color}` : `3px solid transparent`,
+                      padding: '3px',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      outline: active ? `2px solid ${preset.color}` : '2px solid transparent',
+                      outlineOffset: '2px',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{
+                      width: '100%', height: '100%', borderRadius: '50%',
+                      background: preset.color,
+                    }} />
+                  </button>
+                )
+              })}
+            </div>
+            <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '10px' }}>
+              Current: <strong style={{ color: t.text }}>{PRIMARY_PRESETS.find((p) => p.id === primaryPresetId)?.label ?? 'Violet'}</strong>
+            </p>
+          </Section>
+
+          <Section title="Font Size" description="Adjust the overall text size across the app" t={t}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {FONT_SCALES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setFontScale(value)}
+                  style={{
+                    flex: 1, padding: '12px 10px', borderRadius: '10px',
+                    border: `1.5px solid ${fontScale === value ? 'var(--primary)' : t.border}`,
+                    background: fontScale === value ? 'var(--primary-08)' : t.inputBg,
+                    color: fontScale === value ? 'var(--primary)' : t.text,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    fontWeight: fontScale === value ? 700 : 500,
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                  }}
+                >
+                  <span style={{ fontSize: value === 'sm' ? '13px' : value === 'md' ? '17px' : '21px', lineHeight: 1 }}>A</span>
+                  <span style={{ fontSize: '10px', opacity: 0.7 }}>{label}</span>
+                </button>
+              ))}
             </div>
           </Section>
 
@@ -145,8 +207,8 @@ export const SettingsPage: React.FC = () => {
                     style={{
                       padding: '10px 14px',
                       borderRadius: '10px',
-                      border: `1.5px solid ${active ? '#7c3aed' : t.border}`,
-                      background: active ? 'rgba(124,58,237,0.08)' : t.inputBg,
+                      border: `1.5px solid ${active ? 'var(--primary)' : t.border}`,
+                      background: active ? 'var(--primary-08)' : t.inputBg,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       textAlign: 'left',
@@ -154,10 +216,10 @@ export const SettingsPage: React.FC = () => {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '18px', fontWeight: 800, color: active ? '#7c3aed' : t.text, lineHeight: 1 }}>
+                      <span style={{ fontSize: '18px', fontWeight: 800, color: active ? 'var(--primary)' : t.text, lineHeight: 1 }}>
                         {c.symbol}
                       </span>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: active ? '#7c3aed' : t.textMuted }}>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: active ? 'var(--primary)' : t.textMuted }}>
                         {c.code}
                       </span>
                     </div>
@@ -201,7 +263,7 @@ export const SettingsPage: React.FC = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleThresholdBlur()}
                   style={{
                     width: '64px', textAlign: 'center',
-                    background: t.inputBg, border: `1.5px solid #7c3aed`,
+                    background: t.inputBg, border: `1.5px solid var(--primary)`,
                     borderRadius: '10px', padding: '7px 10px',
                     color: t.text, fontSize: '16px', fontWeight: 700,
                     outline: 'none', fontFamily: 'inherit',
@@ -240,9 +302,9 @@ export const SettingsPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{
                 width: '52px', height: '52px', borderRadius: '14px', flexShrink: 0,
-                background: 'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+                background: 'linear-gradient(135deg,var(--primary-light),var(--primary))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 6px 20px rgba(124,58,237,0.35)',
+                boxShadow: '0 6px 20px var(--primary-35)',
               }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
@@ -252,7 +314,7 @@ export const SettingsPage: React.FC = () => {
               </div>
               <div>
                 <p style={{ color: t.text, fontSize: '16px', fontWeight: 800, letterSpacing: '-0.3px' }}>
-                  MK<span style={{ color: '#8b5cf6' }}>POS</span>
+                  Easy<span style={{ color: 'var(--primary-light)' }}>POS</span>
                 </p>
                 <p style={{ color: t.textMuted, fontSize: '12px', marginTop: '2px' }}>Version {APP_VERSION}</p>
                 <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '4px' }}>
