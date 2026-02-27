@@ -78,6 +78,17 @@ export const locationRouter = router({
         mapError(err)
       }
     }),
+
+  /** POST /location.setDefault */
+  setDefault: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return MasterService.setDefaultLocation(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
 })
 
 // ================================================================

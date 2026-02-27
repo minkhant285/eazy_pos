@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { trpc } from '../../trpc-client/trpc'
+import { DateRangePicker } from '../../components/ui/DateRangePicker'
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -47,7 +48,8 @@ const PAGE_SIZE = 50
 // ── LedgerPage ────────────────────────────────────────────────
 
 export const LedgerPage: React.FC = () => {
-  const t = useAppStore((s) => s.theme)
+  const t      = useAppStore((s) => s.theme)
+  const isDark = useAppStore((s) => s.isDark)
 
   const [locationId,   setLocationId]   = useState('')
   const [movementType, setMovementType] = useState('')
@@ -143,18 +145,9 @@ export const LedgerPage: React.FC = () => {
         </select>
 
         {/* Date range */}
-        <input
-          type="date"
-          value={fromDate}
-          onChange={(e) => { setFromDate(e.target.value); resetPage() }}
-          style={{ ...inp }}
-        />
-        <span style={{ color: t.textFaint, fontSize: '12px' }}>→</span>
-        <input
-          type="date"
-          value={toDate}
-          onChange={(e) => { setToDate(e.target.value); resetPage() }}
-          style={{ ...inp }}
+        <DateRangePicker
+          fromDate={fromDate} toDate={toDate} t={t} isDark={isDark}
+          onChange={(from, to) => { setFromDate(from); setToDate(to); resetPage() }}
         />
 
         {/* Clear */}

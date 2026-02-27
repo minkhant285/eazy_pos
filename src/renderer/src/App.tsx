@@ -42,8 +42,30 @@ import { SalesPage } from './pages/sales/SalesPage';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { LedgerPage } from './pages/ledger/LedgerPage';
 import { ExpensePage } from './pages/expenses/ExpensePage';
+import { LoginPage } from './pages/auth/LoginPage';
+import { SetupPage } from './pages/auth/SetupPage';
+import { ProfilePage } from './pages/profile/ProfilePage';
+import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { trpc } from './trpc-client/trpc';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile'] as const;
+
+// Checks whether any user account exists; shows SetupPage on first run, LoginPage otherwise.
+const AuthGate: React.FC = () => {
+	const t = useTheme();
+	const { data, isLoading, refetch } = trpc.user.hasAny.useQuery();
+
+	if (isLoading) {
+		return (
+			<div style={{ position: 'fixed', inset: 0, background: t.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+				<div style={{ color: t.textFaint, fontSize: '13px' }}>Loading…</div>
+			</div>
+		);
+	}
+
+	if (!data?.exists) return <SetupPage onDone={() => refetch()} />;
+	return <LoginPage />;
+};
 
 const App: React.FC = () => {
 	const t = useTheme();
@@ -51,6 +73,8 @@ const App: React.FC = () => {
 	const page = useAppStore((s) => s.page);
 	const preset = usePrimaryPreset();
 	const fontScale = useFontScale();
+	const currentUser = useAppStore((s) => s.currentUser);
+	const onboardingDone = useAppStore((s) => s.onboardingDone);
 
 	const pageLabel = tr[page as keyof typeof tr] ?? page;
 
@@ -68,9 +92,15 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
         ::-webkit-scrollbar-thumb { background: ${t.scrollThumb}; border-radius: 2px; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         button:focus { outline: none; }
       `}</style>
 
+			{!currentUser ? (
+				<AuthGate />
+			) : !onboardingDone ? (
+				<OnboardingPage />
+			) : (
 			<div style={{
 				display: 'flex', height: '100%', width: '100%',
 				background: t.bg, fontFamily: "'DM Sans', sans-serif",
@@ -95,12 +125,14 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'sales' && <SalesPage />}
 						{page === 'settings' && <SettingsPage />}
 						{page === 'expenses' && <ExpensePage />}
+						{page === 'profile' && <ProfilePage />}
 						{!IMPLEMENTED_PAGES.includes(page as typeof IMPLEMENTED_PAGES[number]) && (
 							<ComingSoon label={String(pageLabel)} />
 						)}
 					</main>
 				</div>
 			</div>
+			)}
 		</>
 	);
 };

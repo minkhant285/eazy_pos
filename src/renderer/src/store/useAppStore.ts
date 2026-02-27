@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { LangCode, PageId, ThemeTokens } from '../types';
+import type { LangCode, PageId, ThemeTokens, CurrentUser } from '../types';
 import { darkTheme, lightTheme } from '../constants/themes';
 import { translations, type Translations } from '../constants/translations';
 import { type Currency, CURRENCIES } from '../constants/currencies';
@@ -36,6 +36,15 @@ interface AppState {
   // ── Inventory ─────────────────────────────────────────────────
   lowStockThreshold: number;
   setLowStockThreshold: (n: number) => void;
+
+  // ── Auth ──────────────────────────────────────────────────────
+  currentUser: CurrentUser | null;
+  setCurrentUser: (user: CurrentUser | null) => void;
+  logout: () => void;
+
+  // ── Onboarding ───────────────────────────────────────────────
+  onboardingDone: boolean;
+  setOnboardingDone: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -74,11 +83,20 @@ export const useAppStore = create<AppState>()(
       // ── Inventory ──────────────────────────────────────────────
       lowStockThreshold: 10,
       setLowStockThreshold: (lowStockThreshold) => set({ lowStockThreshold }),
+
+      // ── Auth ───────────────────────────────────────────────────
+      currentUser: null,
+      setCurrentUser: (currentUser) => set({ currentUser }),
+      logout: () => set({ currentUser: null, page: 'dashboard' }),
+
+      // ── Onboarding ─────────────────────────────────────────
+      onboardingDone: false,
+      setOnboardingDone: (onboardingDone) => set({ onboardingDone }),
     }),
     {
       name: 'mkpos-app-store',
       // Persist theme, lang, currency, and inventory preferences — not nav state
-      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency, lowStockThreshold: s.lowStockThreshold, primaryPresetId: s.primaryPresetId, fontScale: s.fontScale }),
+      partialize: (s) => ({ isDark: s.isDark, lang: s.lang, currency: s.currency, lowStockThreshold: s.lowStockThreshold, primaryPresetId: s.primaryPresetId, fontScale: s.fontScale, currentUser: s.currentUser, onboardingDone: s.onboardingDone }),
       // Rehydrate derived fields after persist load
       onRehydrateStorage: () => (state) => {
         if (state) {

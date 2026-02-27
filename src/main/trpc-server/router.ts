@@ -54,6 +54,7 @@ import { locationRouter,
          categoryRouter }         from './routers/master.router'
 import { productRouter }          from './routers/product.router'
 import { customerRouter }         from './routers/customer.router'
+import { customerAddressRouter } from './routers/customerAddress.router'
 import { stockRouter }            from './routers/stock.router'
 import { saleRouter }             from './routers/sale.router'
 import { purchaseOrderRouter }    from './routers/purchase-order.router'
@@ -69,6 +70,7 @@ export const appRouter = router({
   category:         categoryRouter,
   product:          productRouter,
   customer:         customerRouter,
+  customerAddress:  customerAddressRouter,
   stock:            stockRouter,
   sale:             saleRouter,
   purchaseOrder:    purchaseOrderRouter,

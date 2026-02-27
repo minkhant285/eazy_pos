@@ -8,8 +8,12 @@ export const Topbar: React.FC = () => {
 	const page = useAppStore((s) => s.page);
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const currentUser = useAppStore((s) => s.currentUser);
+	const setPage = useAppStore((s) => s.setPage);
+	const logout = useAppStore((s) => s.logout);
 
 	const pageLabel = tr[page as keyof typeof tr] as string ?? page;
+	const initials = currentUser ? currentUser.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() : '?';
 
 	return (
 		<header style={{
@@ -50,18 +54,40 @@ export const Topbar: React.FC = () => {
 
 				<div style={{ width: "1px", height: "20px", background: t.divider }} />
 
-				{/* Avatar */}
+				{/* Avatar + logout */}
 				<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-					<div style={{
-						width: "30px", height: "30px", borderRadius: "50%",
-						background: "linear-gradient(135deg,var(--primary-light),var(--primary))",
-						display: "flex", alignItems: "center", justifyContent: "center",
-						color: "#fff", fontSize: "12px", fontWeight: 700,
-					}}>M</div>
-					<div>
-						<p style={{ color: t.text, fontSize: "12px", fontWeight: 700, lineHeight: 1 }}>Min Khant</p>
-						<p style={{ color: t.textFaint, fontSize: "10px", marginTop: "2px" }}>{tr.admin}</p>
-					</div>
+					<button
+						onClick={() => setPage('profile')}
+						title="My Profile"
+						style={{
+							display: "flex", alignItems: "center", gap: "8px",
+							border: "none", background: "transparent", cursor: "pointer", padding: 0,
+						}}
+					>
+						<div style={{
+							width: "30px", height: "30px", borderRadius: "50%",
+							background: "linear-gradient(135deg,var(--primary-light),var(--primary))",
+							display: "flex", alignItems: "center", justifyContent: "center",
+							color: "#fff", fontSize: "11px", fontWeight: 700,
+						}}>{initials}</div>
+						<div style={{ textAlign: "left" }}>
+							<p style={{ color: t.text, fontSize: "12px", fontWeight: 700, lineHeight: 1 }}>{currentUser?.name ?? '—'}</p>
+							<p style={{ color: t.textFaint, fontSize: "10px", marginTop: "2px", textTransform: "capitalize" }}>{currentUser?.role ?? ''}</p>
+						</div>
+					</button>
+					<button
+						onClick={logout}
+						title="Sign out"
+						style={{
+							marginLeft: "4px",
+							width: "30px", height: "30px",
+							display: "flex", alignItems: "center", justifyContent: "center",
+							borderRadius: "8px", border: `1px solid ${t.inputBorder}`,
+							background: t.inputBg, color: t.textMuted, cursor: "pointer",
+						}}
+					>
+						<Icon name="logout" size={14} />
+					</button>
 				</div>
 			</div>
 		</header>

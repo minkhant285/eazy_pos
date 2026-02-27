@@ -6,6 +6,7 @@ export * as UserService from "./user.service";
 export * as MasterService from "./master.service";    // Locations, Suppliers, Categories
 export * as ProductService from "./product.service";
 export * as CustomerService from "./customer.service";
+export * as CustomerAddressService from "./customerAddress.service";
 export * as StockService from "./stock.service";
 export * as SaleService from "./sale.service";
 export * as PurchaseOrderService from "./purchase-order.service";

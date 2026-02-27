@@ -22,6 +22,27 @@
       "when": 1772073428852,
       "tag": "0002_daffy_grim_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1772137800000,
+      "tag": "0003_customer_addresses",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1772224200000,
+      "tag": "0004_sale_delivery_address",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1772310600000,
+      "tag": "0005_location_is_default",
+      "breakpoints": true
     }
   ]
 }

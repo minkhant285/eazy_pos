@@ -86,6 +86,7 @@ export const saleRouter = router({
         locationId: z.string().uuid(),
         cashierId: z.string().uuid(),
         customerId: z.string().uuid().optional(),
+        deliveryAddressId: z.string().uuid().optional(),
         items: z.array(CartItemSchema).min(1),
         payments: z.array(PaymentInputSchema).min(1),
         discountAmount: z.number().nonnegative().optional(),

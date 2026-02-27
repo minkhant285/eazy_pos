@@ -17,9 +17,10 @@ export const LocationsPage: React.FC = () => {
   const { data, isLoading, refetch } = trpc.location.list.useQuery({ pageSize: 100 });
   const locations = data?.data ?? [];
 
-  const createMut = trpc.location.create.useMutation({ onSuccess: () => { closeModal(); refetch(); } });
-  const updateMut = trpc.location.update.useMutation({ onSuccess: () => { closeModal(); refetch(); } });
+  const createMut     = trpc.location.create.useMutation({ onSuccess: () => { closeModal(); refetch(); } });
+  const updateMut     = trpc.location.update.useMutation({ onSuccess: () => { closeModal(); refetch(); } });
   const deactivateMut = trpc.location.deactivate.useMutation({ onSuccess: () => { setDeleteId(null); refetch(); } });
+  const setDefaultMut = trpc.location.setDefault.useMutation({ onSuccess: () => refetch() });
 
   const closeModal = () => { setModal({ open: false, id: null }); setForm(EMPTY); };
   const openCreate = () => { setForm(EMPTY); setModal({ open: true, id: null }); };
@@ -68,20 +69,35 @@ export const LocationsPage: React.FC = () => {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "12px" }}>
           {locations.map((l) => (
-            <div key={l.id} style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "18px", display: "flex", flexDirection: "column", gap: "10px", transition: "border-color 0.15s" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = t.borderStrong)}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = t.border)}>
+            <div key={l.id} style={{ background: t.surface, border: `1px solid ${l.isDefault ? "var(--primary)" : t.border}`, borderRadius: "16px", padding: "18px", display: "flex", flexDirection: "column", gap: "10px", transition: "border-color 0.15s" }}
+              onMouseEnter={(e) => { if (!l.isDefault) e.currentTarget.style.borderColor = t.borderStrong; }}
+              onMouseLeave={(e) => { if (!l.isDefault) e.currentTarget.style.borderColor = t.border; }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon name="location" size={16} style={{ color: "var(--primary-light)" }} />
+                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: l.isDefault ? "var(--primary-15)" : t.inputBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name="location" size={16} style={{ color: l.isDefault ? "var(--primary-light)" : t.textFaint }} />
                   </div>
                   <div>
-                    <p style={{ color: t.text, fontSize: "14px", fontWeight: 700 }}>{l.name}</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <p style={{ color: t.text, fontSize: "14px", fontWeight: 700 }}>{l.name}</p>
+                      {l.isDefault && (
+                        <span style={{ fontSize: "9px", fontWeight: 700, color: "var(--primary)", background: "var(--primary-10)", padding: "2px 7px", borderRadius: "4px" }}>DEFAULT</span>
+                      )}
+                    </div>
                     {!l.isActive && <span style={{ fontSize: "9px", fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "1px 6px", borderRadius: "4px" }}>INACTIVE</span>}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "4px" }}>
+                <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                  {!l.isDefault && (
+                    <button
+                      onClick={() => setDefaultMut.mutate({ id: l.id })}
+                      disabled={setDefaultMut.isPending}
+                      title="Set as default location"
+                      style={{ padding: "4px 10px", borderRadius: "7px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textFaint, fontSize: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                    >
+                      Set Default
+                    </button>
+                  )}
                   <button onClick={() => openEdit(l)} style={{ width: "28px", height: "28px", borderRadius: "8px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={12} /></button>
                   <button onClick={() => setDeleteId(l.id)} style={{ width: "28px", height: "28px", borderRadius: "8px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={12} /></button>
                 </div>

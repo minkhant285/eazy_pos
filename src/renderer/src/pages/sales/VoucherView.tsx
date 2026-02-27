@@ -1,6 +1,7 @@
 import React, { useRef } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
+import { trpc } from '../../trpc-client/trpc'
 
 export type SaleItem = {
   id: string
@@ -25,6 +26,8 @@ export type SaleDetail = {
   receiptNo: string
   locationName: string | null
   customerName: string | null
+  customerId: string | null
+  deliveryAddressId?: string | null
   cashierName: string | null
   status: string
   subtotal: number
@@ -50,14 +53,26 @@ const METHOD_LABELS: Record<string, string> = {
 
 interface Props {
   sale: SaleDetail
+  selectedAddressId?: string
   onClose: () => void
   onNewSale?: () => void
 }
 
-export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
+export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose, onNewSale }) => {
   const t = useAppStore((s) => s.theme)
   const sym = useAppStore((s) => s.currency.symbol)
   const printRef = useRef<HTMLDivElement>(null)
+
+  // Fetch customer addresses if customer is attached to this sale
+  const { data: addresses = [] } = trpc.customerAddress.list.useQuery(
+    { customerId: sale.customerId! },
+    { enabled: !!sale.customerId },
+  )
+  const addrList = addresses as any[]
+  const resolvedId = sale.deliveryAddressId ?? selectedAddressId
+  const defaultAddress = resolvedId
+    ? (addrList.find((a) => a.id === resolvedId) ?? addrList.find((a) => a.isDefault) ?? addrList[0] ?? null)
+    : (addrList.find((a) => a.isDefault) ?? addrList[0] ?? null)
 
   const handlePrint = () => {
     const content = printRef.current?.innerHTML ?? ''
@@ -82,9 +97,49 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
             .green { color: #166534; }
             .red { color: #991b1b; }
             .meta-label { color: #6b7280; }
+            .addr-block { border: 1px dashed #888; border-radius: 4px; padding: 8px 10px; margin: 8px 0; }
+            .addr-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 5px; }
+            .addr-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+            .addr-phone { font-size: 11px; color: #374151; margin-bottom: 2px; }
+            .addr-detail { font-size: 11px; color: #374151; line-height: 1.4; }
           </style>
         </head>
         <body>${content}</body>
+      </html>
+    `)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 300)
+  }
+
+  const handlePrintLabel = () => {
+    if (!defaultAddress) return
+    const win = window.open('', '_blank', 'width=400,height=300')
+    if (!win) return
+    win.document.write(`
+      <html>
+        <head>
+          <title>Address Label</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; padding: 24px; color: #000; }
+            .label { border: 2px solid #000; border-radius: 8px; padding: 20px 24px; max-width: 340px; }
+            .to { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 10px; }
+            .name { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
+            .phone { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 8px; }
+            .address { font-size: 13px; color: #444; line-height: 1.6; }
+            .receipt { font-size: 10px; color: #888; margin-top: 14px; border-top: 1px dashed #ccc; padding-top: 8px; }
+          </style>
+        </head>
+        <body>
+          <div class="label">
+            <p class="to">Deliver To</p>
+            <p class="name">${defaultAddress.receiverName}</p>
+            <p class="phone">${defaultAddress.phoneNumber}</p>
+            <p class="address">${defaultAddress.detailAddress}</p>
+            <p class="receipt">Receipt: ${sale.receiptNo}</p>
+          </div>
+        </body>
       </html>
     `)
     win.document.close()
@@ -128,6 +183,11 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
             {onNewSale && (
               <button onClick={() => { onClose(); onNewSale() }} style={{ ...btnBase, background: 'rgba(16,185,129,0.15)', color: '#10b981' }}>
                 New Sale
+              </button>
+            )}
+            {defaultAddress && (
+              <button onClick={handlePrintLabel} style={{ ...btnBase, background: t.inputBg, color: t.textMuted }}>
+                Print Label
               </button>
             )}
             <button onClick={handlePrint} style={{ ...btnBase, background: 'var(--primary)', color: '#fff' }}>
@@ -232,6 +292,19 @@ export const VoucherView: React.FC<Props> = ({ sale, onClose, onNewSale }) => {
                 </div>
               )}
             </div>
+
+            {/* Delivery address */}
+            {defaultAddress && (
+              <>
+                <div className="divider" style={{ borderTop: `1px dashed ${t.border}`, margin: '10px 0' }} />
+                <div className="addr-block" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span className="addr-title" style={{ color: t.textFaint, fontSize: '10px', marginBottom: '3px' }}>Deliver to</span>
+                  <span className="addr-name" style={{ color: t.text, fontSize: '12px', fontWeight: 700 }}>{defaultAddress.receiverName}</span>
+                  <span className="addr-phone" style={{ color: t.textMuted, fontSize: '11px' }}>{defaultAddress.phoneNumber}</span>
+                  <span className="addr-detail" style={{ color: t.textMuted, fontSize: '11px', lineHeight: 1.5 }}>{defaultAddress.detailAddress}</span>
+                </div>
+              </>
+            )}
 
             <div className="divider" style={{ borderTop: `1px dashed ${t.border}`, margin: '14px 0 6px' }} />
             <p className="center" style={{ color: t.textFaint, fontSize: '10px', textAlign: 'center' }}>Thank you for your purchase!</p>

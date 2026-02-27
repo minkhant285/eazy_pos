@@ -19,7 +19,6 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 		name: customer?.name ?? "",
 		email: customer?.email ?? "",
 		phone: customer?.phone ?? "",
-		creditLimit: String(customer?.creditLimit ?? 0),
 	});
 
 	const create = trpc.customer.create.useMutation({ onSuccess });
@@ -33,7 +32,6 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 				name: form.name.trim(),
 				email: form.email.trim() || undefined,
 				phone: form.phone.trim() || undefined,
-				creditLimit: Number(form.creditLimit) || 0,
 			});
 		} else {
 			update.mutate({
@@ -42,7 +40,6 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 					name: form.name.trim(),
 					email: form.email.trim() || undefined,
 					phone: form.phone.trim() || undefined,
-					creditLimit: Number(form.creditLimit) || 0,
 				},
 			});
 		}
@@ -52,7 +49,6 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 		{ label: tr.full_name, key: "name", icon: "customer", ph: "e.g. Aung Kyaw Zin" },
 		{ label: tr.email_address, key: "email", icon: "mail", ph: "e.g. name@email.com" },
 		{ label: tr.phone_number, key: "phone", icon: "phone", ph: "e.g. 09-4500-1234" },
-		{ label: tr.credit_limit, key: "creditLimit", icon: "award", ph: "0", type: "number" },
 	];
 
 	return (

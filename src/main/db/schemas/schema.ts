@@ -43,6 +43,7 @@ export const locations = sqliteTable("locations", {
   address: text("address"),
   phone: text("phone"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
   ...timestamps,
 });
 
@@ -282,6 +283,16 @@ export const customers = sqliteTable("customers", {
   ...timestamps,
 });
 
+export const customerAddresses = sqliteTable("customer_addresses", {
+  id: text("id").primaryKey(),
+  customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  receiverName: text("receiver_name").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  detailAddress: text("detail_address").notNull(),
+  isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+  ...timestamps,
+});
+
 // ============================================================
 // SALES (POS Transactions)
 // ============================================================
@@ -294,6 +305,7 @@ export const sales = sqliteTable(
       .notNull()
       .references(() => locations.id),
     customerId: text("customer_id").references(() => customers.id),
+    deliveryAddressId: text("delivery_address_id").references(() => customerAddresses.id),
     cashierId: text("cashier_id")
       .notNull()
       .references(() => users.id),

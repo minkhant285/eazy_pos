@@ -17,7 +17,16 @@
       "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.4\\)/var\\(--primary-40\\)/g')",
       "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.3\\)/var\\(--primary-30\\)/g')",
       "Bash(xargs sed -i '' 's/rgba\\(124,58,237,0\\\\.2\\)/var\\(--primary-20\\)/g')",
-      "Bash(xargs sed -i '' 's/#a78bfa/var\\(--primary-light\\)/g')"
+      "Bash(xargs sed -i '' 's/#a78bfa/var\\(--primary-light\\)/g')",
+      "Bash(yarn add react-date-range date-fns)",
+      "Bash(yarn add -D @types/react-date-range)",
+      "Bash(npx tsc --noEmit --project src/renderer/tsconfig.json)",
+      "Bash(sqlite3 /Users/minkhant/Desktop/html/electron/mkjournal/pos.db \".tables\")",
+      "Bash(sqlite3 /Users/minkhant/Desktop/html/electron/mkjournal/pos.db \"SELECT * FROM __drizzle_migrations ORDER BY created_at;\")",
+      "Bash(sqlite3 /Users/minkhant/Desktop/html/electron/mkjournal/pos.db \"\nSELECT va.name as attr_name, vo.value as opt_value, vo.id as opt_id, va.id as attr_id\nFROM variant_attributes va\nJOIN variant_options vo ON vo.attribute_id = va.id\nORDER BY va.name, vo.sort_order;\n\")",
+      "Bash(sqlite3 /Users/minkhant/Desktop/html/electron/mkjournal/pos.db \"\nSELECT pv.sku, pv.id as variant_id, GROUP_CONCAT\\(pvo.option_id\\) as option_ids\nFROM product_variants pv\nJOIN product_variant_options pvo ON pvo.variant_id = pv.id\nGROUP BY pv.id\nORDER BY pv.sku;\n\")",
+      "Bash(grep -n \"date\\\\?:\" /Users/minkhant/Desktop/html/electron/mkjournal/node_modules/@types/react-date-range/index.d.ts 2>/dev/null | head -10)",
+      "Bash(grep -n \"^\\\\s*date\" /Users/minkhant/Desktop/html/electron/mkjournal/node_modules/@types/react-date-range/index.d.ts 2>/dev/null | head -10)"
     ]
   }
 }

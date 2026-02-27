@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { trpc } from '../../trpc-client/trpc'
+import { DateRangePicker } from '../../components/ui/DateRangePicker'
+import { SingleDatePicker } from '../../components/ui/SingleDatePicker'
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -42,7 +44,8 @@ const emptyForm = (): ExpenseForm => ({
 // ── ExpensePage ──────────────────────────────────────────────
 
 export const ExpensePage: React.FC = () => {
-  const t   = useAppStore((s) => s.theme)
+  const t      = useAppStore((s) => s.theme)
+  const isDark = useAppStore((s) => s.isDark)
   const sym = useAppStore((s) => s.currency.symbol)
 
   // ── Tab ─────────────────────────────────────────────────────
@@ -267,9 +270,10 @@ export const ExpensePage: React.FC = () => {
               <option value="">All Locations</option>
               {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
-            <input type="date" value={fromDate} onChange={(e) => { setFromDate(e.target.value); setPage(1) }} style={{ ...inp, width: 'auto' }} />
-            <span style={{ color: t.textFaint, fontSize: '12px' }}>→</span>
-            <input type="date" value={toDate} onChange={(e) => { setToDate(e.target.value); setPage(1) }} style={{ ...inp, width: 'auto' }} />
+            <DateRangePicker
+              fromDate={fromDate} toDate={toDate} t={t} isDark={isDark}
+              onChange={(from, to) => { setFromDate(from); setToDate(to); setPage(1) }}
+            />
             {(filterCategory || filterLocation || fromDate || toDate || search) && (
               <button
                 onClick={() => { setFilterCategory(''); setFilterLocation(''); setFromDate(''); setToDate(''); setSearch(''); setPage(1) }}
@@ -453,7 +457,12 @@ export const ExpensePage: React.FC = () => {
                 </div>
                 <div>
                   <label style={label}>Date *</label>
-                  <input type="date" value={form.expenseDate} onChange={(e) => setForm({ ...form, expenseDate: e.target.value })} style={inp} />
+                  <SingleDatePicker
+                    value={form.expenseDate}
+                    onChange={(date) => setForm({ ...form, expenseDate: date })}
+                    t={t}
+                    isDark={isDark}
+                  />
                 </div>
               </div>
 

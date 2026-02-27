@@ -6,6 +6,24 @@ import type { PageId } from "../../types";
 interface NavItem { id: PageId; label: string; icon: import("../../constants/icons").IconKey; }
 interface NavGroup { label: string; items: NavItem[]; }
 
+// Pages each role can access
+const PAGE_ACCESS: Record<string, ('admin' | 'manager' | 'cashier')[]> = {
+  dashboard: ['admin', 'manager'],
+  sales:     ['admin', 'manager', 'cashier'],
+  customers: ['admin', 'manager', 'cashier'],
+  settings:  ['admin', 'manager', 'cashier'],
+  categories:['admin', 'manager'],
+  stock:     ['admin', 'manager'],
+  transfers: ['admin', 'manager'],
+  ledger:    ['admin', 'manager'],
+  suppliers: ['admin', 'manager'],
+  purchase:  ['admin', 'manager'],
+  expenses:  ['admin', 'manager'],
+  locations: ['admin'],
+  users:     ['admin'],
+  profile:   ['admin', 'manager', 'cashier'],
+}
+
 export const Sidebar: React.FC = () => {
 	const page = useAppStore((s) => s.page);
 	const setPage = useAppStore((s) => s.setPage);
@@ -13,14 +31,20 @@ export const Sidebar: React.FC = () => {
 	const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const role = useAppStore((s) => s.currentUser?.role ?? 'cashier');
 
-	const groups: NavGroup[] = [
+	const allGroups: NavGroup[] = [
 		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
 		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },
-		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }] },
+		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }, { id: "profile", label: tr.profile, icon: "profile" }] },
 	];
+
+	// Filter items by role access
+	const groups = allGroups
+		.map((g) => ({ ...g, items: g.items.filter((item) => (PAGE_ACCESS[item.id] ?? ['admin']).includes(role)) }))
+		.filter((g) => g.items.length > 0);
 
 	return (
 		<aside style={{

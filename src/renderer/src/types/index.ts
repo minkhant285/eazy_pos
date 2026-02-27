@@ -1,7 +1,7 @@
 export type PageId =
   | 'dashboard' | 'customers' | 'products' | 'categories'
   | 'stock' | 'transfers' | 'ledger' | 'suppliers' | 'purchase'
-  | 'expenses' | 'locations' | 'users' | 'sales' | 'settings';
+  | 'expenses' | 'locations' | 'users' | 'sales' | 'settings' | 'profile';
 
 export type LangCode = 'en' | 'my' | 'zh';
 
@@ -18,6 +18,13 @@ export interface Customer {
   id: string; name: string; email: string | null; phone: string | null;
   loyaltyPoints: number; outstandingBalance: number; creditLimit: number;
   isActive: boolean; createdAt: string;
+}
+
+export interface CurrentUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'manager' | 'cashier';
 }
 
 export interface RecentSale {

@@ -2,7 +2,7 @@ import type { LangCode } from '../types';
 
 export type TranslationKey =
   | 'overview' | 'sales_group' | 'inventory' | 'procurement' | 'settings'
-  | 'dashboard' | 'sales' | 'customers' | 'products' | 'categories'
+  | 'dashboard' | 'sales' | 'customers' | 'products' | 'categories' | 'profile'
   | 'stock' | 'transfers' | 'suppliers' | 'purchase' | 'locations' | 'users'
   | 'todays_revenue' | 'total_customers' | 'transactions' | 'low_stock_alerts'
   | 'vs_yesterday' | 'recent_transactions' | 'view_all'
@@ -17,7 +17,8 @@ export type TranslationKey =
   | 'cash' | 'card' | 'qr_code' | 'completed' | 'voided'
   | 'ledger' | 'expenses'
   | 'revenue_summary' | 'total_revenue' | 'total_cost' | 'gross_profit' | 'profit_margin'
-  | 'expense_breakdown' | 'this_month' | 'no_expenses';
+  | 'expense_breakdown' | 'this_month' | 'no_expenses'
+  | 'financial_overview' | 'today' | 'net_profit' | 'net_margin';
 
 export type Translations = Record<TranslationKey, string>;
 
@@ -34,7 +35,7 @@ export const translations: Record<LangCode, Translations> = {
     dashboard: 'Dashboard', sales: 'Sales', customers: 'Customers',
     products: 'Products', categories: 'Categories', stock: 'Stock',
     transfers: 'Transfers', suppliers: 'Suppliers', purchase: 'Purchase Orders',
-    locations: 'Locations', users: 'Users',
+    locations: 'Locations', users: 'Users', profile: 'My Profile',
     todays_revenue: "Today's Revenue", total_customers: 'Total Customers',
     transactions: 'Transactions', low_stock_alerts: 'Low Stock Alerts',
     vs_yesterday: 'vs yesterday', recent_transactions: 'Recent Transactions',
@@ -60,6 +61,8 @@ export const translations: Record<LangCode, Translations> = {
     revenue_summary: 'Revenue Summary', total_revenue: 'Revenue', total_cost: 'Cost of Goods',
     gross_profit: 'Gross Profit', profit_margin: 'Margin',
     expense_breakdown: 'Expense Breakdown', this_month: 'This Month', no_expenses: 'No expenses',
+    financial_overview: 'Financial Overview', today: 'Today',
+    net_profit: 'Net Profit', net_margin: 'Net Margin',
   },
   my: {
     overview: 'အကျဉ်းချုပ်', sales_group: 'အရောင်းများ', inventory: 'ကုန်ပစ္စည်းစာရင်း',
@@ -67,7 +70,7 @@ export const translations: Record<LangCode, Translations> = {
     dashboard: 'ဒက်ရှ်ဘုတ်', sales: 'အရောင်းများ', customers: 'ဖောက်သည်များ',
     products: 'ကုန်ပစ္စည်းများ', categories: 'အမျိုးအစားများ', stock: 'စတော့',
     transfers: 'လွှဲပြောင်းမှုများ', suppliers: 'ပေးသွင်းသူများ', purchase: 'ဝယ်ယူမှုအမိန့်များ',
-    locations: 'တည်နေရာများ', users: 'အသုံးပြုသူများ',
+    locations: 'တည်နေရာများ', users: 'အသုံးပြုသူများ', profile: 'ကျွန်ုပ်ပရိုဖိုင်',
     todays_revenue: 'ယနေ့ဝင်ငွေ', total_customers: 'ဖောက်သည်စုစုပေါင်း',
     transactions: 'ငွေပေးငွေယူများ', low_stock_alerts: 'စတော့နည်းသတိပေးချက်',
     vs_yesterday: 'မနေ့နှင့်နှိုင်းယှဉ်', recent_transactions: 'မကြာသေးမီငွေပေးငွေယူများ',
@@ -94,6 +97,8 @@ export const translations: Record<LangCode, Translations> = {
     revenue_summary: 'ဝင်ငွေအကျဉ်းချုပ်', total_revenue: 'ဝင်ငွေ', total_cost: 'ကုန်ကျငွေ',
     gross_profit: 'အမြတ်ကြမ်း', profit_margin: 'မာဂျင်',
     expense_breakdown: 'ကုန်ကျစရိတ်ခွဲခြမ်း', this_month: 'ဤလ', no_expenses: 'ကုန်ကျမှုမရှိ',
+    financial_overview: 'ဘဏ္ဍာရေးအကျဉ်းချုပ်', today: 'ယနေ့',
+    net_profit: 'အသားတင်အမြတ်', net_margin: 'အသားတင်မာဂျင်',
   },
   zh: {
     overview: '概览', sales_group: '销售', inventory: '库存管理',
@@ -101,7 +106,7 @@ export const translations: Record<LangCode, Translations> = {
     dashboard: '仪表盘', sales: '销售', customers: '客户',
     products: '产品', categories: '分类', stock: '库存',
     transfers: '调拨', suppliers: '供应商', purchase: '采购订单',
-    locations: '门店', users: '用户',
+    locations: '门店', users: '用户', profile: '我的资料',
     todays_revenue: '今日营收', total_customers: '客户总数',
     transactions: '交易笔数', low_stock_alerts: '库存预警',
     vs_yesterday: '与昨日对比', recent_transactions: '最近交易',
@@ -127,5 +132,7 @@ export const translations: Record<LangCode, Translations> = {
     revenue_summary: '营收摘要', total_revenue: '总营收', total_cost: '销货成本',
     gross_profit: '毛利润', profit_margin: '利润率',
     expense_breakdown: '费用分类', this_month: '本月', no_expenses: '暂无费用',
+    financial_overview: '财务概览', today: '今日',
+    net_profit: '净利润', net_margin: '净利润率',
   },
 };

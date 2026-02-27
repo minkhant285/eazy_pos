@@ -28,6 +28,26 @@ const UpdateUserSchema = z.object({
 // ── Router ────────────────────────────────────────────────────
 
 export const userRouter = router({
+  /** GET /user.hasAny — true if at least one account exists */
+  hasAny: publicProcedure.query(() => {
+    return { exists: UserService.hasAnyUser() }
+  }),
+
+  /** POST /user.setupAdmin — create the first admin (blocked if any user exists) */
+  setupAdmin: publicProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      password: z.string().min(6),
+    }))
+    .mutation(async ({ input }) => {
+      try {
+        return await UserService.setupAdmin(input)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
   /** GET /user.list */
   list: publicProcedure
     .input(

@@ -53,6 +53,13 @@ export function deactivateLocation(id: string) {
   db.update(locations).set({ isActive: false, updatedAt: now() }).where(eq(locations.id, id)).run();
 }
 
+export function setDefaultLocation(id: string) {
+  getLocationById(id);
+  db.update(locations).set({ isDefault: false, updatedAt: now() }).run();
+  db.update(locations).set({ isDefault: true, updatedAt: now() }).where(eq(locations.id, id)).run();
+  return getLocationById(id);
+}
+
 // ================================================================
 // SUPPLIERS
 // ================================================================

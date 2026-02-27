@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { db } from "../db";
-import { sales, saleItems, payments, products, productVariants, customers, users, locations } from "../schemas/schema";
+import { sales, saleItems, payments, products, productVariants, customers, users, locations, customerAddresses, expenseCategories, expenses } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
 import { upsertVariantStock } from "./variant.service";
@@ -26,6 +26,7 @@ export type CreateSaleInput = {
   locationId: string;
   cashierId: string;
   customerId?: string;
+  deliveryAddressId?: string;
   items: CartItem[];
   payments: PaymentInput[];
   discountAmount?: number;  // Header-level discount
@@ -72,7 +73,7 @@ export function calculateSaleTotals(
 
 /** Complete a POS sale (creates sale, items, payments, ledger entries atomically) */
 export function createSale(input: CreateSaleInput) {
-  return db.transaction((tx) => {
+  const sale = db.transaction((tx) => {
     const saleId = newId();
     const receiptNo = generateDocNumber("RCP");
 
@@ -174,6 +175,7 @@ export function createSale(input: CreateSaleInput) {
         locationId: input.locationId,
         cashierId: input.cashierId,
         customerId: input.customerId ?? null,
+        deliveryAddressId: input.deliveryAddressId ?? null,
         status: "completed",
         subtotal,
         discountAmount: headerDiscount,
@@ -211,6 +213,41 @@ export function createSale(input: CreateSaleInput) {
 
     return getSaleById(saleId);
   });
+
+  // ── Auto-expense: discount given ──────────────────────────
+  const discountAmount = input.discountAmount ?? 0;
+  if (discountAmount > 0) {
+    const DISCOUNT_CAT_NAME = "Sales Discount";
+
+    let cat = db.select().from(expenseCategories)
+      .where(eq(expenseCategories.name, DISCOUNT_CAT_NAME))
+      .get();
+
+    if (!cat) {
+      const catId = newId();
+      db.insert(expenseCategories).values({
+        id: catId,
+        name: DISCOUNT_CAT_NAME,
+        color: "#f59e0b",
+      }).run();
+      cat = db.select().from(expenseCategories).where(eq(expenseCategories.id, catId)).get()!;
+    }
+
+    db.insert(expenses).values({
+      id: newId(),
+      expenseNo: generateDocNumber("EXP"),
+      categoryId: cat.id,
+      locationId: input.locationId,
+      amount: discountAmount,
+      description: `Sales Discount — ${sale.receiptNo}`,
+      paymentMethod: "other",
+      expenseDate: new Date().toISOString().slice(0, 10),
+      notes: "Auto-generated from sale discount",
+      createdBy: input.cashierId,
+    }).run();
+  }
+
+  return sale;
 }
 
 /** Get a sale with all its items and payments */
@@ -223,6 +260,7 @@ export function getSaleById(id: string) {
       locationName: locations.name,
       customerId: sales.customerId,
       customerName: customers.name,
+      deliveryAddressId: sales.deliveryAddressId,
       cashierId: sales.cashierId,
       cashierName: users.name,
       status: sales.status,
@@ -493,9 +531,10 @@ export function getDailyProfitSummary(locationId: string, fromDate: string, toDa
   return db
     .select({
       date: sql<string>`DATE(${sales.createdAt})`,
-      revenue: sql<number>`SUM(${sales.totalAmount})`,
+      revenue: sql<number>`SUM(${sales.totalAmount} + ${sales.discountAmount})`,
       cogs: sql<number>`SUM(${saleItems.qty} * ${saleItems.unitCost})`,
-      grossProfit: sql<number>`SUM(${sales.totalAmount}) - SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+      grossProfit: sql<number>`SUM(${sales.totalAmount} + ${sales.discountAmount}) - SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+      totalDiscount: sql<number>`SUM(${sales.discountAmount})`,
       transactions: sql<number>`COUNT(DISTINCT ${sales.id})`,
     })
     .from(sales)

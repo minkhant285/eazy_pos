@@ -27,6 +27,18 @@ function hashPassword(password: string): string {
 
 // ─── CRUD ────────────────────────────────────────────────────
 
+/** Returns true if at least one user account exists */
+export function hasAnyUser(): boolean {
+  const row = db.select({ c: sql<number>`COUNT(*)` }).from(users).get();
+  return (row?.c ?? 0) > 0;
+}
+
+/** Create the very first admin account — only allowed when no users exist */
+export async function setupAdmin(input: { name: string; email: string; password: string }) {
+  if (hasAnyUser()) throw new ValidationError("Setup already completed. Use the Users page to add accounts.");
+  return createUser({ ...input, role: "admin" });
+}
+
 /** Create a new user */
 export async function createUser(input: CreateUserInput) {
   const existing = db
