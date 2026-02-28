@@ -24,7 +24,7 @@ export type TranslationKey =
   | 'cash_inflow' | 'cash_outflow' | 'net_cash_flow' | 'purchase_payments'
   | 'assets' | 'liabilities' | 'equity' | 'inventory_value' | 'accounts_receivable'
   | 'accounts_payable' | 'total_assets' | 'total_liabilities' | 'owners_equity'
-  | 'revenue_by_category' | 'top_products' | 'profit' | 'margin' | 'qty_sold'
+  | 'revenue_by_category' | 'top_products_report' | 'profit' | 'margin' | 'qty_sold'
   | 'tax_collected' | 'discounts_given' | 'transactions_count';
 
 export type Translations = Record<TranslationKey, string>;
@@ -79,7 +79,7 @@ export const translations: Record<LangCode, Translations> = {
     inventory_value: 'Inventory Value', accounts_receivable: 'Accounts Receivable',
     accounts_payable: 'Accounts Payable', total_assets: 'Total Assets',
     total_liabilities: 'Total Liabilities', owners_equity: "Owner's Equity",
-    revenue_by_category: 'Revenue by Category', top_products: 'Top Products',
+    revenue_by_category: 'Revenue by Category', top_products_report: 'Top Products',
     profit: 'Profit', margin: 'Margin', qty_sold: 'Qty Sold',
     tax_collected: 'Tax Collected', discounts_given: 'Discounts Given', transactions_count: 'Transactions',
   },
@@ -127,7 +127,7 @@ export const translations: Record<LangCode, Translations> = {
     inventory_value: 'ကုန်ပစ္စည်းတန်ဖိုး', accounts_receivable: 'လက်ခံရမည့်ငွေ',
     accounts_payable: 'ပေးဆပ်ရမည့်ငွေ', total_assets: 'ပိုင်ဆိုင်မှုစုစုပေါင်း',
     total_liabilities: 'တာဝန်ဝတ္တရားစုစုပေါင်း', owners_equity: 'ပိုင်ရှင်ရင်းနှီး',
-    revenue_by_category: 'အမျိုးအစားအလိုက်ဝင်ငွေ', top_products: 'ထိပ်တန်းကုန်ပစ္စည်းများ',
+    revenue_by_category: 'အမျိုးအစားအလိုက်ဝင်ငွေ', top_products_report: 'ထိပ်တန်းကုန်ပစ္စည်းများ',
     profit: 'အမြတ်', margin: 'မာဂျင်', qty_sold: 'ရောင်းချပမာဏ',
     tax_collected: 'ကောက်ခံငွေ', discounts_given: 'လျှော့ပေးငွေ', transactions_count: 'ငွေပေးငွေယူ',
   },
@@ -174,7 +174,7 @@ export const translations: Record<LangCode, Translations> = {
     inventory_value: '库存价值', accounts_receivable: '应收账款',
     accounts_payable: '应付账款', total_assets: '总资产',
     total_liabilities: '总负债', owners_equity: '所有者权益',
-    revenue_by_category: '按类别收入', top_products: '热销产品',
+    revenue_by_category: '按类别收入', top_products_report: '热销产品',
     profit: '利润', margin: '利润率', qty_sold: '销量',
     tax_collected: '税款', discounts_given: '折扣', transactions_count: '交易笔数',
   },
