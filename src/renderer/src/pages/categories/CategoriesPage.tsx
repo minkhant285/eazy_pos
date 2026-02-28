@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -136,12 +137,12 @@ export const CategoriesPage: React.FC = () => {
 							</div>
 							<div>
 								<label style={labelStyle}>Parent Category</label>
-								<select value={form.parentId} onChange={(e) => setForm((f) => ({ ...f, parentId: e.target.value }))} style={{ ...inputStyle, color: form.parentId ? t.text : t.textFaint }}>
-									<option value="">None (top-level)</option>
-									{categories.filter((c) => c.id !== modal.category?.id).map((c) => (
-										<option key={c.id} value={c.id}>{c.name}</option>
-									))}
-								</select>
+							<AppSelect
+						value={form.parentId}
+						onChange={(v) => setForm((f) => ({ ...f, parentId: v }))}
+						options={[{ value: '', label: 'None (top-level)' }, ...categories.filter((c) => c.id !== modal.category?.id).map((c) => ({ value: c.id, label: c.name }))]}
+						isSearchable={false}
+					/>
 							</div>
 						</div>
 						<div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>

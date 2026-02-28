@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { trpc } from '../../trpc-client/trpc'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
+import { AppSelect } from '../../components/ui/AppSelect'
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -124,25 +125,22 @@ export const LedgerPage: React.FC = () => {
       {/* Filters */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
         {/* Location */}
-        <select
+        <AppSelect
           value={locationId}
-          onChange={(e) => { setLocationId(e.target.value); resetPage() }}
-          style={{ ...inp, minWidth: '160px' }}
-        >
-          <option value="">All Locations</option>
-          {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-        </select>
+          onChange={(v) => { setLocationId(v); resetPage() }}
+          options={[{ value: '', label: 'All Locations' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+          minWidth={160}
+          isSearchable={false}
+        />
 
         {/* Movement type */}
-        <select
+        <AppSelect
           value={movementType}
-          onChange={(e) => { setMovementType(e.target.value); setDirection('all'); resetPage() }}
-          style={{ ...inp, minWidth: '150px' }}
-        >
-          {MOVE_TYPE_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={(v) => { setMovementType(v); setDirection('all'); resetPage() }}
+          options={MOVE_TYPE_OPTIONS}
+          minWidth={150}
+          isSearchable={false}
+        />
 
         {/* Date range */}
         <DateRangePicker

@@ -14,8 +14,6 @@ const CreateProductSchema = z.object({
   costPrice: z.number().nonnegative(),
   sellingPrice: z.number().positive(),
   taxRate: z.number().min(0).max(1).optional(),       // e.g. 0.07 = 7%
-  reorderPoint: z.number().nonnegative().optional(),
-  reorderQty: z.number().nonnegative().optional(),
   isSerialized: z.boolean().optional(),
   imageUrl: z.string().optional(),
 })
@@ -26,8 +24,6 @@ const ProductFilterSchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),
   isActive: z.boolean().optional(),
-  lowStock: z.boolean().optional(),
-  locationId: z.string().uuid().optional(),
 })
 
 // ── Router ────────────────────────────────────────────────────

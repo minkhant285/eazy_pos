@@ -11,6 +11,7 @@ import {
 	type GroupingState,
 	type SortingState,
 } from "@tanstack/react-table";
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -335,7 +336,6 @@ export const StockPage: React.FC = () => {
 	const tr = useAppStore((s) => s.tr);
 	const sym = useAppStore((s) => s.currency.symbol);
 	const lowStockThreshold = useAppStore((s) => s.lowStockThreshold);
-
 	const [locationId, setLocationId] = useState("");
 	const [search, setSearch] = useState("");
 	const [page, setPage] = useState(1);
@@ -357,12 +357,10 @@ export const StockPage: React.FC = () => {
 		{ enabled: !!locationId }
 	);
 	const { data: valueData } = trpc.stock.inventoryValue.useQuery({ locationId }, { enabled: !!locationId });
-	const { data: lowStockList } = trpc.stock.lowStock.useQuery({ locationId }, { enabled: !!locationId });
 
 	const inventory = inventoryData?.data ?? [];
 	const total = inventoryData?.total ?? 0;
 	const totalPages = Math.max(inventoryData?.totalPages ?? 1, 1);
-	const lowStockCount = lowStockList?.length ?? 0;
 	const uninitializedCount = inventory.filter((i: any) => !i.hasRecord).length;
 
 	const pageButtons = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -376,7 +374,6 @@ export const StockPage: React.FC = () => {
 	const summaryCards: { label: string; value: string; color: string; icon: IconKey }[] = [
 		{ label: "Total Value", value: `${sym}${Number(valueData?.totalValue ?? 0).toLocaleString()}`, color: "var(--primary)", icon: "product" },
 		{ label: "Total SKUs", value: String(valueData?.totalItems ?? 0), color: "#3b82f6", icon: "stock" },
-		{ label: "Low Stock Alerts", value: String(lowStockCount), color: lowStockCount > 0 ? "#ef4444" : "#10b981", icon: "bell" },
 		{ label: "Not Initialized", value: String(uninitializedCount), color: uninitializedCount > 0 ? "#f59e0b" : "#10b981", icon: "plus" },
 	];
 
@@ -391,8 +388,6 @@ export const StockPage: React.FC = () => {
 		costPrice: item.costPrice,
 		sellingPrice: item.sellingPrice,
 		taxRate: item.taxRate ?? 0,
-		reorderPoint: item.reorderPoint,
-		reorderQty: item.reorderQty ?? 0,
 		isSerialized: item.isSerialized ?? false,
 		imageUrl: item.imageUrl ?? null,
 	}), []);
@@ -439,7 +434,7 @@ export const StockPage: React.FC = () => {
 							{uninitialized && !item.hasVariants && (
 								<span style={{ fontSize: "9px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "1px 6px", borderRadius: "4px" }}>UNINITIALIZED</span>
 							)}
-							{!uninitialized && Number(item.qtyAvailable) <= lowStockThreshold && !item.hasVariants && (
+							{!uninitialized && !item.hasVariants && Number(item.qtyAvailable) <= lowStockThreshold && (
 								<span style={{ fontSize: "9px", fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "1px 6px", borderRadius: "4px" }}>LOW</span>
 							)}
 							{!!item.hasVariants && (
@@ -536,13 +531,13 @@ export const StockPage: React.FC = () => {
 						Add Product
 					</button>
 					{locations.length > 0 ? (
-						<select
-							value={locationId}
-							onChange={(e) => { setLocationId(e.target.value); setPage(1); setSearch(""); }}
-							style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 14px", color: t.text, fontSize: "13px", outline: "none", fontFamily: "inherit", minWidth: "180px" }}
-						>
-							{locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-						</select>
+						<AppSelect
+					value={locationId}
+					onChange={(v) => { setLocationId(v); setPage(1); setSearch(""); }}
+					options={locations.map((l) => ({ value: l.id, label: l.name }))}
+					isSearchable={false}
+					minWidth={180}
+				/>
 					) : (
 						<span style={{ color: t.textFaint, fontSize: "13px" }}>No locations configured</span>
 					)}

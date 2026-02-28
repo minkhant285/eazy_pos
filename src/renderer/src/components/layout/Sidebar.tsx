@@ -8,6 +8,7 @@ interface NavGroup { label: string; items: NavItem[]; }
 
 // Pages each role can access
 const PAGE_ACCESS: Record<string, ('admin' | 'manager' | 'cashier')[]> = {
+  accounting: ['admin', 'manager'],
   dashboard: ['admin', 'manager'],
   sales:     ['admin', 'manager', 'cashier'],
   customers: ['admin', 'manager', 'cashier'],
@@ -34,7 +35,7 @@ export const Sidebar: React.FC = () => {
 	const role = useAppStore((s) => s.currentUser?.role ?? 'cashier');
 
 	const allGroups: NavGroup[] = [
-		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }] },
+		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }, { id: "accounting", label: tr.accounting, icon: "accounting" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
 		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },

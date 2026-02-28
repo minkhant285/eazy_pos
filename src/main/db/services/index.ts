@@ -41,7 +41,7 @@ export * as VariantService       from "./variant.service";
 //   getProductById(id)
 //   getProductBySku(sku)
 //   getProductByBarcode(barcode)              ← For POS barcode scanner
-//   listProducts(params?)                     ← Supports search, category, lowStock filters
+//   listProducts(params?)                     ← Supports search, category, isActive filters
 //   updateProduct(id, input, changedBy?)      ← Auto-logs price history if price changed
 //   deactivateProduct(id)
 //   activateProduct(id)
@@ -63,7 +63,6 @@ export * as VariantService       from "./variant.service";
 //   getStock(productId, locationId)           ← Single product at one location
 //   getStockAllLocations(productId)           ← Product across all branches
 //   getLocationInventory(locationId, params?) ← Full snapshot of a location
-//   getLowStockProducts(locationId)           ← Products below reorder point
 //   getInventoryValue(locationId)             ← Total stock value
 //   queryStockLedger(params)                  ← Full audit trail with filters
 //   reconstructStockFromLedger(productId, locationId) ← Reconciliation

@@ -46,9 +46,10 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { SetupPage } from './pages/auth/SetupPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { AccountingPage } from './pages/accounting/AccountingPage';
 import { trpc } from './trpc-client/trpc';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile'] as const;
 
 // Checks whether any user account exists; shows SetupPage on first run, LoginPage otherwise.
 const AuthGate: React.FC = () => {
@@ -76,6 +77,14 @@ const App: React.FC = () => {
 	const currentUser = useAppStore((s) => s.currentUser);
 	const onboardingDone = useAppStore((s) => s.onboardingDone);
 
+	// If the DB was wiped, onboardingDone stays true in the store but there are no locations.
+	// Force onboarding whenever locations table is empty.
+	const { data: locCheck, isLoading: locChecking } = trpc.location.list.useQuery(
+		{ pageSize: 1 },
+		{ enabled: !!currentUser && onboardingDone }
+	);
+	const needsOnboarding = !onboardingDone || (!locChecking && locCheck !== undefined && locCheck.data.length === 0);
+
 	const pageLabel = tr[page as keyof typeof tr] ?? page;
 
 	return (
@@ -98,7 +107,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 
 			{!currentUser ? (
 				<AuthGate />
-			) : !onboardingDone ? (
+			) : needsOnboarding ? (
 				<OnboardingPage />
 			) : (
 			<div style={{
@@ -113,6 +122,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 
 					<main style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
 						{page === 'dashboard' && <DashboardPage />}
+						{page === 'accounting' && <AccountingPage />}
 						{page === 'customers' && <CustomersPage />}
 						{page === 'categories' && <CategoriesPage />}
 						{page === 'stock' && <StockPage />}

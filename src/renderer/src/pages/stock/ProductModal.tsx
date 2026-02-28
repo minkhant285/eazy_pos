@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -16,8 +17,6 @@ export type ProductForEdit = {
   costPrice: number;
   sellingPrice: number;
   taxRate: number;
-  reorderPoint: number;
-  reorderQty: number;
   isSerialized: boolean;
   imageUrl: string | null;
 };
@@ -270,8 +269,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
   const [costPrice, setCostPrice]     = useState(String(product?.costPrice ?? ""));
   const [sellingPrice, setSelling]    = useState(String(product?.sellingPrice ?? ""));
   const [taxRate, setTaxRate]         = useState(String(product?.taxRate ? product.taxRate * 100 : 0));
-  const [reorderPoint, setReorderPt]  = useState(String(product?.reorderPoint ?? 0));
-  const [reorderQty, setReorderQty]   = useState(String(product?.reorderQty ?? 0));
   const [isSerialized, setSerialized] = useState(product?.isSerialized ?? false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [confirmDelete, setConfirmDelete]         = useState(false);
@@ -320,8 +317,6 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
       costPrice:    isNaN(costNum) ? 0 : costNum,
       sellingPrice: sellNum,
       taxRate:      (parseFloat(taxRate) || 0) / 100,
-      reorderPoint: parseFloat(reorderPoint) || 0,
-      reorderQty:   parseFloat(reorderQty) || 0,
       isSerialized,
       imageUrl:     imageUrl || undefined,
     };
@@ -474,10 +469,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                 </div>
                 <div>
                   <label style={labelStyle}>Category</label>
-                  <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={inputStyle}>
-                    <option value="">— No category —</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                 <AppSelect
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  options={[{ value: '', label: '— No category —' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+                />
                 </div>
               </div>
 
@@ -485,9 +481,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
               <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: "10px" }}>
                 <div>
                   <label style={labelStyle}>Unit of Measure</label>
-                  <select value={unitOfMeasure} onChange={(e) => setUnit(e.target.value)} style={inputStyle}>
-                    {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                  </select>
+                 <AppSelect
+                  value={unitOfMeasure}
+                  onChange={setUnit}
+                  options={UNITS.map((u) => ({ value: u, label: u }))}
+                  isSearchable={false}
+                />
                 </div>
                 <div>
                   <label style={labelStyle}>Description</label>
@@ -511,16 +510,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                 </div>
               </div>
 
-              {/* Reorder + Serialized */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
-                <div>
-                  <label style={labelStyle}>Reorder Point</label>
-                  <input type="number" min="0" value={reorderPoint} onChange={(e) => setReorderPt(e.target.value)} placeholder="0" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Reorder Qty</label>
-                  <input type="number" min="0" value={reorderQty} onChange={(e) => setReorderQty(e.target.value)} placeholder="0" style={inputStyle} />
-                </div>
+              {/* Serialized */}
+              <div>
                 <div style={{ display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: "7px", cursor: "pointer", paddingBottom: "10px" }}>
                     <input

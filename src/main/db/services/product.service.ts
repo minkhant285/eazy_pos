@@ -15,8 +15,6 @@ export type CreateProductInput = {
   costPrice: number;
   sellingPrice: number;
   taxRate?: number;
-  reorderPoint?: number;
-  reorderQty?: number;
   isSerialized?: boolean;
   imageUrl?: string;
 };
@@ -27,8 +25,6 @@ export type ProductFilter = PaginationParams & {
   search?: string;        // name, sku, barcode
   categoryId?: string;
   isActive?: boolean;
-  lowStock?: boolean;     // qty_on_hand <= reorder_point
-  locationId?: string;   // required if lowStock=true
 };
 
 // ─── CRUD ────────────────────────────────────────────────────
@@ -65,8 +61,6 @@ export function createProduct(input: CreateProductInput) {
       costPrice: input.costPrice,
       sellingPrice: input.sellingPrice,
       taxRate: input.taxRate ?? 0,
-      reorderPoint: input.reorderPoint ?? 0,
-      reorderQty: input.reorderQty ?? 0,
       isSerialized: input.isSerialized ?? false,
       imageUrl: input.imageUrl ?? null,
       isActive: true,
@@ -91,8 +85,6 @@ export function getProductById(id: string) {
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
       taxRate: products.taxRate,
-      reorderPoint: products.reorderPoint,
-      reorderQty: products.reorderQty,
       isActive: products.isActive,
       isSerialized: products.isSerialized,
       imageUrl: products.imageUrl,
@@ -140,26 +132,6 @@ export function listProducts(params?: ProductFilter) {
       )
     );
   }
-  if (params?.lowStock && params?.locationId) {
-    // Join stock and filter where qtyOnHand <= reorderPoint
-    const lowStockProductIds = db
-      .select({ productId: stock.productId })
-      .from(stock)
-      .where(
-        and(
-          eq(stock.locationId, params.locationId),
-          sql`${stock.qtyOnHand} <= ${products.reorderPoint}`
-        )
-      )
-      .all()
-      .map((r) => r.productId);
-
-    if (lowStockProductIds.length === 0) {
-      return { data: [], total: 0, page, pageSize, totalPages: 0 };
-    }
-    conditions.push(sql`${products.id} IN (${sql.join(lowStockProductIds.map(id => sql`${id}`), sql`, `)})`);
-  }
-
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const data = db
@@ -174,7 +146,6 @@ export function listProducts(params?: ProductFilter) {
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
       taxRate: products.taxRate,
-      reorderPoint: products.reorderPoint,
       isActive: products.isActive,
       imageUrl: products.imageUrl,
       hasVariants: sql<number>`EXISTS (SELECT 1 FROM product_variants WHERE product_id = ${products.id} AND is_active = 1)`,

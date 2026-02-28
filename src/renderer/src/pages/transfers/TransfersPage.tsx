@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -90,10 +91,12 @@ const ReceiveModal: React.FC<{ transferId: string; onClose: () => void; onSucces
 							{/* Received By */}
 							<div>
 								<label style={{ color: t.textMuted, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>Received By *</label>
-								<select value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)} style={{ ...inp, fontSize: "13px", padding: "9px 12px", color: receivedBy ? t.text : t.textFaint }}>
-									<option value="">Select user</option>
-									{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-								</select>
+							<AppSelect
+						value={receivedBy}
+						onChange={setReceivedBy}
+						options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+						isSearchable={false}
+					/>
 							</div>
 
 							{/* Items */}
@@ -295,11 +298,12 @@ const TransferDetailDrawer: React.FC<{
 									</p>
 									<div style={{ marginBottom: "10px" }}>
 										<label style={{ color: "#ef4444", fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>Cancelled By *</label>
-										<select value={cancelledBy} onChange={(e) => setCancelledBy(e.target.value)}
-											style={{ width: "100%", background: t.inputBg, border: "1px solid rgba(239,68,68,0.4)", borderRadius: "9px", padding: "8px 12px", color: cancelledBy ? t.text : t.textFaint, fontSize: "13px", outline: "none", fontFamily: "inherit" }}>
-											<option value="">Select user</option>
-											{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-										</select>
+									<AppSelect
+							value={cancelledBy}
+							onChange={setCancelledBy}
+							options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+							isSearchable={false}
+						/>
 									</div>
 									<div style={{ display: "flex", gap: "8px" }}>
 										<button onClick={() => { setConfirmCancel(false); setCancelledBy(""); }} style={{ flex: 1, padding: "8px", borderRadius: "9px", border: "none", background: t.inputBg, color: t.textMuted, fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>Back</button>
@@ -408,18 +412,22 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 28px 1fr", gap: "8px", alignItems: "end" }}>
 						<div>
 							<label style={labelStyle}>From Location</label>
-							<select value={fromLocationId} onChange={(e) => setFromLocationId(e.target.value)} style={selStyle(!!fromLocationId)}>
-								<option value="">Select location</option>
-								{locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-							</select>
+						<AppSelect
+						value={fromLocationId}
+						onChange={setFromLocationId}
+						options={[{ value: '', label: 'Select location' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+						isSearchable={false}
+					/>
 						</div>
 						<div style={{ paddingBottom: "10px", color: t.textFaint, textAlign: "center", fontSize: "16px" }}>→</div>
 						<div>
 							<label style={labelStyle}>To Location</label>
-							<select value={toLocationId} onChange={(e) => setToLocationId(e.target.value)} style={selStyle(!!toLocationId)}>
-								<option value="">Select location</option>
-								{locations.filter((l) => l.id !== fromLocationId).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-							</select>
+						<AppSelect
+						value={toLocationId}
+						onChange={setToLocationId}
+						options={[{ value: '', label: 'Select location' }, ...locations.filter((l) => l.id !== fromLocationId).map((l) => ({ value: l.id, label: l.name }))]}
+						isSearchable={false}
+					/>
 						</div>
 					</div>
 
@@ -427,10 +435,12 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
 						<div>
 							<label style={labelStyle}>Created By *</label>
-							<select value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} style={selStyle(!!createdBy)}>
-								<option value="">Select user</option>
-								{users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-							</select>
+						<AppSelect
+						value={createdBy}
+						onChange={setCreatedBy}
+						options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+						isSearchable={false}
+					/>
 						</div>
 						<div>
 							<label style={labelStyle}>Notes</label>
@@ -444,10 +454,12 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 						<div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
 							<div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "4px" }}>
 								<input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="Search product..." style={{ background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", padding: "7px 10px", color: t.text, fontSize: "12px", outline: "none", fontFamily: "inherit" }} />
-								<select value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)} style={selStyle(!!selectedProductId)}>
-									<option value="">Select product</option>
-									{products.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.sku}</option>)}
-								</select>
+							<AppSelect
+							value={selectedProductId}
+							onChange={setSelectedProductId}
+							options={[{ value: '', label: 'Select product' }, ...products.map((p) => ({ value: p.id, label: `${p.name} — ${p.sku}` }))]}
+							isSearchable={true}
+						/>
 							</div>
 							<div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
 								<div style={{ height: "29px" }} />

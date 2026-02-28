@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { trpc } from '../../trpc-client/trpc'
@@ -372,10 +373,12 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
 				<div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
 					<span style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', whiteSpace: 'nowrap' }}>Location</span>
-					<select value={locationId} onChange={(e) => setLocationId(e.target.value)} style={{ ...selectStyle }}>
-						<option value="">Select...</option>
-						{locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
-					</select>
+				<AppSelect
+					value={locationId}
+					onChange={setLocationId}
+					options={[{ value: '', label: 'Select...' }, ...locations.map((l: any) => ({ value: l.id, label: l.name }))]}
+					isSearchable={false}
+				/>
 				</div>
 
 				<div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -369,6 +369,26 @@ export function cancelPurchaseOrder(id: string) {
   return getPurchaseOrderById(id);
 }
 
+// ─── Reports ─────────────────────────────────────────────────
+
+/** Monthly purchase summary: count + total amount of non-cancelled POs */
+export function getPurchaseOrderSummary(fromDate: string, toDate: string) {
+  return db
+    .select({
+      count:       sql<number>`COUNT(*)`,
+      totalAmount: sql<number>`COALESCE(SUM(${purchaseOrders.totalAmount}), 0)`,
+    })
+    .from(purchaseOrders)
+    .where(
+      and(
+        sql`${purchaseOrders.status} NOT IN ('cancelled')`,
+        gte(purchaseOrders.createdAt, fromDate),
+        lte(purchaseOrders.createdAt, toDate)
+      )
+    )
+    .get();
+}
+
 // ─── Internal helpers ─────────────────────────────────────────
 
 function recalculatePOTotals(poId: string) {

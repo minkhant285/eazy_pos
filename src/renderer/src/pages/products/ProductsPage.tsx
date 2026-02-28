@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
+import { AppSelect } from "../../components/ui/AppSelect";
 import { trpc } from "../../trpc-client/trpc";
 
-type FilterKey = "all" | "active" | "inactive" | "low_stock";
+type FilterKey = "all" | "active" | "inactive";
 const PAGE_SIZE = 20;
 
 // ── Product Modal ─────────────────────────────────────────────────────────────
@@ -29,7 +30,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 		unitOfMeasure: product?.unitOfMeasure ?? "pcs",
 		costPrice: String(product?.costPrice ?? "0"),
 		sellingPrice: String(product?.sellingPrice ?? "0"),
-		reorderPoint: String(product?.reorderPoint ?? "0"),
 		description: product?.description ?? "",
 	});
 
@@ -46,7 +46,6 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 			unitOfMeasure: form.unitOfMeasure.trim() || undefined,
 			costPrice: Number(form.costPrice) || 0,
 			sellingPrice: Number(form.sellingPrice) || 0,
-			reorderPoint: Number(form.reorderPoint) || 0,
 			description: form.description.trim() || undefined,
 		};
 		if (isNew) create.mutate({ sku: form.sku.trim(), ...base });
@@ -84,10 +83,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 					{field("Product Name *", "name", "e.g. Jasmine Rice 5kg")}
 					<div>
 						<label style={labelStyle}>Category</label>
-						<select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))} style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px", color: form.categoryId ? t.text : t.textFaint, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}>
-							<option value="">No category</option>
-							{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-						</select>
+						<AppSelect
+					value={form.categoryId}
+					onChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}
+					options={[{ value: '', label: 'No category' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+				/>
 					</div>
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 						{field(`Cost Price (${sym})` as string, "costPrice", "0", "number")}
@@ -95,8 +95,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 					</div>
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 						{field("Unit of Measure", "unitOfMeasure", "pcs")}
-						{field("Reorder Point", "reorderPoint", "0", "number")}
-					</div>
+							</div>
 					{field("Description", "description", "Optional product description")}
 				</div>
 				{/* Footer */}
@@ -124,13 +123,12 @@ export const ProductsPage: React.FC = () => {
 	const [modal, setModal] = useState<{ open: boolean; product: any | null }>({ open: false, product: null });
 	const [deactivateId, setDeactivateId] = useState<string | null>(null);
 
-	const isActiveFilter = filter === "all" || filter === "low_stock" ? undefined : filter === "active";
+	const isActiveFilter = filter === "all" ? undefined : filter === "active";
 
 	const { data, isLoading, refetch } = trpc.product.list.useQuery({
 		page, pageSize: PAGE_SIZE,
 		search: search || undefined,
 		isActive: isActiveFilter,
-		lowStock: filter === "low_stock" ? true : undefined,
 	});
 
 	const { data: categoriesData } = trpc.category.list.useQuery({});
@@ -146,7 +144,6 @@ export const ProductsPage: React.FC = () => {
 		{ key: "all", label: tr.all },
 		{ key: "active", label: tr.active },
 		{ key: "inactive", label: tr.inactive },
-		{ key: "low_stock", label: "Low Stock" },
 	];
 
 	const pageButtons = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {

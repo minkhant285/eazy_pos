@@ -58,11 +58,8 @@ export function getLocationInventory(
       qtyOnHand: stock.qtyOnHand,
       qtyReserved: stock.qtyReserved,
       qtyAvailable: stock.qtyAvailable,
-      reorderPoint: products.reorderPoint,
-      reorderQty: products.reorderQty,
       costPrice: products.costPrice,
       stockValue: sql<number>`${stock.qtyOnHand} * ${products.costPrice}`,
-      isLowStock: sql<boolean>`${stock.qtyOnHand} <= ${products.reorderPoint}`,
     })
     .from(stock)
     .innerJoin(products, eq(stock.productId, products.id))
@@ -81,28 +78,21 @@ export function getLocationInventory(
   return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }
 
-/** Get low-stock products at a location */
-export function getLowStockProducts(locationId: string) {
-  return db
-    .select({
-      productId: stock.productId,
-      sku: products.sku,
-      name: products.name,
-      qtyOnHand: stock.qtyOnHand,
-      reorderPoint: products.reorderPoint,
-      reorderQty: products.reorderQty,
-      shortfall: sql<number>`${products.reorderPoint} - ${stock.qtyOnHand}`,
-    })
+/** Count products at or below a qty threshold at a location */
+export function getLowStockCount(locationId: string, threshold: number) {
+  const result = db
+    .select({ count: sql<number>`COUNT(*)` })
     .from(stock)
     .innerJoin(products, eq(stock.productId, products.id))
     .where(
       and(
         eq(stock.locationId, locationId),
-        sql`${stock.qtyOnHand} <= ${products.reorderPoint}`,
-        eq(products.isActive, true)
+        eq(products.isActive, true),
+        sql`${stock.qtyOnHand} <= ${threshold}`
       )
     )
-    .all();
+    .get();
+  return { count: result?.count ?? 0 };
 }
 
 /** Get total inventory value for a location */
@@ -387,15 +377,12 @@ export function listAllProductsForLocation(
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
       taxRate: products.taxRate,
-      reorderPoint: products.reorderPoint,
-      reorderQty: products.reorderQty,
       isSerialized: products.isSerialized,
       imageUrl: products.imageUrl,
       qtyOnHand:    sql<number>`COALESCE(${stock.qtyOnHand}, 0)`,
       qtyReserved:  sql<number>`COALESCE(${stock.qtyReserved}, 0)`,
       qtyAvailable: sql<number>`COALESCE(${stock.qtyAvailable}, 0)`,
       hasRecord:    sql<boolean>`CASE WHEN ${stock.id} IS NOT NULL THEN 1 ELSE 0 END`,
-      isLowStock:   sql<boolean>`CASE WHEN COALESCE(${stock.qtyOnHand},0) <= ${products.reorderPoint} AND ${products.reorderPoint} > 0 THEN 1 ELSE 0 END`,
       stockValue:   sql<number>`COALESCE(${stock.qtyOnHand}, 0) * ${products.costPrice}`,
       hasVariants:  sql<number>`EXISTS (SELECT 1 FROM product_variants WHERE product_id = ${products.id} AND is_active = 1)`,
     })

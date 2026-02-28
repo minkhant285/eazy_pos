@@ -205,9 +205,8 @@ export const OnboardingPage: React.FC = () => {
               </div>
               <StepActions
                 onNext={submitLocation} nextLabel="Save & Continue"
-                onSkip={() => setStep(2)} skipLabel="Skip for now"
                 pending={createLoc.isPending}
-                onFinishLater={finish} t={t}
+                t={t}
               />
             </div>
           )}
@@ -267,15 +266,17 @@ export const OnboardingPage: React.FC = () => {
           )}
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '12px 32px 20px', borderTop: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'center' }}>
-          <button
-            onClick={finish}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textFaint, fontSize: '11px', fontFamily: 'inherit', textDecoration: 'underline' }}
-          >
-            I'll complete setup later
-          </button>
-        </div>
+        {/* Footer — hidden on Step 1 so location cannot be skipped */}
+        {step !== 1 && (
+          <div style={{ padding: '12px 32px 20px', borderTop: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={finish}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: t.textFaint, fontSize: '11px', fontFamily: 'inherit', textDecoration: 'underline' }}
+            >
+              I'll complete setup later
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -312,21 +313,22 @@ const ErrBox: React.FC<{ msg: string }> = ({ msg }) => (
 
 interface StepActionsProps {
   onNext: () => void; nextLabel: string
-  onSkip: () => void; skipLabel: string
+  onSkip?: () => void; skipLabel?: string
   pending: boolean
   isLast?: boolean
-  onFinishLater?: () => void
   t: any
 }
 
 const StepActions: React.FC<StepActionsProps> = ({ onNext, nextLabel, onSkip, skipLabel, pending, t }) => (
   <div style={{ display: 'flex', gap: '10px', marginTop: '22px' }}>
-    <button
-      onClick={onSkip}
-      style={{ flex: '0 0 auto', padding: '9px 16px', borderRadius: '10px', border: `1px solid ${t.inputBorder}`, background: 'transparent', color: t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-    >
-      {skipLabel}
-    </button>
+    {onSkip && (
+      <button
+        onClick={onSkip}
+        style={{ flex: '0 0 auto', padding: '9px 16px', borderRadius: '10px', border: `1px solid ${t.inputBorder}`, background: 'transparent', color: t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+      >
+        {skipLabel}
+      </button>
+    )}
     <button
       onClick={onNext}
       disabled={pending}

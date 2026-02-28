@@ -4,7 +4,7 @@ export type TranslationKey =
   | 'overview' | 'sales_group' | 'inventory' | 'procurement' | 'settings'
   | 'dashboard' | 'sales' | 'customers' | 'products' | 'categories' | 'profile'
   | 'stock' | 'transfers' | 'suppliers' | 'purchase' | 'locations' | 'users'
-  | 'todays_revenue' | 'total_customers' | 'transactions' | 'low_stock_alerts'
+  | 'todays_revenue' | 'total_customers' | 'total_purchases' | 'transactions' | 'low_stock_alerts'
   | 'vs_yesterday' | 'recent_transactions' | 'view_all'
   | 'payment_methods' | 'top_products' | 'sold'
   | 'new_customer' | 'edit_customer' | 'add_customer_desc' | 'total_customers_label'
@@ -18,7 +18,14 @@ export type TranslationKey =
   | 'ledger' | 'expenses'
   | 'revenue_summary' | 'total_revenue' | 'total_cost' | 'gross_profit' | 'profit_margin'
   | 'expense_breakdown' | 'this_month' | 'no_expenses'
-  | 'financial_overview' | 'today' | 'net_profit' | 'net_margin';
+  | 'financial_overview' | 'today' | 'net_profit' | 'net_margin'
+  | 'accounting' | 'income_statement' | 'cash_flow' | 'balance_sheet' | 'reports'
+  | 'pl_statement' | 'gross_profit_margin' | 'net_profit_margin'
+  | 'cash_inflow' | 'cash_outflow' | 'net_cash_flow' | 'purchase_payments'
+  | 'assets' | 'liabilities' | 'equity' | 'inventory_value' | 'accounts_receivable'
+  | 'accounts_payable' | 'total_assets' | 'total_liabilities' | 'owners_equity'
+  | 'revenue_by_category' | 'top_products' | 'profit' | 'margin' | 'qty_sold'
+  | 'tax_collected' | 'discounts_given' | 'transactions_count';
 
 export type Translations = Record<TranslationKey, string>;
 
@@ -37,6 +44,7 @@ export const translations: Record<LangCode, Translations> = {
     transfers: 'Transfers', suppliers: 'Suppliers', purchase: 'Purchase Orders',
     locations: 'Locations', users: 'Users', profile: 'My Profile',
     todays_revenue: "Today's Revenue", total_customers: 'Total Customers',
+    total_purchases: 'This Month Purchases',
     transactions: 'Transactions', low_stock_alerts: 'Low Stock Alerts',
     vs_yesterday: 'vs yesterday', recent_transactions: 'Recent Transactions',
     view_all: 'View all →', payment_methods: 'Payment Methods',
@@ -63,6 +71,17 @@ export const translations: Record<LangCode, Translations> = {
     expense_breakdown: 'Expense Breakdown', this_month: 'This Month', no_expenses: 'No expenses',
     financial_overview: 'Financial Overview', today: 'Today',
     net_profit: 'Net Profit', net_margin: 'Net Margin',
+    accounting: 'Accounting', income_statement: 'Income Statement',
+    cash_flow: 'Cash Flow', balance_sheet: 'Balance Sheet', reports: 'Reports',
+    pl_statement: 'Profit & Loss', gross_profit_margin: 'Gross Margin', net_profit_margin: 'Net Margin',
+    cash_inflow: 'Cash Inflow', cash_outflow: 'Cash Outflow', net_cash_flow: 'Net Cash Flow', purchase_payments: 'Inventory Purchases',
+    assets: 'Assets', liabilities: 'Liabilities', equity: 'Equity',
+    inventory_value: 'Inventory Value', accounts_receivable: 'Accounts Receivable',
+    accounts_payable: 'Accounts Payable', total_assets: 'Total Assets',
+    total_liabilities: 'Total Liabilities', owners_equity: "Owner's Equity",
+    revenue_by_category: 'Revenue by Category', top_products: 'Top Products',
+    profit: 'Profit', margin: 'Margin', qty_sold: 'Qty Sold',
+    tax_collected: 'Tax Collected', discounts_given: 'Discounts Given', transactions_count: 'Transactions',
   },
   my: {
     overview: 'အကျဉ်းချုပ်', sales_group: 'အရောင်းများ', inventory: 'ကုန်ပစ္စည်းစာရင်း',
@@ -72,6 +91,7 @@ export const translations: Record<LangCode, Translations> = {
     transfers: 'လွှဲပြောင်းမှုများ', suppliers: 'ပေးသွင်းသူများ', purchase: 'ဝယ်ယူမှုအမိန့်များ',
     locations: 'တည်နေရာများ', users: 'အသုံးပြုသူများ', profile: 'ကျွန်ုပ်ပရိုဖိုင်',
     todays_revenue: 'ယနေ့ဝင်ငွေ', total_customers: 'ဖောက်သည်စုစုပေါင်း',
+    total_purchases: 'ဤလဝယ်ယူမှုများ',
     transactions: 'ငွေပေးငွေယူများ', low_stock_alerts: 'စတော့နည်းသတိပေးချက်',
     vs_yesterday: 'မနေ့နှင့်နှိုင်းယှဉ်', recent_transactions: 'မကြာသေးမီငွေပေးငွေယူများ',
     view_all: 'အားလုံးကြည့်ရန် →', payment_methods: 'ငွေပေးချေမှုနည်းလမ်းများ',
@@ -99,6 +119,17 @@ export const translations: Record<LangCode, Translations> = {
     expense_breakdown: 'ကုန်ကျစရိတ်ခွဲခြမ်း', this_month: 'ဤလ', no_expenses: 'ကုန်ကျမှုမရှိ',
     financial_overview: 'ဘဏ္ဍာရေးအကျဉ်းချုပ်', today: 'ယနေ့',
     net_profit: 'အသားတင်အမြတ်', net_margin: 'အသားတင်မာဂျင်',
+    accounting: 'စာရင်းကိုင်', income_statement: 'ဝင်ငွေထုတ်ပြန်ချက်',
+    cash_flow: 'ငွေစီးဆင်းမှု', balance_sheet: 'လက်ကျန်လွှာ', reports: 'အစီရင်ခံစာများ',
+    pl_statement: 'အမြတ်အစီးနှင့်ဆုံးရှုံးမှု', gross_profit_margin: 'မြောက်ကြမ်းမာဂျင်', net_profit_margin: 'အသားတင်မာဂျင်',
+    cash_inflow: 'ငွေဝင်', cash_outflow: 'ငွေထွက်', net_cash_flow: 'ငွေစီးဆင်းမှုသုတ်', purchase_payments: 'ကုန်ပစ္စည်းဝယ်ယူမှု',
+    assets: 'ပိုင်ဆိုင်မှုများ', liabilities: 'တာဝန်ဝတ္တရားများ', equity: 'ပိုင်ရှင်အခွင့်အရေး',
+    inventory_value: 'ကုန်ပစ္စည်းတန်ဖိုး', accounts_receivable: 'လက်ခံရမည့်ငွေ',
+    accounts_payable: 'ပေးဆပ်ရမည့်ငွေ', total_assets: 'ပိုင်ဆိုင်မှုစုစုပေါင်း',
+    total_liabilities: 'တာဝန်ဝတ္တရားစုစုပေါင်း', owners_equity: 'ပိုင်ရှင်ရင်းနှီး',
+    revenue_by_category: 'အမျိုးအစားအလိုက်ဝင်ငွေ', top_products: 'ထိပ်တန်းကုန်ပစ္စည်းများ',
+    profit: 'အမြတ်', margin: 'မာဂျင်', qty_sold: 'ရောင်းချပမာဏ',
+    tax_collected: 'ကောက်ခံငွေ', discounts_given: 'လျှော့ပေးငွေ', transactions_count: 'ငွေပေးငွေယူ',
   },
   zh: {
     overview: '概览', sales_group: '销售', inventory: '库存管理',
@@ -108,6 +139,7 @@ export const translations: Record<LangCode, Translations> = {
     transfers: '调拨', suppliers: '供应商', purchase: '采购订单',
     locations: '门店', users: '用户', profile: '我的资料',
     todays_revenue: '今日营收', total_customers: '客户总数',
+    total_purchases: '本月采购',
     transactions: '交易笔数', low_stock_alerts: '库存预警',
     vs_yesterday: '与昨日对比', recent_transactions: '最近交易',
     view_all: '查看全部 →', payment_methods: '支付方式',
@@ -134,5 +166,16 @@ export const translations: Record<LangCode, Translations> = {
     expense_breakdown: '费用分类', this_month: '本月', no_expenses: '暂无费用',
     financial_overview: '财务概览', today: '今日',
     net_profit: '净利润', net_margin: '净利润率',
+    accounting: '会计', income_statement: '损益表',
+    cash_flow: '现金流', balance_sheet: '资产负债表', reports: '报告',
+    pl_statement: '损益', gross_profit_margin: '毛利率', net_profit_margin: '净利率',
+    cash_inflow: '现金流入', cash_outflow: '现金流出', net_cash_flow: '净现金流', purchase_payments: '库存采购',
+    assets: '资产', liabilities: '负债', equity: '权益',
+    inventory_value: '库存价值', accounts_receivable: '应收账款',
+    accounts_payable: '应付账款', total_assets: '总资产',
+    total_liabilities: '总负债', owners_equity: '所有者权益',
+    revenue_by_category: '按类别收入', top_products: '热销产品',
+    profit: '利润', margin: '利润率', qty_sold: '销量',
+    tax_collected: '税款', discounts_given: '折扣', transactions_count: '交易笔数',
   },
 };

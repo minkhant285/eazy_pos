@@ -50,12 +50,12 @@ export const stockRouter = router({
       }
     }),
 
-  /** GET /stock.lowStock — products at or below reorder point */
-  lowStock: publicProcedure
-    .input(z.object({ locationId: z.string().uuid() }))
+  /** GET /stock.lowStockCount — count products at or below a qty threshold */
+  lowStockCount: publicProcedure
+    .input(z.object({ locationId: z.string().uuid(), threshold: z.number().nonnegative() }))
     .query(({ input }) => {
       try {
-        return StockService.getLowStockProducts(input.locationId)
+        return StockService.getLowStockCount(input.locationId, input.threshold)
       } catch (err) {
         mapError(err)
       }

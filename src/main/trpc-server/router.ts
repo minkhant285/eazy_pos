@@ -62,6 +62,7 @@ import { stockAdjustmentRouter }  from './routers/stock-adjustment.router'
 import { stockTransferRouter }    from './routers/stock-transfer.router'
 import { expenseRouter }          from './routers/expense.router'
 import { variantRouter }          from './routers/variant.router'
+import { accountingRouter }       from './routers/accounting.router'
 
 export const appRouter = router({
   user:             userRouter,
@@ -78,6 +79,7 @@ export const appRouter = router({
   stockTransfer:    stockTransferRouter,
   expense:          expenseRouter,
   variant:          variantRouter,
+  accounting:       accountingRouter,
 })
 
 /** Export the type — import this in your React app */

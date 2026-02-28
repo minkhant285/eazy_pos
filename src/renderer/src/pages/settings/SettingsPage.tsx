@@ -57,18 +57,6 @@ export const SettingsPage: React.FC = () => {
   const fontScale            = useAppStore((s) => s.fontScale)
   const setFontScale         = useAppStore((s) => s.setFontScale)
 
-  const [thresholdInput, setThresholdInput] = useState(String(lowStockThreshold))
-
-  const handleThresholdBlur = () => {
-    const n = parseInt(thresholdInput, 10)
-    if (!isNaN(n) && n >= 0) {
-      setLowStockThreshold(n)
-      setThresholdInput(String(n))
-    } else {
-      setThresholdInput(String(lowStockThreshold))
-    }
-  }
-
   const optionBtn = (active: boolean): React.CSSProperties => ({
     padding: '10px 16px',
     borderRadius: '10px',
@@ -234,61 +222,37 @@ export const SettingsPage: React.FC = () => {
         {/* ── GROUP: Inventory ───────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <GroupLabel label="Inventory" t={t} />
-
-          <Section title="Stock Alerts" description="Configure thresholds for inventory warnings" t={t}>
+          <Section title="Low Stock Warning" description="Flag products with quantity at or below this number" t={t}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>Low Stock Threshold</p>
                 <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '3px' }}>
-                  Products with available quantity at or below this number will be flagged as low stock.
+                  Products with qty on hand at or below this number will be flagged as low stock.
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <button
-                  onClick={() => {
-                    const n = Math.max(0, lowStockThreshold - 1)
-                    setLowStockThreshold(n)
-                    setThresholdInput(String(n))
-                  }}
+                  onClick={() => setLowStockThreshold(Math.max(0, lowStockThreshold - 1))}
                   style={{ width: '32px', height: '32px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}
-                >
-                  −
-                </button>
+                >−</button>
                 <input
-                  type="number"
-                  min="0"
-                  value={thresholdInput}
-                  onChange={(e) => setThresholdInput(e.target.value)}
-                  onBlur={handleThresholdBlur}
-                  onKeyDown={(e) => e.key === 'Enter' && handleThresholdBlur()}
-                  style={{
-                    width: '64px', textAlign: 'center',
-                    background: t.inputBg, border: `1.5px solid var(--primary)`,
-                    borderRadius: '10px', padding: '7px 10px',
-                    color: t.text, fontSize: '16px', fontWeight: 700,
-                    outline: 'none', fontFamily: 'inherit',
-                  }}
+                  type="number" min="0"
+                  value={lowStockThreshold}
+                  onChange={(e) => { const n = parseInt(e.target.value, 10); if (!isNaN(n) && n >= 0) setLowStockThreshold(n); }}
+                  style={{ width: '64px', textAlign: 'center', background: t.inputBg, border: `1.5px solid var(--primary)`, borderRadius: '10px', padding: '7px 10px', color: t.text, fontSize: '16px', fontWeight: 700, outline: 'none', fontFamily: 'inherit' }}
                 />
                 <button
-                  onClick={() => {
-                    const n = lowStockThreshold + 1
-                    setLowStockThreshold(n)
-                    setThresholdInput(String(n))
-                  }}
+                  onClick={() => setLowStockThreshold(lowStockThreshold + 1)}
                   style={{ width: '32px', height: '32px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}
-                >
-                  +
-                </button>
+                >+</button>
               </div>
             </div>
-
-            {/* Preview badge */}
-            <div style={{ marginTop: '14px', padding: '10px 14px', background: t.inputBg, borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ marginTop: '12px', padding: '10px 14px', background: t.inputBg, borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
               <p style={{ color: t.textMuted, fontSize: '12px' }}>
-                Products with <strong style={{ color: t.text }}>{lowStockThreshold}</strong> or fewer units available will show a{' '}
+                Products with <strong style={{ color: t.text }}>{lowStockThreshold}</strong> or fewer units will show a{' '}
                 <span style={{ fontSize: '9px', fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: '4px' }}>LOW</span>{' '}
-                badge in the stock page.
+                badge and count toward the dashboard alert.
               </p>
             </div>
           </Section>

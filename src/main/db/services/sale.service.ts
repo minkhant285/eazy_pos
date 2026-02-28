@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { db } from "../db";
-import { sales, saleItems, payments, products, productVariants, customers, users, locations, customerAddresses, expenseCategories, expenses } from "../schemas/schema";
+import { sales, saleItems, payments, products, productVariants, customers, users, locations, customerAddresses, stockLedger } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
 import { upsertVariantStock } from "./variant.service";
@@ -213,39 +213,6 @@ export function createSale(input: CreateSaleInput) {
 
     return getSaleById(saleId);
   });
-
-  // ── Auto-expense: discount given ──────────────────────────
-  const discountAmount = input.discountAmount ?? 0;
-  if (discountAmount > 0) {
-    const DISCOUNT_CAT_NAME = "Sales Discount";
-
-    let cat = db.select().from(expenseCategories)
-      .where(eq(expenseCategories.name, DISCOUNT_CAT_NAME))
-      .get();
-
-    if (!cat) {
-      const catId = newId();
-      db.insert(expenseCategories).values({
-        id: catId,
-        name: DISCOUNT_CAT_NAME,
-        color: "#f59e0b",
-      }).run();
-      cat = db.select().from(expenseCategories).where(eq(expenseCategories.id, catId)).get()!;
-    }
-
-    db.insert(expenses).values({
-      id: newId(),
-      expenseNo: generateDocNumber("EXP"),
-      categoryId: cat.id,
-      locationId: input.locationId,
-      amount: discountAmount,
-      description: `Sales Discount — ${sale.receiptNo}`,
-      paymentMethod: "other",
-      expenseDate: new Date().toISOString().slice(0, 10),
-      notes: "Auto-generated from sale discount",
-      createdBy: input.cashierId,
-    }).run();
-  }
 
   return sale;
 }
@@ -497,7 +464,7 @@ export function getDailySummary(locationId: string, date: string) {
     .where(
       and(
         eq(sales.locationId, locationId),
-        eq(sales.status, "completed"),
+        sql`${sales.status} IN ('completed', 'partially_refunded')`,
         sql`DATE(${sales.createdAt}) = ${date}`
       )
     )
@@ -526,30 +493,91 @@ export function getSalesByPaymentMethod(locationId: string, fromDate: string, to
     .all();
 }
 
-/** Daily profit summary (revenue, COGS, gross profit) grouped by date */
+/** Daily profit summary (revenue, COGS, gross profit) grouped by date.
+ *  Includes partially-returned and fully-refunded sales, deducting returned amounts
+ *  from the stock ledger so figures reflect what was actually kept by customers. */
 export function getDailyProfitSummary(locationId: string, fromDate: string, toDate: string) {
-  return db
+  const statusFilter = sql`${sales.status} IN ('completed', 'partially_refunded', 'refunded')`;
+  const dateFilter   = and(eq(sales.locationId, locationId), statusFilter, gte(sales.createdAt, fromDate), lte(sales.createdAt, toDate));
+
+  // Step 1a: revenue + transactions from sales only (no saleItems join — avoids double-counting)
+  const baseSales = db
     .select({
-      date: sql<string>`DATE(${sales.createdAt})`,
-      revenue: sql<number>`SUM(${sales.totalAmount} + ${sales.discountAmount})`,
-      cogs: sql<number>`SUM(${saleItems.qty} * ${saleItems.unitCost})`,
-      grossProfit: sql<number>`SUM(${sales.totalAmount} + ${sales.discountAmount}) - SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+      date:          sql<string>`DATE(${sales.createdAt})`,
+      revenue:       sql<number>`SUM(${sales.totalAmount})`,
       totalDiscount: sql<number>`SUM(${sales.discountAmount})`,
-      transactions: sql<number>`COUNT(DISTINCT ${sales.id})`,
+      transactions:  sql<number>`COUNT(*)`,
     })
     .from(sales)
-    .innerJoin(saleItems, eq(saleItems.saleId, sales.id))
+    .where(dateFilter)
+    .groupBy(sql`DATE(${sales.createdAt})`)
+    .orderBy(sql`DATE(${sales.createdAt})`)
+    .all();
+
+  // Step 1b: COGS from saleItems (join sales only for filtering)
+  const cogsByDate = db
+    .select({
+      date: sql<string>`DATE(${sales.createdAt})`,
+      cogs: sql<number>`SUM(${saleItems.qty} * ${saleItems.unitCost})`,
+    })
+    .from(saleItems)
+    .innerJoin(sales, eq(saleItems.saleId, sales.id))
+    .where(dateFilter)
+    .groupBy(sql`DATE(${sales.createdAt})`)
+    .all();
+
+  // Step 2: returned amounts from stock ledger (attributed to original sale date)
+  const returnRows = db
+    .select({
+      date: sql<string>`DATE(${sales.createdAt})`,
+      returnedRevenue: sql<number>`SUM(${stockLedger.qty} * ${saleItems.unitPrice})`,
+      returnedCogs: sql<number>`SUM(${stockLedger.totalCost})`,
+    })
+    .from(stockLedger)
+    .innerJoin(
+      sales,
+      and(
+        eq(stockLedger.referenceId, sales.id),
+        eq(stockLedger.referenceType, "sale"),
+      )
+    )
+    .innerJoin(
+      saleItems,
+      and(
+        eq(saleItems.saleId, sales.id),
+        eq(saleItems.productId, stockLedger.productId),
+        sql`COALESCE(${saleItems.variantId}, '') = COALESCE(${stockLedger.variantId}, '')`
+      )
+    )
     .where(
       and(
-        eq(sales.locationId, locationId),
-        eq(sales.status, "completed"),
+        eq(stockLedger.locationId, locationId),
+        eq(stockLedger.movementType, "return_in"),
+        sql`${sales.status} IN ('partially_refunded', 'refunded')`,
         gte(sales.createdAt, fromDate),
         lte(sales.createdAt, toDate)
       )
     )
     .groupBy(sql`DATE(${sales.createdAt})`)
-    .orderBy(sql`DATE(${sales.createdAt})`)
     .all();
+
+  // Step 3: merge — subtract returned amounts from each day's totals
+  return baseSales.map((row) => {
+    const cogsRow    = cogsByDate.find((r) => r.date === row.date);
+    const ret        = returnRows.find((r) => r.date === row.date);
+    const retRevenue = Number(ret?.returnedRevenue ?? 0);
+    const retCogs    = Number(ret?.returnedCogs    ?? 0);
+    const revenue    = Number(row.revenue)         - retRevenue;
+    const cogs       = Number(cogsRow?.cogs ?? 0)  - retCogs;
+    return {
+      date:          row.date,
+      revenue,
+      cogs,
+      grossProfit:   revenue - cogs,
+      totalDiscount: Number(row.totalDiscount),
+      transactions:  Number(row.transactions),
+    };
+  });
 }
 
 /** Top selling products */

@@ -87,8 +87,6 @@ export const products = sqliteTable("products", {
   costPrice: real("cost_price").notNull().default(0),       // Latest purchase cost
   sellingPrice: real("selling_price").notNull(),
   taxRate: real("tax_rate").notNull().default(0),           // e.g. 0.07 for 7%
-  reorderPoint: real("reorder_point").notNull().default(0), // Alert threshold
-  reorderQty: real("reorder_qty").notNull().default(0),     // Suggested reorder qty
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   isSerialized: integer("is_serialized", { mode: "boolean" }).notNull().default(false),
   imageUrl: text("image_url"),

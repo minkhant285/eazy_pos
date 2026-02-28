@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -364,11 +365,12 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
                 <label style={{ color: t.textMuted, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
                   Received By *
                 </label>
-                <select value={receivedBy} onChange={(e) => setReceivedBy(e.target.value)}
-                  style={{ ...inputStyle, fontSize: "13px", padding: "9px 12px", color: receivedBy ? t.text : t.textFaint }}>
-                  <option value="">Select user</option>
-                  {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
+               <AppSelect
+                value={receivedBy}
+                onChange={setReceivedBy}
+                options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+                isSearchable={false}
+              />
               </div>
 
               <div style={{ background: t.inputBg, borderRadius: "12px", overflow: "hidden" }}>
@@ -641,27 +643,32 @@ export const PurchasePage: React.FC = () => {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label style={labelStyle}>Supplier *</label>
-                  <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} style={{ ...inputStyle, color: supplierId ? t.text : t.textFaint }}>
-                    <option value="">Select supplier</option>
-                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                 <AppSelect
+                  value={supplierId}
+                  onChange={setSupplierId}
+                  options={[{ value: '', label: 'Select supplier' }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
+                />
                 </div>
                 <div>
                   <label style={labelStyle}>Location *</label>
-                  <select value={locationId} onChange={(e) => setLocationId(e.target.value)} style={{ ...inputStyle, color: locationId ? t.text : t.textFaint }}>
-                    <option value="">Select location</option>
-                    {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                  </select>
+                 <AppSelect
+                  value={locationId}
+                  onChange={setLocationId}
+                  options={[{ value: '', label: 'Select location' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+                  isSearchable={false}
+                />
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div>
                   <label style={labelStyle}>Created By *</label>
-                  <select value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} style={{ ...inputStyle, color: createdBy ? t.text : t.textFaint }}>
-                    <option value="">Select user</option>
-                    {users.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                  </select>
+                 <AppSelect
+                  value={createdBy}
+                  onChange={setCreatedBy}
+                  options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+                  isSearchable={false}
+                />
                   {users.length === 0 && <p style={{ color: "#f59e0b", fontSize: "11px", marginTop: "4px" }}>No users found — create a user first</p>}
                 </div>
                 <div>

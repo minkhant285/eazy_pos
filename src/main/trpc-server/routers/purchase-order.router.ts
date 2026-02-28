@@ -175,6 +175,17 @@ export const purchaseOrderRouter = router({
       }
     }),
 
+  /** GET /purchaseOrder.summary — count + total amount for a date range */
+  summary: publicProcedure
+    .input(z.object({ fromDate: z.string(), toDate: z.string() }))
+    .query(({ input }) => {
+      try {
+        return PurchaseOrderService.getPurchaseOrderSummary(input.fromDate, input.toDate)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
   /** POST /purchaseOrder.cancel */
   cancel: publicProcedure
     .input(z.object({ id: z.string().uuid() }))

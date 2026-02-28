@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { trpc } from '../../trpc-client/trpc'
+import { AppSelect } from '../../components/ui/AppSelect';
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { SingleDatePicker } from '../../components/ui/SingleDatePicker'
 
@@ -262,14 +263,20 @@ export const ExpensePage: React.FC = () => {
               onChange={(e) => { setSearch(e.target.value); setPage(1) }}
               style={{ ...inp, width: '200px' }}
             />
-            <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1) }} style={{ ...inp, width: '160px' }}>
-              <option value="">All Categories</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-            <select value={filterLocation} onChange={(e) => { setFilterLocation(e.target.value); setPage(1) }} style={{ ...inp, width: '150px' }}>
-              <option value="">All Locations</option>
-              {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+           <AppSelect
+            value={filterCategory}
+            onChange={(v) => { setFilterCategory(v); setPage(1) }}
+            options={[{ value: '', label: 'All Categories' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+            minWidth={160}
+            isSearchable={false}
+          />
+           <AppSelect
+            value={filterLocation}
+            onChange={(v) => { setFilterLocation(v); setPage(1) }}
+            options={[{ value: '', label: 'All Locations' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+            minWidth={150}
+            isSearchable={false}
+          />
             <DateRangePicker
               fromDate={fromDate} toDate={toDate} t={t} isDark={isDark}
               onChange={(from, to) => { setFromDate(from); setToDate(to); setPage(1) }}
@@ -450,10 +457,11 @@ export const ExpensePage: React.FC = () => {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
                   <label style={label}>Category *</label>
-                  <select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} style={inp}>
-                    <option value="">Select category…</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                 <AppSelect
+                  value={form.categoryId}
+                  onChange={(v) => setForm({ ...form, categoryId: v })}
+                  options={[{ value: '', label: 'Select category…' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+                />
                 </div>
                 <div>
                   <label style={label}>Date *</label>
@@ -491,19 +499,24 @@ export const ExpensePage: React.FC = () => {
                 </div>
                 <div>
                   <label style={label}>Payment Method</label>
-                  <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} style={inp}>
-                    {PAYMENT_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
+                 <AppSelect
+                  value={form.paymentMethod}
+                  onChange={(v) => setForm({ ...form, paymentMethod: v })}
+                  options={PAYMENT_METHODS}
+                  isSearchable={false}
+                />
                 </div>
               </div>
 
               {/* Location */}
               <div>
                 <label style={label}>Location</label>
-                <select value={form.locationId} onChange={(e) => setForm({ ...form, locationId: e.target.value })} style={inp}>
-                  <option value="">No specific location</option>
-                  {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                </select>
+               <AppSelect
+                value={form.locationId}
+                onChange={(v) => setForm({ ...form, locationId: v })}
+                options={[{ value: '', label: 'No specific location' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+                isSearchable={false}
+              />
               </div>
 
               {/* Notes */}

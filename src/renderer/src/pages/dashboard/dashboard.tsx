@@ -10,8 +10,12 @@ import {
 	Legend,
 } from "chart.js";
 import { Bar, Pie } from "react-chartjs-2";
+import { DateRange } from "react-date-range";
+import "react-date-range/dist/styles.css";
+import "react-date-range/dist/theme/default.css";
 import { useAppStore } from "../../store/useAppStore";
 import { trpc } from "../../trpc-client/trpc";
+import { AppSelect } from "../../components/ui/AppSelect";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -19,12 +23,22 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tool
 
 const STAT_ICONS = [
 	"M23 6l-9.5 9.5-5-5L1 18",
-	"M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z",
+	"M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2 M9 5a2 2 0 002 2h2a2 2 0 002-2 M9 5a2 2 0 012-2h2a2 2 0 012 2 M9 12h6 M9 16h4",
 	"M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z M3 6h18 M16 10a4 4 0 01-8 0",
 	"M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16",
 ];
 
 const PIE_FALLBACK = ["var(--primary-light)", "#06b6d4", "#10b981", "#f59e0b", "#ec4899", "#3b82f6", "#ef4444"];
+
+type RangePreset = "today" | "yesterday" | "this_week" | "this_month" | "custom";
+
+const RANGE_PRESETS: { key: RangePreset; label: string }[] = [
+	{ key: "today",      label: "Today" },
+	{ key: "yesterday",  label: "Yesterday" },
+	{ key: "this_week",  label: "This Week" },
+	{ key: "this_month", label: "This Month" },
+	{ key: "custom",     label: "Custom Range" },
+];
 
 // ─────────────────────────────────────────────────────────────
 
@@ -47,19 +61,62 @@ export const DashboardPage: React.FC = () => {
 
 	const today     = useMemo(() => utcDate(0), []);
 	const yesterday = useMemo(() => utcDate(1), []);
+	const toDate    = today + "T23:59:59.999Z";
 
-	// Last 7 day strings (oldest → newest)
-	const last7Days = useMemo(() => Array.from({ length: 7 }, (_, i) => utcDate(6 - i)), []);
+	// ── Date range state ─────────────────────────────────────
+	const [rangePreset, setRangePreset] = React.useState<RangePreset>("this_month");
+	const [customFrom,  setCustomFrom]  = React.useState("");
+	const [customTo,    setCustomTo]    = React.useState("");
+	const [showPicker,  setShowPicker]  = React.useState(false);
+	const pickerRef = React.useRef<HTMLDivElement>(null);
 
-	// First day of current month (plain YYYY-MM-DD for expense filter)
-	const monthFrom = useMemo(() => {
-		const d = new Date();
-		return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
-	}, []);
+	// Picker internal state (Date objects)
+	const [pickerRange, setPickerRange] = React.useState([{
+		startDate: new Date(), endDate: new Date(), key: "selection",
+	}]);
 
-	const fromDate      = today + "T00:00:00.000Z";
-	const toDate        = today + "T23:59:59.999Z";
-	const sevenDaysFrom = last7Days[0] + "T00:00:00.000Z";
+	// Close picker on outside click
+	React.useEffect(() => {
+		if (!showPicker) return;
+		const handler = (e: MouseEvent) => {
+			if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+				setShowPicker(false);
+			}
+		};
+		document.addEventListener("mousedown", handler);
+		return () => document.removeEventListener("mousedown", handler);
+	}, [showPicker]);
+
+	const { rangeFrom, rangeTo, rangeLabel } = useMemo(() => {
+		const now = new Date();
+		const yr  = now.getUTCFullYear();
+		const mo  = now.getUTCMonth();
+
+		if (rangePreset === "today")
+			return { rangeFrom: today, rangeTo: today, rangeLabel: "Today" };
+
+		if (rangePreset === "yesterday")
+			return { rangeFrom: yesterday, rangeTo: yesterday, rangeLabel: "Yesterday" };
+
+		if (rangePreset === "this_week") {
+			const day  = now.getUTCDay();
+			const diff = (day + 6) % 7; // days since Monday
+			const mon  = new Date(Date.UTC(yr, mo, now.getUTCDate() - diff));
+			return { rangeFrom: mon.toISOString().slice(0, 10), rangeTo: today, rangeLabel: "This Week" };
+		}
+		if (rangePreset === "this_month") {
+			const from = `${yr}-${String(mo + 1).padStart(2, "0")}-01`;
+			return { rangeFrom: from, rangeTo: today, rangeLabel: "This Month" };
+		}
+		// custom
+		const from = customFrom || today;
+		const to   = customTo   || today;
+		return { rangeFrom: from, rangeTo: to, rangeLabel: `${from} – ${to}` };
+	}, [rangePreset, customFrom, customTo, today]);
+
+	// ── Chart year state (Revenue Summary bar chart) ─────────
+	const currentYear = new Date().getFullYear();
+	const [chartYear, setChartYear] = React.useState(currentYear);
 
 	// ── Location ─────────────────────────────────────────────
 	const [locationId, setLocationId] = React.useState("");
@@ -79,24 +136,35 @@ export const DashboardPage: React.FC = () => {
 	const { data: yesterdaySummary, isFetching: f2, refetch: r2 } =
 		trpc.sale.dailySummary.useQuery({ locationId, date: yesterday }, { enabled });
 
-	const { data: customersData, isFetching: f3, refetch: r3 } = trpc.customer.list.useQuery({ pageSize: 1 });
+	const { data: purchaseSummaryData, isFetching: f3, refetch: r3 } =
+		trpc.purchaseOrder.summary.useQuery({
+			fromDate: rangeFrom + " 00:00:00",
+			toDate:   rangeTo   + " 23:59:59",
+		});
 
-	const { data: lowStockData, isFetching: f4, refetch: r4 } = trpc.product.list.useQuery(
-		{ lowStock: true, locationId, pageSize: 1 }, { enabled },
-	);
+	const lowStockThreshold = useAppStore((s) => s.lowStockThreshold);
+	const { data: lowStockData, isFetching: f4, refetch: r4 } =
+		trpc.stock.lowStockCount.useQuery({ locationId, threshold: lowStockThreshold }, { enabled });
 
-	const { data: profitData, isFetching: f5, refetch: r5 } =
-		trpc.sale.profitSummary.useQuery({ locationId, fromDate: sevenDaysFrom, toDate }, { enabled });
-
-	const monthStart = monthFrom + "T00:00:00.000Z";
-	const { data: monthlyProfitData, isFetching: f6, refetch: r6 } =
-		trpc.sale.profitSummary.useQuery({ locationId, fromDate: monthStart, toDate }, { enabled });
+	// Ranged profit (Financial Overview range column)
+	const { data: rangedProfitData, isFetching: f6, refetch: r6 } =
+		trpc.sale.profitSummary.useQuery(
+			{ locationId, fromDate: rangeFrom + " 00:00:00", toDate: rangeTo + " 23:59:59" },
+			{ enabled }
+		);
 
 	const { data: expenseSummaryData, isFetching: f7, refetch: r7 } =
-		trpc.expense.summary.useQuery({ fromDate: monthFrom, toDate: today });
+		trpc.expense.summary.useQuery({ fromDate: rangeFrom, toDate: rangeTo });
 
-	const isRefreshing = f1 || f2 || f3 || f4 || f5 || f6 || f7;
-	const handleRefresh = () => { r1(); r2(); r3(); r4(); r5(); r6(); r7(); };
+	// Year profit query — for Revenue Summary bar chart (Jan–Dec)
+	const { data: yearProfitData, isFetching: f8, refetch: r8 } =
+		trpc.sale.profitSummary.useQuery(
+			{ locationId, fromDate: `${chartYear}-01-01 00:00:00`, toDate: `${chartYear}-12-31 23:59:59` },
+			{ enabled }
+		);
+
+	const isRefreshing = f1 || f2 || f3 || f4 || f6 || f7 || f8;
+	const handleRefresh = () => { r1(); r2(); r3(); r4(); r6(); r7(); r8(); };
 
 	// ── Derived ───────────────────────────────────────────────
 	const revenue      = Number(todaySummary?.totalRevenue     ?? 0);
@@ -104,20 +172,15 @@ export const DashboardPage: React.FC = () => {
 	const prevRevenue  = Number(yesterdaySummary?.totalRevenue     ?? 0);
 	const prevTx       = Number(yesterdaySummary?.totalTransactions ?? 0);
 
-	const todayProfitRow = profitData?.find((r) => r.date === today);
-	const todayCogs   = Number(todayProfitRow?.cogs        ?? 0);
-	const todayGross  = Number(todayProfitRow?.grossProfit ?? 0);
-	const todayMargin = revenue > 0 ? (todayGross / revenue) * 100 : 0;
+	const expenseSummary = expenseSummaryData ?? [];
+	const totalExpenses  = expenseSummary.reduce((s, e) => s + Number(e.totalAmount), 0);
 
-	const expenseSummary  = expenseSummaryData ?? [];
-	const totalExpenses   = expenseSummary.reduce((s, e) => s + Number(e.totalAmount), 0);
-
-	// Monthly aggregates
-	const monthlyRevenue     = monthlyProfitData?.reduce((s, r) => s + Number(r.revenue), 0) ?? 0;
-	const monthlyCogs        = monthlyProfitData?.reduce((s, r) => s + Number(r.cogs),    0) ?? 0;
-	const monthlyGrossProfit = monthlyRevenue - monthlyCogs;
-	const monthlyNetProfit   = monthlyGrossProfit - totalExpenses;
-	const monthlyNetMargin   = monthlyRevenue > 0 ? (monthlyNetProfit / monthlyRevenue) * 100 : 0;
+	// Range aggregates
+	const rangeRevenue     = rangedProfitData?.reduce((s, r) => s + Number(r.revenue), 0) ?? 0;
+	const rangeCogs        = rangedProfitData?.reduce((s, r) => s + Number(r.cogs),    0) ?? 0;
+	const rangeGrossProfit = rangeRevenue - rangeCogs;
+	const rangeNetProfit   = rangeGrossProfit - totalExpenses;
+	const rangeNetMargin   = rangeRevenue > 0 ? (rangeNetProfit / rangeRevenue) * 100 : 0;
 
 	const fmt = (n: number) =>
 		`${sym} ${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -128,31 +191,37 @@ export const DashboardPage: React.FC = () => {
 		return { text: `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`, up: pct >= 0 };
 	};
 
+	const lowStockCount = lowStockData?.count ?? 0;
 	const stats = [
 		{ label: tr.todays_revenue, value: summaryLoading ? "…" : fmt(revenue), change: fmtPct(revenue, prevRevenue), grad: "linear-gradient(135deg,var(--primary-light),var(--primary))" },
-		{ label: tr.total_customers, value: (customersData?.total ?? 0).toLocaleString(), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#06b6d4,#2563eb)" },
+		{ label: tr.total_purchases, value: fmt(Number(purchaseSummaryData?.totalAmount ?? 0)), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#06b6d4,#2563eb)" },
 		{ label: tr.transactions, value: summaryLoading ? "…" : transactions.toLocaleString(), change: fmtPct(transactions, prevTx), grad: "linear-gradient(135deg,#10b981,#0d9488)" },
-		{ label: tr.low_stock_alerts, value: (lowStockData?.total ?? 0).toLocaleString(), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#f59e0b,#ea580c)" },
+		{ label: tr.low_stock_alerts, value: lowStockCount.toLocaleString(), change: null as { text: string; up: boolean } | null, grad: "linear-gradient(135deg,#f59e0b,#ea580c)" },
 	];
 
-	// ── Chart.js data ────────────────────────────────────────
+	// ── Chart.js data — monthly Jan–Dec ─────────────────────
+	const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-	// Bar chart — last 7 days revenue vs profit
-	const chartDays = last7Days.map((date) => {
-		const row = profitData?.find((r) => r.date === date);
+	const monthlyChartData = useMemo(() => MONTHS.map((label, i) => {
+		const prefix = `${chartYear}-${String(i + 1).padStart(2, "0")}-`;
+		const rows = yearProfitData?.filter((r) => r.date.startsWith(prefix)) ?? [];
 		return {
-			label: new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short" }),
-			revenue: Number(row?.revenue ?? 0),
-			profit:  Number(row?.grossProfit ?? 0),
+			label,
+			revenue: rows.reduce((s, r) => s + Number(r.revenue), 0),
+			profit:  rows.reduce((s, r) => s + Number(r.grossProfit), 0),
 		};
-	});
+	}), [yearProfitData, chartYear]);
+
+	const yearRevenue = monthlyChartData.reduce((s, m) => s + m.revenue, 0);
+	const yearCogs    = yearProfitData?.reduce((s, r) => s + Number(r.cogs), 0) ?? 0;
+	const yearGross   = yearRevenue - yearCogs;
 
 	const barData = {
-		labels: chartDays.map((d) => d.label),
+		labels: MONTHS,
 		datasets: [
 			{
 				label: tr.total_revenue,
-				data: chartDays.map((d) => d.revenue),
+				data: monthlyChartData.map((d) => d.revenue),
 				backgroundColor: "rgba(139, 92, 246, 0.75)",
 				borderColor: "var(--primary-light)",
 				borderWidth: 1,
@@ -161,7 +230,7 @@ export const DashboardPage: React.FC = () => {
 			},
 			{
 				label: tr.gross_profit,
-				data: chartDays.map((d) => d.profit),
+				data: monthlyChartData.map((d) => d.profit),
 				backgroundColor: "rgba(16, 185, 129, 0.75)",
 				borderColor: "#10b981",
 				borderWidth: 1,
@@ -201,7 +270,6 @@ export const DashboardPage: React.FC = () => {
 		},
 	};
 
-	// Pie chart — expenses by category this month
 	const pieData = {
 		labels: expenseSummary.map((e) => e.categoryName ?? "Other"),
 		datasets: [{
@@ -249,9 +317,12 @@ export const DashboardPage: React.FC = () => {
 				</div>
 				<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
 					{locations.length > 1 && (
-						<select value={locationId} onChange={(e) => setLocationId(e.target.value)} style={inp}>
-							{locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-						</select>
+						<AppSelect
+							value={locationId}
+							onChange={setLocationId}
+							options={locations.map((l) => ({ value: l.id, label: l.name }))}
+							minWidth={160}
+						/>
 					)}
 					<button
 						onClick={handleRefresh}
@@ -295,123 +366,183 @@ export const DashboardPage: React.FC = () => {
 				))}
 			</div>
 
+			{/* Financial Overview + Expense side by side */}
+			<div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", alignItems: "stretch" }}>
+
 			{/* Financial Overview */}
-		<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "16px 20px" }}>
-			<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px", marginBottom: "14px" }}>{tr.financial_overview}</h2>
-			<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0" }}>
+			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "16px 20px" }}>
 
-				{/* Today */}
-				<div style={{ paddingRight: "20px", borderRight: `1px solid ${t.borderMid}` }}>
-					<p style={{ color: t.textMuted, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "10px" }}>{tr.today}</p>
-					<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-						{[
-							{ label: tr.total_revenue,  val: revenue,    color: t.text },
-							{ label: tr.total_cost,     val: todayCogs,  color: t.textMuted },
-							{ label: tr.gross_profit,   val: todayGross, color: todayGross >= 0 ? "#10b981" : "#ef4444", bold: true },
-						].map((row) => (
-							<div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-								<span style={{ color: t.textFaint, fontSize: "12px" }}>{row.label}</span>
-								<span style={{ color: row.color, fontSize: "12px", fontWeight: row.bold ? 700 : 500 }}>{fmt(row.val)}</span>
-							</div>
-						))}
-						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", paddingTop: "7px", borderTop: `1px solid ${t.borderMid}` }}>
-							<span style={{ color: t.textFaint, fontSize: "12px" }}>{tr.profit_margin}</span>
-							<span style={{ color: todayGross >= 0 ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: 700 }}>{todayMargin.toFixed(1)}%</span>
-						</div>
-					</div>
-				</div>
+				{/* Card header */}
+				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+					<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px" }}>{tr.financial_overview}</h2>
 
-				{/* This Month */}
-				<div style={{ paddingLeft: "20px" }}>
-					<p style={{ color: t.textMuted, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "10px" }}>{tr.this_month}</p>
-					<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
-						{[
-							{ label: tr.total_revenue, val: monthlyRevenue,     color: t.text },
-							{ label: tr.total_cost,    val: monthlyCogs,        color: t.textMuted },
-							{ label: tr.gross_profit,  val: monthlyGrossProfit, color: monthlyGrossProfit >= 0 ? "#10b981" : "#ef4444" },
-							{ label: tr.expenses,      val: totalExpenses,      color: totalExpenses > 0 ? "#ef4444" : t.textFaint },
-						].map((row) => (
-							<div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-								<span style={{ color: t.textFaint, fontSize: "12px" }}>{row.label}</span>
-								<span style={{ color: row.color, fontSize: "12px", fontWeight: 500 }}>{fmt(row.val)}</span>
-							</div>
-						))}
-						<div style={{ marginTop: "2px", paddingTop: "7px", borderTop: `1px solid ${t.borderMid}`, display: "flex", flexDirection: "column", gap: "7px" }}>
-							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-								<span style={{ color: t.text, fontSize: "12px", fontWeight: 700 }}>{tr.net_profit}</span>
-								<span style={{ color: monthlyNetProfit >= 0 ? "#10b981" : "#ef4444", fontSize: "13px", fontWeight: 800 }}>{fmt(monthlyNetProfit)}</span>
-							</div>
-							<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-								<span style={{ color: t.textFaint, fontSize: "12px" }}>{tr.net_margin}</span>
-								<span style={{ color: monthlyNetProfit >= 0 ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: 700 }}>{monthlyNetMargin.toFixed(1)}%</span>
-							</div>
-						</div>
-					</div>
-				</div>
-
-			</div>
-		</div>
-
-		{/* Revenue Chart + Expense Pie */}
-			<div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
-
-				{/* Revenue Summary — Bar chart */}
-				<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "14px 16px", minWidth: 0, overflow: "hidden" }}>
-					{/* Card header */}
-					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-						<div>
-							<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px" }}>{tr.revenue_summary}</h2>
-							<p style={{ color: t.textFaint, fontSize: "11px", marginTop: "1px" }}>Last 7 days</p>
-						</div>
-						{/* Today's summary pills */}
-						<div style={{ display: "flex", gap: "8px" }}>
-							{[
-								{ label: tr.total_revenue, val: revenue,     color: "var(--primary-light)" },
-								{ label: tr.total_cost,   val: todayCogs,   color: "#f59e0b" },
-								{ label: tr.gross_profit, val: todayGross,  color: "#10b981" },
-							].map((item) => (
-								<div key={item.label} style={{ textAlign: "right" }}>
-									<p style={{ color: t.textFaint, fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{item.label}</p>
-									<p style={{ color: item.val < 0 ? "#ef4444" : t.text, fontWeight: 700, fontSize: "12px" }}>{fmt(item.val)}</p>
-								</div>
-							))}
-							<div style={{ textAlign: "right", borderLeft: `1px solid ${t.borderMid}`, paddingLeft: "8px", marginLeft: "2px" }}>
-								<p style={{ color: t.textFaint, fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{tr.profit_margin}</p>
-								<p style={{ color: todayGross >= 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: "12px" }}>{todayMargin.toFixed(1)}%</p>
-							</div>
-						</div>
-					</div>
-
-					{/* Chart.js Bar */}
-					<div style={{ height: "200px", width: "100%", overflow: "hidden" }}>
-						<Bar data={barData} options={barOptions} />
-					</div>
-				</div>
-
-				{/* Expense Breakdown — Pie chart */}
-				<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "14px 16px", minWidth: 0, overflow: "hidden" }}>
-					<div style={{ marginBottom: "10px" }}>
-						<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px" }}>{tr.expense_breakdown}</h2>
-						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1px" }}>
-							<p style={{ color: t.textFaint, fontSize: "11px" }}>{tr.this_month}</p>
-							{totalExpenses > 0 && (
-								<span style={{ color: "#ef4444", fontSize: "12px", fontWeight: 700 }}>{fmt(totalExpenses)}</span>
+					{/* Date range select + custom picker */}
+					<div style={{ position: "relative" }} ref={pickerRef}>
+						<div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+							<AppSelect
+								value={rangePreset}
+								onChange={(v) => {
+									setRangePreset(v as RangePreset);
+									setShowPicker(v === "custom");
+								}}
+								options={RANGE_PRESETS.map((p) => ({ value: p.key, label: p.label }))}
+								isSearchable={false}
+								minWidth={140}
+							/>
+							{rangePreset === "custom" && (
+								<button
+									onClick={() => setShowPicker((v) => !v)}
+									style={{ display: "flex", alignItems: "center", gap: "4px", padding: "7px 10px", borderRadius: "10px", border: `1px solid ${showPicker ? "var(--primary)" : t.inputBorder}`, background: showPicker ? "var(--primary-10)" : t.inputBg, color: showPicker ? "var(--primary-light)" : t.textMuted, fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+								>
+									<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+										<rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+									</svg>
+									{customFrom && customTo ? `${customFrom} – ${customTo}` : "Pick dates…"}
+								</button>
 							)}
 						</div>
-					</div>
 
-					{expenseSummary.length === 0 ? (
-						<div style={{ height: "162px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={t.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-								<path d="M21 12V7H5a2 2 0 010-4h14v4 M3 5v14a2 2 0 002 2h16v-4 M18 12a1 1 0 100 2 1 1 0 000-2z" />
-							</svg>
-							<p style={{ color: t.textFaint, fontSize: "12px" }}>{tr.no_expenses}</p>
+						{/* DateRange popup */}
+						{showPicker && rangePreset === "custom" && (
+							<div style={{
+								position: "absolute", right: 0, top: "calc(100% + 8px)", zIndex: 1000,
+								borderRadius: "14px", overflow: "hidden",
+								boxShadow: "0 12px 40px rgba(0,0,0,0.35)",
+								border: `1px solid ${t.borderMid}`,
+							}}>
+								<style>{`
+									.rdr-dashboard-picker .rdrCalendarWrapper { background: ${t.surface}; color: ${t.text}; }
+									.rdr-dashboard-picker .rdrDateDisplayWrapper { background: ${t.inputBg}; }
+									.rdr-dashboard-picker .rdrDateDisplayItem { background: ${t.inputBg}; border-color: ${t.inputBorder}; }
+									.rdr-dashboard-picker .rdrDateDisplayItem input { color: ${t.text}; background: transparent; }
+									.rdr-dashboard-picker .rdrMonthAndYearWrapper { background: ${t.surface}; }
+									.rdr-dashboard-picker .rdrMonthAndYearPickers select { background: ${t.inputBg}; color: ${t.text}; border-color: ${t.inputBorder}; border-radius: 6px; }
+									.rdr-dashboard-picker .rdrDayNumber span { color: ${t.text}; }
+									.rdr-dashboard-picker .rdrDayPassive .rdrDayNumber span { color: ${t.textFaint}; }
+									.rdr-dashboard-picker .rdrWeekDay { color: ${t.textMuted}; }
+									.rdr-dashboard-picker .rdrNextPrevButton { background: ${t.inputBg}; border-radius: 6px; }
+									.rdr-dashboard-picker .rdrPprevButton i { border-color: transparent ${t.textMuted} transparent transparent; }
+									.rdr-dashboard-picker .rdrNextButton i { border-color: transparent transparent transparent ${t.textMuted}; }
+									.rdr-dashboard-picker .rdrDayToday .rdrDayNumber span::after { background: var(--primary); }
+									.rdr-dashboard-picker .rdrSelected, .rdr-dashboard-picker .rdrInRange, .rdr-dashboard-picker .rdrStartEdge, .rdr-dashboard-picker .rdrEndEdge { background: var(--primary); }
+									.rdr-dashboard-picker .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span,
+									.rdr-dashboard-picker .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
+									.rdr-dashboard-picker .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span { color: #fff; }
+								`}</style>
+								<div className="rdr-dashboard-picker">
+									<DateRange
+										ranges={pickerRange}
+										onChange={(item: any) => {
+											setPickerRange([item.selection]);
+											const start: Date = item.selection.startDate;
+											const end: Date   = item.selection.endDate;
+											if (start) setCustomFrom(start.toISOString().slice(0, 10));
+											if (end)   setCustomTo(end.toISOString().slice(0, 10));
+										}}
+										months={1}
+										direction="horizontal"
+										showDateDisplay={true}
+										color="var(--primary)"
+										rangeColors={["var(--primary)"]}
+									/>
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* P&L rows */}
+				<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+					{[
+						{ label: tr.total_revenue, val: rangeRevenue,     color: t.text },
+						{ label: tr.total_cost,    val: rangeCogs,        color: t.textMuted },
+						{ label: tr.gross_profit,  val: rangeGrossProfit, color: rangeGrossProfit >= 0 ? "#10b981" : "#ef4444" },
+						{ label: tr.expenses,      val: totalExpenses,    color: totalExpenses > 0 ? "#ef4444" : t.textFaint },
+					].map((row) => (
+						<div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<span style={{ color: t.textFaint, fontSize: "12px" }}>{row.label}</span>
+							<span style={{ color: row.color, fontSize: "12px", fontWeight: 500 }}>{fmt(row.val)}</span>
 						</div>
-					) : (
-						<div style={{ height: "162px" }}>
-							<Pie data={pieData} options={pieOptions} />
+					))}
+					<div style={{ marginTop: "2px", paddingTop: "7px", borderTop: `1px solid ${t.borderMid}`, display: "flex", flexDirection: "column", gap: "7px" }}>
+						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<span style={{ color: t.text, fontSize: "12px", fontWeight: 700 }}>{tr.net_profit}</span>
+							<span style={{ color: rangeNetProfit >= 0 ? "#10b981" : "#ef4444", fontSize: "13px", fontWeight: 800 }}>{fmt(rangeNetProfit)}</span>
 						</div>
-					)}
+						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<span style={{ color: t.textFaint, fontSize: "12px" }}>{tr.net_margin}</span>
+							<span style={{ color: rangeNetProfit >= 0 ? "#10b981" : "#ef4444", fontSize: "12px", fontWeight: 700 }}>{rangeNetMargin.toFixed(1)}%</span>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Expense Breakdown — separate card */}
+			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "16px 20px", display: "flex", flexDirection: "column" }}>
+				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+					<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px" }}>{tr.expense_breakdown}</h2>
+					<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+						<span style={{ color: t.textFaint, fontSize: "11px" }}>{rangeLabel}</span>
+						{totalExpenses > 0 && <span style={{ color: "#ef4444", fontSize: "12px", fontWeight: 700 }}>{fmt(totalExpenses)}</span>}
+					</div>
+				</div>
+				{expenseSummary.length === 0 ? (
+					<div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+						<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={t.textFaint} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+							<path d="M21 12V7H5a2 2 0 010-4h14v4 M3 5v14a2 2 0 002 2h16v-4 M18 12a1 1 0 100 2 1 1 0 000-2z" />
+						</svg>
+						<p style={{ color: t.textFaint, fontSize: "12px" }}>{tr.no_expenses}</p>
+					</div>
+				) : (
+					<div style={{ flex: 1, minHeight: 0 }}>
+						<Pie data={pieData} options={pieOptions} />
+					</div>
+				)}
+			</div>
+			</div>
+
+			{/* Revenue Summary — full-width bar chart */}
+			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "14px 16px", overflow: "hidden" }}>
+				<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+					<div>
+						<h2 style={{ color: t.text, fontWeight: 700, fontSize: "13px" }}>{tr.revenue_summary}</h2>
+						{/* Year selector */}
+						<div style={{ display: "flex", alignItems: "center", gap: "4px", marginTop: "4px" }}>
+							<button
+								onClick={() => setChartYear((y) => y - 1)}
+								style={{ width: "20px", height: "20px", borderRadius: "6px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", lineHeight: 1 }}
+							>‹</button>
+							<span style={{ color: t.text, fontSize: "12px", fontWeight: 700, minWidth: "36px", textAlign: "center" }}>{chartYear}</span>
+							<button
+								onClick={() => setChartYear((y) => y + 1)}
+								disabled={chartYear >= currentYear}
+								style={{ width: "20px", height: "20px", borderRadius: "6px", border: "none", background: t.inputBg, color: chartYear >= currentYear ? t.textFaint : t.textMuted, cursor: chartYear >= currentYear ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", lineHeight: 1 }}
+							>›</button>
+						</div>
+					</div>
+					{/* Year summary pills */}
+					<div style={{ display: "flex", gap: "8px" }}>
+						{[
+							{ label: tr.total_revenue, val: yearRevenue, color: "var(--primary-light)" },
+							{ label: tr.total_cost,    val: yearCogs,    color: "#f59e0b" },
+							{ label: tr.gross_profit,  val: yearGross,   color: "#10b981" },
+						].map((item) => (
+							<div key={item.label} style={{ textAlign: "right" }}>
+								<p style={{ color: t.textFaint, fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{item.label}</p>
+								<p style={{ color: item.val < 0 ? "#ef4444" : t.text, fontWeight: 700, fontSize: "12px" }}>{fmt(item.val)}</p>
+							</div>
+						))}
+						<div style={{ textAlign: "right", borderLeft: `1px solid ${t.borderMid}`, paddingLeft: "8px", marginLeft: "2px" }}>
+							<p style={{ color: t.textFaint, fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{tr.profit_margin}</p>
+							<p style={{ color: yearGross >= 0 ? "#10b981" : "#ef4444", fontWeight: 700, fontSize: "12px" }}>
+								{yearRevenue > 0 ? ((yearGross / yearRevenue) * 100).toFixed(1) : "0.0"}%
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div style={{ height: "220px", width: "100%", overflow: "hidden" }}>
+					<Bar data={barData} options={barOptions} />
 				</div>
 			</div>
 
