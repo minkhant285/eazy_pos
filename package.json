@@ -4,7 +4,7 @@
   "description": "Easy POS — Point of Sale desktop app",
   "productName": "Easy POS",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "ITVerse INC.",
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
