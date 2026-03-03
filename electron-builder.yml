@@ -1,6 +1,7 @@
 appId: com.easy-pos
 productName: Easy POS
 afterSign: ./build/afterPack.js
+npmRebuild: false
 directories:
   buildResources: build
 files:
@@ -27,6 +28,7 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+  deleteAppDataOnUninstall: true
 mac:
   target:
     - target: dmg
