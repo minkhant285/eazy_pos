@@ -46,14 +46,18 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { SetupPage } from './pages/auth/SetupPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
 import { OnboardingPage } from './pages/onboarding/OnboardingPage';
+import { RestoreOrNewScreen } from './pages/onboarding/RestoreOrNewScreen';
 import { AccountingPage } from './pages/accounting/AccountingPage';
+import { PaymentAccountsPage } from './pages/payment-accounts/PaymentAccountsPage';
+import { DeliveryMethodsPage } from './pages/delivery-methods/DeliveryMethodsPage';
 import { trpc } from './trpc-client/trpc';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile', 'payment_accounts', 'delivery_methods'] as const;
 
-// Checks whether any user account exists; shows SetupPage on first run, LoginPage otherwise.
+// Checks whether any user account exists; shows RestoreOrNewScreen on first run, LoginPage otherwise.
 const AuthGate: React.FC = () => {
 	const t = useTheme();
+	const [showSetup, setShowSetup] = React.useState(false);
 	const { data, isLoading, refetch } = trpc.user.hasAny.useQuery();
 
 	if (isLoading) {
@@ -64,7 +68,10 @@ const AuthGate: React.FC = () => {
 		);
 	}
 
-	if (!data?.exists) return <SetupPage onDone={() => refetch()} />;
+	if (!data?.exists) {
+		if (showSetup) return <SetupPage onDone={() => refetch()} />;
+		return <RestoreOrNewScreen onProceedSetup={() => setShowSetup(true)} />;
+	}
 	return <LoginPage />;
 };
 
@@ -75,14 +82,28 @@ const App: React.FC = () => {
 	const preset = usePrimaryPreset();
 	const fontScale = useFontScale();
 	const currentUser = useAppStore((s) => s.currentUser);
+	const logout = useAppStore((s) => s.logout);
 	const onboardingDone = useAppStore((s) => s.onboardingDone);
+
+	// Validate that the persisted currentUser still exists in the DB.
+	// Handles the case where pos.db is deleted while the user session is still stored.
+	const { data: userCheck } = trpc.user.hasAny.useQuery(
+		undefined,
+		{ enabled: !!currentUser }
+	);
+	const userGone = !!currentUser && userCheck !== undefined && !userCheck.exists;
+	React.useEffect(() => {
+		if (userGone) logout();
+	}, [userGone]);
 
 	// If the DB was wiped, onboardingDone stays true in the store but there are no locations.
 	// Force onboarding whenever locations table is empty.
-	const { data: locCheck, isLoading: locChecking } = trpc.location.list.useQuery(
+	// Use isFetching (not just isLoading) so background refetches are treated as "still checking".
+	const { data: locCheck, isLoading: locLoading, isFetching: locFetching } = trpc.location.list.useQuery(
 		{ pageSize: 1 },
-		{ enabled: !!currentUser && onboardingDone }
+		{ enabled: !!currentUser && !userGone && onboardingDone }
 	);
+	const locChecking = locLoading || locFetching;
 	const needsOnboarding = !onboardingDone || (!locChecking && locCheck !== undefined && locCheck.data.length === 0);
 
 	const pageLabel = tr[page as keyof typeof tr] ?? page;
@@ -105,7 +126,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
         button:focus { outline: none; }
       `}</style>
 
-			{!currentUser ? (
+			{!currentUser || userGone ? (
 				<AuthGate />
 			) : needsOnboarding ? (
 				<OnboardingPage />
@@ -136,6 +157,8 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'settings' && <SettingsPage />}
 						{page === 'expenses' && <ExpensePage />}
 						{page === 'profile' && <ProfilePage />}
+						{page === 'payment_accounts' && <PaymentAccountsPage />}
+					{page === 'delivery_methods' && <DeliveryMethodsPage />}
 						{!IMPLEMENTED_PAGES.includes(page as typeof IMPLEMENTED_PAGES[number]) && (
 							<ComingSoon label={String(pageLabel)} />
 						)}

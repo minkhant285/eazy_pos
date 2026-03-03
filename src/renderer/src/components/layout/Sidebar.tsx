@@ -10,6 +10,8 @@ interface NavGroup { label: string; items: NavItem[]; }
 const PAGE_ACCESS: Record<string, ('admin' | 'manager' | 'cashier')[]> = {
   accounting: ['admin', 'manager'],
   dashboard: ['admin', 'manager'],
+  payment_accounts: ['admin', 'manager'],
+  delivery_methods: ['admin', 'manager'],
   sales:     ['admin', 'manager', 'cashier'],
   customers: ['admin', 'manager', 'cashier'],
   settings:  ['admin', 'manager', 'cashier'],
@@ -39,7 +41,7 @@ export const Sidebar: React.FC = () => {
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
 		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },
-		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }, { id: "profile", label: tr.profile, icon: "profile" }] },
+		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "payment_accounts", label: tr.payment_accounts, icon: "payment" }, { id: "delivery_methods", label: tr.delivery_methods, icon: "transfer" }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }, { id: "profile", label: tr.profile, icon: "profile" }] },
 	];
 
 	// Filter items by role access

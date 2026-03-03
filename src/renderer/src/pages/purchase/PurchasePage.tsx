@@ -1,4 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  flexRender,
+  type ColumnDef,
+} from "@tanstack/react-table";
 import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
@@ -275,6 +281,8 @@ interface ReceiveModalProps {
   onSuccess: () => void;
 }
 
+const RECEIVE_COLS = "1.8fr 65px 65px 65px 95px 95px";
+
 const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess }) => {
   const t   = useAppStore((s) => s.theme);
   const sym = useAppStore((s) => s.currency.symbol);
@@ -319,13 +327,115 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
   };
 
   const inputStyle: React.CSSProperties = {
-    background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px",
-    padding: "7px 10px", color: t.text, fontSize: "12px", outline: "none",
+    background: t.surface, border: `1px solid ${t.inputBorder}`, borderRadius: "8px",
+    padding: "6px 9px", color: t.text, fontSize: "12px", outline: "none",
     fontFamily: "inherit", width: "100%", boxSizing: "border-box",
   };
 
-  const canSubmit = !!receivedBy && !receiveMut.isPending &&
-    (po?.items as any[] ?? []).some((item) => parseFloat(receiveMap[item.id]?.qty ?? "0") > 0);
+  // Merge items with current receiveMap so TanStack rows stay consistent
+  const tableData = useMemo(() =>
+    (po?.items as any[] ?? []).map((item) => ({
+      ...item,
+      _entry:   receiveMap[item.id] ?? { qty: "0", cost: String(item.unitCost) },
+      _pending: Math.max(0, Number(item.qtyOrdered) - Number(item.qtyReceived ?? 0)),
+    })),
+    [po?.items, receiveMap]
+  );
+
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    {
+      id: "product",
+      header: "Product",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div style={{ minWidth: 0 }}>
+            <p style={{ color: t.text, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
+            <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{item.productSku}</p>
+            <p style={{ color: t.textFaint, fontSize: "10px" }}>{sym}{Number(item.unitCost).toFixed(2)} / unit</p>
+          </div>
+        );
+      },
+    },
+    {
+      id: "ordered",
+      header: "Ordered",
+      cell: ({ row }) => (
+        <span style={{ color: t.textMuted, fontSize: "12px", fontWeight: 500 }}>
+          {Number(row.original.qtyOrdered)}
+        </span>
+      ),
+    },
+    {
+      id: "received",
+      header: "Received",
+      cell: ({ row }) => {
+        const qty = Number(row.original.qtyReceived ?? 0);
+        return (
+          <span style={{ color: qty > 0 ? "#10b981" : t.textFaint, fontSize: "12px", fontWeight: 600 }}>
+            {qty}
+          </span>
+        );
+      },
+    },
+    {
+      id: "pending",
+      header: "Pending",
+      cell: ({ row }) => {
+        const p = row.original._pending;
+        return (
+          <span style={{ color: p > 0 ? "#f59e0b" : "#10b981", fontSize: "12px", fontWeight: 700 }}>
+            {p === 0 ? "✓" : p}
+          </span>
+        );
+      },
+    },
+    {
+      id: "receiveNow",
+      header: "Receive Now",
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <input
+            type="number" min="0" max={item._pending} step="1"
+            value={item._entry.qty}
+            onChange={(e) => setField(item.id, "qty", e.target.value)}
+            disabled={item._pending === 0}
+            style={{ ...inputStyle, textAlign: "center" as const }}
+          />
+        );
+      },
+    },
+    {
+      id: "unitCost",
+      header: `Cost (${sym})`,
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <input
+            type="number" min="0" step="0.01"
+            value={item._entry.cost}
+            onChange={(e) => setField(item.id, "cost", e.target.value)}
+            disabled={item._pending === 0}
+            style={inputStyle}
+          />
+        );
+      },
+    },
+  ], [t, sym]);  // setField is stable (functional update), inputStyle deps covered by t
+
+  const receiveTable = useReactTable({
+    data: tableData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const totalOrdered  = tableData.reduce((s, i) => s + Number(i.qtyOrdered), 0);
+  const totalReceived = tableData.reduce((s, i) => s + Number(i.qtyReceived ?? 0), 0);
+  const totalPending  = tableData.reduce((s, i) => s + i._pending, 0);
+  const totalNow      = tableData.reduce((s, i) => s + (parseFloat(i._entry.qty) || 0), 0);
+
+  const canSubmit = !!receivedBy && !receiveMut.isPending && totalNow > 0;
 
   return (
     <div
@@ -336,7 +446,7 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: "relative", width: "100%", maxWidth: "620px", margin: "0 16px",
+          position: "relative", width: "100%", maxWidth: "720px", margin: "0 16px",
           background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "20px",
           boxShadow: "0 24px 80px rgba(0,0,0,0.35)", overflow: "hidden",
           animation: "slideUp 0.22s ease", display: "flex", flexDirection: "column", maxHeight: "90vh",
@@ -361,50 +471,75 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
             <p style={{ color: t.textFaint, fontSize: "13px", textAlign: "center", padding: "32px 0" }}>Loading order…</p>
           ) : (
             <>
-              <div>
+              {/* Received By */}
+              <div style={{ maxWidth: "280px" }}>
                 <label style={{ color: t.textMuted, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "5px" }}>
                   Received By *
                 </label>
-               <AppSelect
-                value={receivedBy}
-                onChange={setReceivedBy}
-                options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
-                isSearchable={false}
-              />
+                <AppSelect
+                  value={receivedBy}
+                  onChange={setReceivedBy}
+                  options={[{ value: "", label: "Select user" }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+                  isSearchable={false}
+                />
               </div>
 
-              <div style={{ background: t.inputBg, borderRadius: "12px", overflow: "hidden" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1.5fr 70px 70px 70px 90px 90px", gap: "8px", padding: "9px 14px", borderBottom: `1px solid ${t.borderMid}` }}>
-                  {["Product", "Ordered", "Received", "Pending", "Receive Now", `Cost (${sym})`].map((h, i) => (
-                    <span key={i} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>{h}</span>
-                  ))}
-                </div>
-                {(po?.items as any[] ?? []).map((item) => {
-                  const pending       = Math.max(0, Number(item.qtyOrdered) - Number(item.qtyReceived ?? 0));
-                  const entry         = receiveMap[item.id] ?? { qty: "0", cost: String(item.unitCost) };
-                  const fullyReceived = pending === 0;
-                  return (
-                    <div key={item.id} style={{ display: "grid", gridTemplateColumns: "1.5fr 70px 70px 70px 90px 90px", gap: "8px", padding: "9px 14px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, opacity: fullyReceived ? 0.5 : 1 }}>
-                      <div>
-                        <p style={{ color: t.text, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
-                        <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{item.productSku}</p>
+              {/* TanStack Table */}
+              <div style={{ border: `1px solid ${t.borderMid}`, borderRadius: "12px", overflow: "hidden" }}>
+                {/* Column headers */}
+                {receiveTable.getHeaderGroups().map((hg) => (
+                  <div key={hg.id} style={{ display: "grid", gridTemplateColumns: RECEIVE_COLS, gap: "8px", padding: "9px 14px", borderBottom: `1px solid ${t.borderMid}`, background: t.inputBg }}>
+                    {hg.headers.map((header) => (
+                      <span key={header.id} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                        {flexRender(header.column.columnDef.header, header.getContext())}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+
+                {/* Rows */}
+                {receiveTable.getRowModel().rows.length === 0 ? (
+                  <p style={{ color: t.textFaint, fontSize: "12px", textAlign: "center", padding: "24px" }}>No items</p>
+                ) : (
+                  receiveTable.getRowModel().rows.map((row) => {
+                    const fullyReceived = row.original._pending === 0;
+                    return (
+                      <div
+                        key={row.id}
+                        style={{
+                          display: "grid", gridTemplateColumns: RECEIVE_COLS, gap: "8px",
+                          padding: "10px 14px", alignItems: "center",
+                          borderBottom: `1px solid ${t.borderMid}`,
+                          background: fullyReceived ? `${t.inputBg}60` : "transparent",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) => { if (!fullyReceived) e.currentTarget.style.background = t.surfaceHover; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = fullyReceived ? `${t.inputBg}60` : "transparent"; }}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <div key={cell.id} style={{ overflow: "hidden", display: "flex", alignItems: "center" }}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </div>
+                        ))}
                       </div>
-                      <span style={{ color: t.textMuted, fontSize: "12px" }}>{Number(item.qtyOrdered)}</span>
-                      <span style={{ color: Number(item.qtyReceived) > 0 ? "#10b981" : t.textFaint, fontSize: "12px" }}>{Number(item.qtyReceived ?? 0)}</span>
-                      <span style={{ color: pending > 0 ? "#f59e0b" : "#10b981", fontSize: "12px", fontWeight: 600 }}>{pending}</span>
-                      <input type="number" min="0" max={pending} step="1" value={entry.qty}
-                        onChange={(e) => setField(item.id, "qty", e.target.value)}
-                        disabled={fullyReceived}
-                        style={{ ...inputStyle, textAlign: "center", opacity: fullyReceived ? 0.5 : 1 }} />
-                      <input type="number" min="0" step="0.01" value={entry.cost}
-                        onChange={(e) => setField(item.id, "cost", e.target.value)}
-                        disabled={fullyReceived}
-                        style={{ ...inputStyle, opacity: fullyReceived ? 0.5 : 1 }} />
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
+
+                {/* Summary footer */}
+                {tableData.length > 0 && (
+                  <div style={{ display: "grid", gridTemplateColumns: RECEIVE_COLS, gap: "8px", padding: "9px 14px", borderTop: `1px solid ${t.borderMid}`, background: `${t.inputBg}80` }}>
+                    <span style={{ color: t.textMuted, fontSize: "11px", fontWeight: 700 }}>Total</span>
+                    <span style={{ color: t.text, fontSize: "12px", fontWeight: 700 }}>{totalOrdered}</span>
+                    <span style={{ color: "#10b981", fontSize: "12px", fontWeight: 700 }}>{totalReceived}</span>
+                    <span style={{ color: totalPending > 0 ? "#f59e0b" : "#10b981", fontSize: "12px", fontWeight: 700 }}>{totalPending}</span>
+                    <span style={{ color: "var(--primary)", fontSize: "12px", fontWeight: 800 }}>{totalNow}</span>
+                    <span />
+                  </div>
+                )}
               </div>
 
+              {/* Info banner */}
               <div style={{ background: "rgba(16,185,129,0.07)", border: "1px solid rgba(16,185,129,0.25)", borderRadius: "10px", padding: "10px 14px" }}>
                 <p style={{ color: "#10b981", fontSize: "11px", fontWeight: 600 }}>
                   Stock will be added to <strong>{(po as any)?.locationName ?? ""}</strong>. Items not fully received will move the order to <em>Partial</em> status.
@@ -423,8 +558,11 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
           <button onClick={onClose} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: t.inputBg, color: t.textMuted, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             Cancel
           </button>
-          <button onClick={handleReceive} disabled={!canSubmit}
-            style={{ flex: 2, padding: "10px", borderRadius: "11px", border: "none", background: canSubmit ? "#10b981" : t.inputBg, color: canSubmit ? "#fff" : t.textFaint, fontSize: "13px", fontWeight: 700, cursor: canSubmit ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 0.15s" }}>
+          <button
+            onClick={handleReceive}
+            disabled={!canSubmit}
+            style={{ flex: 2, padding: "10px", borderRadius: "11px", border: "none", background: canSubmit ? "#10b981" : t.inputBg, color: canSubmit ? "#fff" : t.textFaint, fontSize: "13px", fontWeight: 700, cursor: canSubmit ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 0.15s" }}
+          >
             {receiveMut.isPending ? "Receiving…" : "Confirm Receipt"}
           </button>
         </div>

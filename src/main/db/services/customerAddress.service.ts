@@ -39,7 +39,7 @@ export function createAddress(customerId: string, input: CreateAddressInput) {
 
 export function updateAddress(id: string, input: UpdateAddressInput) {
   const existing = db.select().from(customerAddresses).where(eq(customerAddresses.id, id)).get();
-  if (!existing) throw new NotFoundError("Address not found");
+  if (!existing) throw new NotFoundError("Address", id);
   db.update(customerAddresses).set({
     ...(input.receiverName  !== undefined ? { receiverName:  input.receiverName  } : {}),
     ...(input.phoneNumber   !== undefined ? { phoneNumber:   input.phoneNumber   } : {}),
@@ -51,7 +51,7 @@ export function updateAddress(id: string, input: UpdateAddressInput) {
 
 export function deleteAddress(id: string) {
   const existing = db.select().from(customerAddresses).where(eq(customerAddresses.id, id)).get();
-  if (!existing) throw new NotFoundError("Address not found");
+  if (!existing) throw new NotFoundError("Address", id);
   db.delete(customerAddresses).where(eq(customerAddresses.id, id)).run();
   // Promote another address to default if the deleted one was default
   if (existing.isDefault) {

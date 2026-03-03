@@ -49,11 +49,17 @@ const electronTRPC = {
   }
 }
 
+const backupApi = {
+  save: () => ipcRenderer.invoke('backup:save') as Promise<{ success: boolean; path?: string; error?: string }>,
+  restore: () => ipcRenderer.invoke('backup:restore') as Promise<{ success: boolean; error?: string }>,
+}
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
     contextBridge.exposeInMainWorld('api', {})
     contextBridge.exposeInMainWorld('electronTRPC', electronTRPC)
+    contextBridge.exposeInMainWorld('backupApi', backupApi)
   } catch (error) {
     console.error(error)
   }

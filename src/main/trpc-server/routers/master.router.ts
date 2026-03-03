@@ -180,6 +180,7 @@ const CreateCategorySchema = z.object({
   name: z.string().min(1),
   parentId: z.string().uuid().optional(),
   description: z.string().optional(),
+  skuPrefix: z.string().optional(),
 })
 
 export const categoryRouter = router({
@@ -243,6 +244,17 @@ export const categoryRouter = router({
       try {
         MasterService.deleteCategory(input.id)
         return { success: true }
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** GET /category.nextSku — next auto-incremented SKU for a category */
+  nextSku: publicProcedure
+    .input(z.object({ categoryId: z.string().uuid() }))
+    .query(({ input }) => {
+      try {
+        return MasterService.getNextSkuForCategory(input.categoryId)
       } catch (err) {
         mapError(err)
       }

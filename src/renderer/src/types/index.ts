@@ -2,9 +2,9 @@ export type PageId =
   | 'dashboard' | 'customers' | 'products' | 'categories'
   | 'stock' | 'transfers' | 'ledger' | 'suppliers' | 'purchase'
   | 'expenses' | 'locations' | 'users' | 'sales' | 'settings' | 'profile'
-  | 'accounting';
+  | 'accounting' | 'payment_accounts' | 'delivery_methods';
 
-export type LangCode = 'en' | 'my' | 'zh';
+export type LangCode = 'en' | 'my' | 'zh' | 'th';
 
 export interface ThemeTokens {
   bg: string; surface: string; surfaceHover: string;

@@ -70,6 +70,7 @@ export const categories = sqliteTable("categories", {
   name: text("name").notNull(),
   parentId: text("parent_id"), // Self-referencing for nested categories
   description: text("description"),
+  skuPrefix: text("sku_prefix"),   // e.g. "MCU" → auto SKU MCU0001, MCU0002
   ...timestamps,
 });
 
@@ -304,9 +305,14 @@ export const sales = sqliteTable(
       .references(() => locations.id),
     customerId: text("customer_id").references(() => customers.id),
     deliveryAddressId: text("delivery_address_id").references(() => customerAddresses.id),
+    deliveryMethodId: text("delivery_method_id").references(() => deliveryMethods.id),
     cashierId: text("cashier_id")
       .notNull()
       .references(() => users.id),
+
+    orderType: text("order_type", { enum: ["pos", "online"] }).notNull().default("pos"),
+    onlineStatus: text("online_status", { enum: ["processing", "confirmed", "ready_to_ship", "shipped", "returned"] }),
+    deliveryFee: real("delivery_fee").notNull().default(0),
 
     status: text("status", {
       enum: ["draft", "completed", "voided", "refunded", "partially_refunded"],
@@ -373,6 +379,33 @@ export const payments = sqliteTable("payments", {
   }).notNull(),
   amount: real("amount").notNull(),
   reference: text("reference"), // Card approval code, QR transaction ID, etc.
+  ...timestamps,
+});
+
+// ============================================================
+// DELIVERY METHODS
+// Shipping / courier providers selectable in POS
+// ============================================================
+export const deliveryMethods = sqliteTable("delivery_methods", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  logoUrl: text("logo_url"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
+// ============================================================
+// PAYMENT ACCOUNTS
+// Bank accounts / QR payment destinations shown at POS checkout
+// ============================================================
+export const paymentAccounts = sqliteTable("payment_accounts", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),           // e.g. "KBZ Pay", "Wave Money"
+  accountNumber: text("account_number").notNull(),
+  accountName: text("account_name").notNull(),
+  providerLogo: text("provider_logo"),            // base64 data-URI
+  qrCode: text("qr_code"),                       // base64 data-URI
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   ...timestamps,
 });
 
@@ -562,6 +595,7 @@ export const salesRelations = relations(sales, ({ one, many }) => ({
   location: one(locations, { fields: [sales.locationId], references: [locations.id] }),
   customer: one(customers, { fields: [sales.customerId], references: [customers.id] }),
   cashier: one(users, { fields: [sales.cashierId], references: [users.id] }),
+  deliveryMethod: one(deliveryMethods, { fields: [sales.deliveryMethodId], references: [deliveryMethods.id] }),
   items: many(saleItems),
   payments: many(payments),
 }));

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
@@ -21,15 +21,116 @@ type CartLine = {
 	discountAmount: number
 }
 
-type PaymentMethod = 'cash' | 'credit_card' | 'debit_card' | 'qr_code' | 'store_credit'
+type PaymentMethod = 'cash' | 'qr_code'
+
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
 	{ value: 'cash', label: 'Cash' },
-	{ value: 'credit_card', label: 'Card' },
-	{ value: 'debit_card', label: 'Debit' },
-	{ value: 'qr_code', label: 'QR' },
-	{ value: 'store_credit', label: 'Credit' },
+	{ value: 'qr_code', label: 'QR / Bank' },
 ]
+
+// ── Payment Account Picker Modal ──────────────────────────────
+
+type BankAccount = {
+	id: string
+	provider: string
+	accountNumber: string
+	accountName: string
+	providerLogo: string | null
+	qrCode: string | null
+	isActive: boolean
+}
+
+interface PaymentAccountPickerProps {
+	accounts: BankAccount[]
+	selected: BankAccount | null
+	onSelect: (acc: BankAccount) => void
+	onClose: () => void
+}
+
+const PaymentAccountPickerModal: React.FC<PaymentAccountPickerProps> = ({ accounts, selected, onSelect, onClose }) => {
+	const t = useAppStore((s) => s.theme)
+
+	return (
+		<div
+			style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+			onClick={onClose}
+		>
+			<div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }} />
+			<div
+				onClick={(e) => e.stopPropagation()}
+				style={{
+					position: 'relative', width: '100%', maxWidth: '480px', margin: '0 16px',
+					background: t.surface, border: `1px solid ${t.borderStrong}`,
+					borderRadius: '20px', boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+					overflow: 'hidden', animation: 'slideUp 0.22s ease',
+				}}
+			>
+				{/* Header */}
+				<div style={{ padding: '16px 20px 12px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+					<div>
+						<p style={{ color: t.text, fontWeight: 700, fontSize: '14px' }}>Select Payment Account</p>
+						<p style={{ color: t.textFaint, fontSize: '11px' }}>Show QR code or account details to customer</p>
+					</div>
+					<button onClick={onClose} style={{ width: '28px', height: '28px', borderRadius: '8px', border: 'none', background: t.inputBg, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+						<Icon name="close" size={13} />
+					</button>
+				</div>
+
+				{/* Account list */}
+				<div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '60vh', overflowY: 'auto' }}>
+					{accounts.map((acc) => {
+						const isSelected = selected?.id === acc.id
+						return (
+							<button
+								key={acc.id}
+								onClick={() => { onSelect(acc); onClose() }}
+								style={{
+									width: '100%', textAlign: 'left', padding: '12px 14px',
+									borderRadius: '12px', border: `2px solid ${isSelected ? 'var(--primary)' : t.inputBorder}`,
+									background: isSelected ? 'var(--primary-10)' : t.inputBg,
+									cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '12px',
+									transition: 'all 0.15s',
+								}}
+								onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.borderColor = t.borderStrong }}
+								onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.borderColor = t.inputBorder }}
+							>
+								{/* Logo */}
+								<div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `1px solid ${t.border}` }}>
+									{acc.providerLogo
+										? <img src={acc.providerLogo} alt={acc.provider} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '5px' }} />
+										: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#9ca3af' }}>
+												<rect x="1" y="4" width="22" height="5" rx="1" />
+												<path d="M1 9h22v11a2 2 0 01-2 2H3a2 2 0 01-2-2V9z" />
+												<line x1="5" y1="15" x2="9" y2="15" />
+											</svg>
+									}
+								</div>
+								<div style={{ flex: 1, minWidth: 0 }}>
+									<p style={{ color: t.text, fontSize: '13px', fontWeight: 700, marginBottom: '2px' }}>{acc.provider}</p>
+									<p style={{ color: t.textMuted, fontSize: '12px', fontWeight: 600 }}>{acc.accountNumber}</p>
+									<p style={{ color: t.textFaint, fontSize: '11px' }}>{acc.accountName}</p>
+								</div>
+								{acc.qrCode && (
+									<div style={{ width: '44px', height: '44px', borderRadius: '8px', overflow: 'hidden', border: `1px solid ${t.border}`, flexShrink: 0 }}>
+										<img src={acc.qrCode} alt="QR" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+									</div>
+								)}
+								{isSelected && (
+									<div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+										<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+											<polyline points="20 6 9 17 4 12" />
+										</svg>
+									</div>
+								)}
+							</button>
+						)
+					})}
+				</div>
+			</div>
+		</div>
+	)
+}
 
 interface Props {
 	onComplete: (sale: SaleDetail, addressId?: string) => void
@@ -187,28 +288,47 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 	const [selectedCustomerName, setSelectedCustomerName] = useState('')
 	const [customerSearch, setCustomerSearch] = useState('')
 	const [showCustomerDrop, setShowCustomerDrop] = useState(false)
-	const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
-
 	// ── Payment ──
 	const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash')
 	const [cashReceived, setCashReceived] = useState('')
+	const [selectedPayAccount, setSelectedPayAccount] = useState<BankAccount | null>(null)
+	const [showPayAccountPicker, setShowPayAccountPicker] = useState(false)
 
 	// ── Queries ──
 	const { data: locData } = trpc.location.list.useQuery({ pageSize: 100, isActive: true }, { staleTime: 0 })
 	const { data: prodData } = trpc.product.list.useQuery(
 		{ search: productSearch || undefined, pageSize: 24, isActive: true },
+		{ enabled: !locationId },
+	)
+	const { data: stockData } = trpc.stock.allProducts.useQuery(
+		{ locationId, search: productSearch || undefined, pageSize: 24 },
+		{ enabled: !!locationId },
 	)
 	const { data: custData } = trpc.customer.list.useQuery(
 		{ search: customerSearch, pageSize: 8, isActive: true },
 		{ enabled: customerSearch.length >= 2 },
 	)
-	const { data: addrData = [] } = trpc.customerAddress.list.useQuery(
-		{ customerId: customerId! },
-		{ enabled: !!customerId },
+	const { data: payAccounts = [] } = trpc.paymentAccount.list.useQuery(
+		{ onlyActive: true },
+		{ staleTime: 30_000 },
 	)
-
 	const locations = locData?.data ?? []
-	const products = prodData?.data ?? []
+	// stock.allProducts returns 'productId' as the id field — normalise to 'id'
+	const products = locationId
+		? (stockData?.data ?? []).map((p: any) => ({ ...p, id: p.productId ?? p.id }))
+		: (prodData?.data ?? [])
+
+	// Build productId -> qtyOnHand map from stock query
+	const stockMap = useMemo(() => {
+		const map: Record<string, number> = {}
+		if (locationId && stockData?.data) {
+			for (const p of stockData.data as any[]) {
+				const pid = (p as any).productId ?? (p as any).id
+				if (pid) map[pid] = Number((p as any).qtyOnHand ?? 0)
+			}
+		}
+		return map
+	}, [locationId, stockData])
 
 	// Sync to default location whenever locations data changes
 	useEffect(() => {
@@ -217,7 +337,6 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 		if (def) setLocationId(def.id)
 	}, [locations])
 	const customers = custData?.data ?? []
-	const addresses = addrData as { id: string; receiverName: string; phoneNumber: string; detailAddress: string; isDefault: boolean }[]
 
 	// ── Computed totals ──
 	const subtotal = cart.reduce((s, l) => s + l.qty * l.unitPrice, 0)
@@ -234,12 +353,16 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 		const cartKey = variant ? variant.id : product.id
 		const unitPrice = variant ? Number(variant.sellingPrice) : Number(product.sellingPrice)
 		const variantLabel = variant?.label
+		// Only enforce stock limit for non-variant products (variant stock handled separately)
+		const maxStock = !variant ? (stockMap[product.id] ?? Infinity) : Infinity
 
 		setCart((prev) => {
 			const existing = prev.find((l) => l.cartKey === cartKey)
 			if (existing) {
+				if (existing.qty >= maxStock) return prev  // already at limit
 				return prev.map((l) => l.cartKey === cartKey ? { ...l, qty: l.qty + 1 } : l)
 			}
+			if (maxStock <= 0) return prev  // out of stock, can't add
 			return [...prev, {
 				cartKey,
 				productId: product.id,
@@ -281,16 +404,15 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 		setCustomerId(null)
 		setSelectedCustomerName('')
 		setCustomerSearch('')
-		setSelectedAddressId(null)
+		setSelectedPayAccount(null)
 	}
 
 	// ── Mutation ──
 	const createSale = trpc.sale.create.useMutation({
 		onSuccess: (data) => {
 			if (data) {
-				const addrId = selectedAddressId ?? undefined
 				resetCart()
-				onComplete(data as unknown as SaleDetail, addrId)
+				onComplete(data as unknown as SaleDetail)
 			}
 		},
 	})
@@ -301,11 +423,13 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 		if (paymentMethod === 'cash' && receivedNum < grandTotal) { alert('Cash received is less than the total amount.'); return }
 
 		const paymentAmount = paymentMethod === 'cash' ? receivedNum : grandTotal
+		const payRef = paymentMethod === 'qr_code' && selectedPayAccount
+			? `${selectedPayAccount.provider}: ${selectedPayAccount.accountNumber}`
+			: undefined
 		createSale.mutate({
 			locationId,
 			cashierId,
 			customerId: customerId ?? undefined,
-			deliveryAddressId: selectedAddressId ?? undefined,
 			items: cart.map((l) => ({
 				productId: l.productId,
 				variantId: l.variantId,
@@ -313,7 +437,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 				unitPrice: l.unitPrice,
 				discountAmount: l.discountAmount || undefined,
 			})),
-			payments: [{ method: paymentMethod, amount: paymentAmount }],
+			payments: [{ method: paymentMethod, amount: paymentAmount, reference: payRef }],
 			discountAmount: discountNum || undefined,
 			notes: notes || undefined,
 		})
@@ -355,7 +479,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 	// ── Render ────────────────────────────────────────────────────
 
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+		<div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
 			{/* ── Variant Picker Modal ── */}
 			{pendingVariantProduct && (
@@ -369,8 +493,18 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 				/>
 			)}
 
+			{/* ── Payment Account Picker Modal ── */}
+			{showPayAccountPicker && (
+				<PaymentAccountPickerModal
+					accounts={payAccounts as BankAccount[]}
+					selected={selectedPayAccount}
+					onSelect={(acc) => setSelectedPayAccount(acc)}
+					onClose={() => setShowPayAccountPicker(false)}
+				/>
+			)}
+
 			{/* ── Setup bar ── */}
-			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '12px 16px', display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
+			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '7px 12px', display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}>
 				<div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
 					<span style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', whiteSpace: 'nowrap' }}>Location</span>
 				<AppSelect
@@ -399,7 +533,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 			</div>
 
 			{/* ── Main POS area ── */}
-			<div style={{ display: 'flex', gap: '14px' }}>
+			<div style={{ display: 'flex', gap: '10px' }}>
 
 				{/* ── Left: Product grid ── */}
 				<div style={{ flex: '1 1 0', display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
@@ -413,54 +547,75 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 
 					<div style={{
 						display: 'grid',
-						gridTemplateColumns: 'repeat(auto-fill, minmax(138px, 1fr))',
-						gap: '8px',
-						maxHeight: '58vh',
+						gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+						gap: '6px',
+						maxHeight: '60vh',
 						overflowY: 'auto',
 						alignContent: 'start',
 						paddingBottom: '4px',
 					}}>
-						{products.map((p: any) => (
+						{products.map((p: any) => {
+							const stockQty = locationId ? (stockMap[p.id] ?? null) : null
+							const outOfStock = !p.hasVariants && stockQty !== null && stockQty <= 0
+							const lowStock = !p.hasVariants && stockQty !== null && stockQty > 0 && stockQty <= 5
+							return (
 							<button
 								key={p.id}
-								onClick={() => addToCart(p)}
+								onClick={() => !outOfStock && addToCart(p)}
 								style={{
 									background: t.surface,
-									border: `1px solid ${t.border}`,
+									border: `1px solid ${outOfStock ? t.borderMid : t.border}`,
 									borderRadius: '12px',
 									padding: '0',
-									cursor: 'pointer',
+									cursor: outOfStock ? 'not-allowed' : 'pointer',
 									textAlign: 'left',
 									transition: 'border-color 0.15s, background 0.15s',
 									fontFamily: 'inherit',
 									overflow: 'hidden',
 									display: 'flex',
 									flexDirection: 'column',
+									opacity: outOfStock ? 0.5 : 1,
 								}}
-								onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = t.surfaceHover }}
-								onMouseLeave={(e) => { e.currentTarget.style.borderColor = t.border; e.currentTarget.style.background = t.surface }}
+								onMouseEnter={(e) => { if (!outOfStock) { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = t.surfaceHover } }}
+								onMouseLeave={(e) => { e.currentTarget.style.borderColor = outOfStock ? t.borderMid : t.border; e.currentTarget.style.background = t.surface }}
 							>
 								{/* Photo area */}
-								<div style={{ width: '100%', height: '82px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+								<div style={{ width: '100%', height: '60px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
 									{p.imageUrl
 										? <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
 										: <Icon name="product" size={26} style={{ color: t.textFaint }} />
 									}
-									{/* Variant badge */}
+									{/* Stock / Variant badge */}
 									{p.hasVariants ? (
 										<span style={{ position: 'absolute', top: '5px', right: '5px', background: 'var(--primary)', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>
 											VARIANTS
 										</span>
+									) : outOfStock ? (
+										<span style={{ position: 'absolute', top: '5px', right: '5px', background: '#ef4444', color: '#fff', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>
+											OUT
+										</span>
 									) : null}
 								</div>
 								{/* Text */}
-								<div style={{ padding: '9px 11px 11px' }}>
-									<p style={{ color: t.text, fontSize: '12px', fontWeight: 600, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
-									<p style={{ color: t.textFaint, fontSize: '10px', marginBottom: '6px' }}>{p.sku}</p>
-									<p style={{ color: 'var(--primary)', fontSize: '14px', fontWeight: 800 }}>{sym}{Number(p.sellingPrice).toLocaleString()}</p>
+								<div style={{ padding: '6px 9px 7px' }}>
+									<p style={{ color: t.text, fontSize: '11px', fontWeight: 600, marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</p>
+									<p style={{ color: t.textFaint, fontSize: '9px', marginBottom: '4px' }}>{p.sku}</p>
+									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+										<p style={{ color: 'var(--primary)', fontSize: '13px', fontWeight: 800 }}>{sym}{Number(p.sellingPrice).toLocaleString()}</p>
+										{!p.hasVariants && stockQty !== null && (
+											<span style={{
+												fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px',
+												background: outOfStock ? 'rgba(239,68,68,0.12)' : lowStock ? 'rgba(245,158,11,0.12)' : 'rgba(16,185,129,0.12)',
+												color: outOfStock ? '#ef4444' : lowStock ? '#f59e0b' : '#10b981',
+											}}>
+												{stockQty}
+											</span>
+										)}
+									</div>
 								</div>
 							</button>
-						))}
+						)
+						})}
 						{products.length === 0 && (
 							<div style={{ gridColumn: '1/-1', padding: '40px', textAlign: 'center', color: t.textFaint, fontSize: '13px' }}>
 								{productSearch ? 'No products found' : 'Loading...'}
@@ -470,17 +625,16 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 				</div>
 
 				{/* ── Right: Cart + Payment ── */}
-				<div style={{ width: '400px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+				<div style={{ width: '290px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
 
 					{/* Customer */}
-					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '12px 14px' }}>
-						<p style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Customer</p>
+					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '10px', padding: '5px 8px' }}>
 						<div style={{ position: 'relative' }}>
 							{customerId ? (
 								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: t.inputBg, borderRadius: '10px', border: `1px solid ${t.inputBorder}` }}>
 									<span style={{ color: t.text, fontSize: '13px', fontWeight: 500 }}>{selectedCustomerName}</span>
 									<button
-										onClick={() => { setCustomerId(null); setSelectedCustomerName(''); setCustomerSearch(''); setSelectedAddressId(null) }}
+										onClick={() => { setCustomerId(null); setSelectedCustomerName(''); setCustomerSearch('') }}
 										style={{ background: 'none', border: 'none', color: t.textFaint, cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: '0 0 0 8px' }}
 									>×</button>
 								</div>
@@ -500,7 +654,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 											{customers.map((c: any) => (
 												<button
 													key={c.id}
-													onMouseDown={() => { setCustomerId(c.id); setSelectedCustomerName(c.name); setCustomerSearch(''); setShowCustomerDrop(false); setSelectedAddressId(null) }}
+													onMouseDown={() => { setCustomerId(c.id); setSelectedCustomerName(c.name); setCustomerSearch(''); setShowCustomerDrop(false) }}
 													style={{ width: '100%', padding: '9px 12px', background: 'none', border: 'none', textAlign: 'left', cursor: 'pointer', borderBottom: `1px solid ${t.borderMid}`, fontFamily: 'inherit' }}
 													onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover }}
 													onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
@@ -516,40 +670,9 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 						</div>
 					</div>
 
-					{/* Address picker */}
-					{customerId && addresses.length > 0 && (
-						<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '12px 14px' }}>
-							<p style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Delivery Address</p>
-							<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-								{addresses.map((a) => {
-									const isSelected = selectedAddressId ? selectedAddressId === a.id : a.isDefault
-									return (
-										<button
-											key={a.id}
-											onClick={() => setSelectedAddressId(a.id)}
-											style={{
-												width: '100%', textAlign: 'left', padding: '9px 11px', borderRadius: '10px', cursor: 'pointer',
-												border: `1px solid ${isSelected ? 'var(--primary)' : t.inputBorder}`,
-												background: isSelected ? 'var(--primary-10)' : t.inputBg,
-												fontFamily: 'inherit',
-											}}
-										>
-											<p style={{ color: t.text, fontSize: '12px', fontWeight: 600, marginBottom: '1px' }}>
-												{a.receiverName}
-												{a.isDefault && <span style={{ marginLeft: '6px', fontSize: '9px', fontWeight: 700, color: 'var(--primary)' }}>DEFAULT</span>}
-											</p>
-											<p style={{ color: t.textMuted, fontSize: '11px' }}>{a.phoneNumber}</p>
-											<p style={{ color: t.textFaint, fontSize: '11px', marginTop: '1px' }}>{a.detailAddress}</p>
-										</button>
-									)
-								})}
-							</div>
-						</div>
-					)}
-
-					{/* Cart */}
-					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-						<div style={{ padding: '10px 14px 8px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+				{/* Cart */}
+					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '10px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+						<div style={{ padding: '4px 8px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
 							<p style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
 								Cart {cart.length > 0 ? `(${cart.length})` : ''}
 							</p>
@@ -559,24 +682,23 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 								</button>
 							)}
 						</div>
-						<div style={{ maxHeight: '38vh', overflowY: 'auto' }}>
+						<div style={{ maxHeight: '26vh', overflowY: 'auto' }}>
 							{cart.length === 0 ? (
-								<div style={{ padding: '28px', textAlign: 'center', color: t.textFaint, fontSize: '13px' }}>
-									<Icon name="sale" size={26} style={{ display: 'block', margin: '0 auto 8px', color: t.textFaint }} />
+								<div style={{ padding: '16px', textAlign: 'center', color: t.textFaint, fontSize: '12px' }}>
 									Click a product to add
 								</div>
 							) : (
 								cart.map((line) => (
-									<div key={line.cartKey} style={{ padding: '11px 16px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', gap: '10px', alignItems: 'center' }}>
+									<div key={line.cartKey} style={{ padding: '4px 8px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', gap: '7px', alignItems: 'center' }}>
 										{/* Thumbnail */}
-										<div style={{ width: '42px', height: '42px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+										<div style={{ width: '24px', height: '24px', borderRadius: '5px', overflow: 'hidden', flexShrink: 0, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
 											{line.imageUrl
 												? <img src={line.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-												: <Icon name="product" size={18} style={{ color: t.textFaint }} />
+												: <Icon name="product" size={14} style={{ color: t.textFaint }} />
 											}
 										</div>
 										<div style={{ flex: 1, minWidth: 0 }}>
-											<p style={{ color: t.text, fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+											<p style={{ color: t.text, fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
 												{line.name}
 											</p>
 											{line.variantLabel && (
@@ -584,12 +706,25 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 											)}
 											<p style={{ color: t.textFaint, fontSize: '11px', marginTop: '1px' }}>{sym}{line.unitPrice.toLocaleString()}</p>
 										</div>
-										<div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-											<button onClick={() => updateQty(line.cartKey, line.qty - 1)} style={{ width: '26px', height: '26px', borderRadius: '7px', border: 'none', background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>−</button>
-											<span style={{ color: t.text, fontSize: '14px', fontWeight: 700, minWidth: '26px', textAlign: 'center' }}>{line.qty}</span>
-											<button onClick={() => updateQty(line.cartKey, line.qty + 1)} style={{ width: '26px', height: '26px', borderRadius: '7px', border: 'none', background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>+</button>
+										{(() => { const maxQty = !line.variantId ? (stockMap[line.productId] ?? Infinity) : Infinity; const atMax = line.qty >= maxQty; return (
+										<div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+											<button onClick={() => updateQty(line.cartKey, line.qty - 1)} style={{ width: '21px', height: '21px', borderRadius: '5px', border: 'none', background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>−</button>
+											<input
+												type="number"
+												min={1}
+												max={maxQty === Infinity ? undefined : maxQty}
+												value={line.qty}
+												onChange={(e) => {
+													const v = parseInt(e.target.value, 10)
+													if (isNaN(v) || v < 1) return
+													updateQty(line.cartKey, Math.min(v, maxQty === Infinity ? v : maxQty))
+												}}
+												style={{ width: '40px', textAlign: 'center', background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: '5px', padding: '2px 4px', color: t.text, fontSize: '12px', fontWeight: 700, fontFamily: 'inherit', outline: 'none', MozAppearance: 'textfield' as any }}
+											/>
+											<button onClick={() => !atMax && updateQty(line.cartKey, line.qty + 1)} disabled={atMax} style={{ width: '21px', height: '21px', borderRadius: '5px', border: 'none', background: atMax ? t.borderMid : t.inputBg, color: atMax ? t.textFaint : t.text, cursor: atMax ? 'not-allowed' : 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit', opacity: atMax ? 0.5 : 1 }}>+</button>
 										</div>
-										<span style={{ color: t.text, fontSize: '13px', fontWeight: 700, minWidth: '66px', textAlign: 'right' }}>{sym}{(line.qty * line.unitPrice).toLocaleString()}</span>
+										) })()}
+										<span style={{ color: t.text, fontSize: '13px', fontWeight: 700, minWidth: '50px', textAlign: 'right' }}>{sym}{(line.qty * line.unitPrice).toLocaleString()}</span>
 										<button onClick={() => updateQty(line.cartKey, 0)} style={{ background: 'none', border: 'none', color: t.textFaint, cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: '0', flexShrink: 0 }}>×</button>
 									</div>
 								))
@@ -598,54 +733,57 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 					</div>
 
 					{/* Totals + Payment */}
-					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '16px' }}>
+					<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '10px', padding: '7px 10px' }}>
 
 						{/* Discount row */}
-						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-							<span style={{ color: t.textMuted, fontSize: '14px' }}>Discount ({sym})</span>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+							<span style={{ color: t.textMuted, fontSize: '12px' }}>Discount ({sym})</span>
 							<input
 								type="number"
 								min="0"
 								value={headerDiscount}
 								onChange={(e) => setHeaderDiscount(e.target.value)}
 								placeholder="0"
-								style={{ ...smInputStyle, width: '110px', fontSize: '14px', padding: '7px 10px' }}
+								style={{ ...smInputStyle, width: '90px', fontSize: '12px', padding: '5px 8px' }}
 							/>
 						</div>
 
 						{/* Summary rows */}
-						<div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '10px', borderTop: `1px solid ${t.borderMid}`, marginBottom: '14px' }}>
+						<div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '7px', borderTop: `1px solid ${t.borderMid}`, marginBottom: '7px' }}>
 							<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-								<span style={{ color: t.textMuted, fontSize: '13px' }}>Subtotal</span>
-								<span style={{ color: t.textMuted, fontSize: '13px' }}>{sym}{subtotal.toLocaleString()}</span>
+								<span style={{ color: t.textMuted, fontSize: '12px' }}>Subtotal</span>
+								<span style={{ color: t.textMuted, fontSize: '12px' }}>{sym}{subtotal.toLocaleString()}</span>
 							</div>
 							{discountNum > 0 && (
 								<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-									<span style={{ color: t.textMuted, fontSize: '13px' }}>Discount</span>
-									<span style={{ color: '#ef4444', fontSize: '13px' }}>−{sym}{discountNum.toLocaleString()}</span>
+									<span style={{ color: t.textMuted, fontSize: '12px' }}>Discount</span>
+									<span style={{ color: '#ef4444', fontSize: '12px' }}>−{sym}{discountNum.toLocaleString()}</span>
 								</div>
 							)}
 							{taxTotal > 0 && (
 								<div style={{ display: 'flex', justifyContent: 'space-between' }}>
-									<span style={{ color: t.textMuted, fontSize: '13px' }}>Tax</span>
-									<span style={{ color: t.textMuted, fontSize: '13px' }}>{sym}{taxTotal.toFixed(2)}</span>
+									<span style={{ color: t.textMuted, fontSize: '12px' }}>Tax</span>
+									<span style={{ color: t.textMuted, fontSize: '12px' }}>{sym}{taxTotal.toFixed(2)}</span>
 								</div>
 							)}
-							<div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: `1px solid ${t.borderMid}`, marginTop: '4px' }}>
-								<span style={{ color: t.text, fontSize: '17px', fontWeight: 900 }}>TOTAL</span>
-								<span style={{ color: 'var(--primary)', fontSize: '22px', fontWeight: 900 }}>{sym}{grandTotal.toLocaleString()}</span>
+							<div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '7px', borderTop: `1px solid ${t.borderMid}`, marginTop: '3px' }}>
+								<span style={{ color: t.text, fontSize: '13px', fontWeight: 900 }}>TOTAL</span>
+								<span style={{ color: 'var(--primary)', fontSize: '16px', fontWeight: 900 }}>{sym}{grandTotal.toLocaleString()}</span>
 							</div>
 						</div>
 
 						{/* Payment method tabs */}
-						<div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+						<div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '6px' }}>
 							{PAYMENT_METHODS.map((m) => (
 								<button
 									key={m.value}
-									onClick={() => setPaymentMethod(m.value)}
+									onClick={() => {
+										setPaymentMethod(m.value)
+										if (m.value !== 'qr_code') setSelectedPayAccount(null)
+									}}
 									style={{
-										padding: '7px 13px', borderRadius: '9px', border: 'none',
-										fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+										padding: '6px 14px', borderRadius: '8px', border: 'none',
+										fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
 										background: paymentMethod === m.value ? 'var(--primary)' : t.inputBg,
 										color: paymentMethod === m.value ? '#fff' : t.textMuted,
 										transition: 'all 0.15s',
@@ -656,24 +794,83 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 							))}
 						</div>
 
+						{/* QR / Bank account section */}
+						{paymentMethod === 'qr_code' && (
+							<div style={{ marginBottom: '8px' }}>
+								{(payAccounts as BankAccount[]).length === 0 ? (
+									<div style={{ padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px dashed ${t.inputBorder}` }}>
+										<p style={{ color: t.textFaint, fontSize: '12px', textAlign: 'center' }}>
+											No payment accounts configured.{' '}
+											<span style={{ color: 'var(--primary)', fontWeight: 600 }}>Add one in Settings → Payment Accounts.</span>
+										</p>
+									</div>
+								) : !selectedPayAccount ? (
+									<button
+										onClick={() => setShowPayAccountPicker(true)}
+										style={{
+											width: '100%', padding: '11px 14px', borderRadius: '10px',
+											border: '1px dashed var(--primary)', background: 'var(--primary-10)',
+											color: 'var(--primary)', fontSize: '12px', fontWeight: 700,
+											cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+										}}
+									>
+										Select Bank / QR Account
+									</button>
+								) : (
+									<div style={{ borderRadius: '12px', border: '2px solid var(--primary)', background: 'var(--primary-10)', overflow: 'hidden' }}>
+										{/* Account header row */}
+										<div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+											<div style={{ width: '38px', height: '38px', borderRadius: '9px', background: '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `1px solid ${t.border}` }}>
+												{selectedPayAccount.providerLogo
+													? <img src={selectedPayAccount.providerLogo} alt={selectedPayAccount.provider} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }} />
+													: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="5" rx="1" /><path d="M1 9h22v11a2 2 0 01-2 2H3a2 2 0 01-2-2V9z" /></svg>
+												}
+											</div>
+											<div style={{ flex: 1, minWidth: 0 }}>
+												<p style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 800 }}>{selectedPayAccount.provider}</p>
+												<p style={{ color: t.text, fontSize: '13px', fontWeight: 700, marginTop: '1px' }}>{selectedPayAccount.accountNumber}</p>
+												<p style={{ color: t.textMuted, fontSize: '11px' }}>{selectedPayAccount.accountName}</p>
+											</div>
+											<button
+												onClick={() => setShowPayAccountPicker(true)}
+												style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+											>
+												Change
+											</button>
+										</div>
+										{/* QR code display */}
+										{selectedPayAccount.qrCode && (
+											<div style={{ borderTop: '1px solid rgba(99,102,241,0.2)', padding: '12px', display: 'flex', justifyContent: 'center', background: 'rgba(255,255,255,0.6)' }}>
+												<img
+													src={selectedPayAccount.qrCode}
+													alt="QR Code"
+													style={{ width: '140px', height: '140px', objectFit: 'contain', borderRadius: '8px' }}
+												/>
+											</div>
+										)}
+									</div>
+								)}
+							</div>
+						)}
+
 						{/* Cash received + change */}
 						{paymentMethod === 'cash' && (
-							<div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+							<div style={{ marginBottom: '6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
 								<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-									<span style={{ color: t.textMuted, fontSize: '13px' }}>Cash Received</span>
+									<span style={{ color: t.textMuted, fontSize: '12px' }}>Cash Received</span>
 									<input
 										type="number"
 										min="0"
 										value={cashReceived}
 										onChange={(e) => setCashReceived(e.target.value)}
 										placeholder="0.00"
-										style={{ ...smInputStyle, width: '130px', fontSize: '14px', padding: '7px 10px' }}
+										style={{ ...smInputStyle, width: '110px', fontSize: '12px', padding: '5px 8px' }}
 									/>
 								</div>
 								{receivedNum > 0 && (
 									<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-										<span style={{ color: t.textMuted, fontSize: '13px' }}>Change</span>
-										<span style={{ color: change >= 0 ? '#10b981' : '#ef4444', fontSize: '16px', fontWeight: 800 }}>
+										<span style={{ color: t.textMuted, fontSize: '12px' }}>Change</span>
+										<span style={{ color: change >= 0 ? '#10b981' : '#ef4444', fontSize: '13px', fontWeight: 800 }}>
 											{sym}{change.toFixed(2)}
 										</span>
 									</div>
@@ -687,7 +884,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 							value={notes}
 							onChange={(e) => setNotes(e.target.value)}
 							placeholder="Notes (optional)"
-							style={{ ...inputStyle, marginBottom: '12px', fontSize: '13px', padding: '9px 12px' }}
+							style={{ ...inputStyle, marginBottom: '6px', fontSize: '12px', padding: '6px 10px' }}
 						/>
 
 						{/* Charge button */}
@@ -696,12 +893,12 @@ export const POSTerminal: React.FC<Props> = ({ onComplete }) => {
 							disabled={!canCharge}
 							style={{
 								width: '100%',
-								padding: '16px',
-								borderRadius: '13px',
+								padding: '9px',
+								borderRadius: '10px',
 								border: 'none',
 								background: canCharge ? 'var(--primary)' : t.inputBg,
 								color: canCharge ? '#fff' : t.textFaint,
-								fontSize: '17px',
+								fontSize: '13px',
 								fontWeight: 900,
 								cursor: canCharge ? 'pointer' : 'not-allowed',
 								fontFamily: 'inherit',

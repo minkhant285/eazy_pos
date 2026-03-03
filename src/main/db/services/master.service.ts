@@ -1,6 +1,6 @@
 import { eq, like, and, sql, isNull } from "drizzle-orm";
 import { db } from "../db";
-import { locations, suppliers, categories } from "../schemas/schema";
+import { locations, suppliers, categories, products } from "../schemas/schema";
 import { newId, now, NotFoundError, PaginationParams } from "../utils";
 
 // ================================================================
@@ -126,6 +126,7 @@ export type CreateCategoryInput = {
   name: string;
   parentId?: string;
   description?: string;
+  skuPrefix?: string;
 };
 
 export type UpdateCategoryInput = Partial<CreateCategoryInput>;
@@ -193,4 +194,29 @@ export function deleteCategory(id: string) {
   const children = db.select().from(categories).where(eq(categories.parentId, id)).all();
   if (children.length > 0) throw new Error("Cannot delete category with children");
   db.delete(categories).where(eq(categories.id, id)).run();
+}
+
+/** Return the next auto-generated SKU for a category that has a skuPrefix.
+ *  Scans existing product SKUs with that prefix and increments the highest number.
+ *  e.g. prefix "MCU" + existing MCU0001, MCU0003 → returns "MCU0004"
+ */
+export function getNextSkuForCategory(categoryId: string): { sku: string; prefix: string } {
+  const cat = getCategoryById(categoryId);
+  const prefix = (cat.skuPrefix ?? "").toUpperCase().trim();
+  if (!prefix) return { sku: "", prefix: "" };
+
+  const existing = db
+    .select({ sku: products.sku })
+    .from(products)
+    .where(sql`UPPER(${products.sku}) LIKE ${prefix + "%"}`)
+    .all();
+
+  let maxNum = 0;
+  for (const p of existing) {
+    const suffix = p.sku.toUpperCase().slice(prefix.length);
+    const num = parseInt(suffix, 10);
+    if (!isNaN(num) && num > maxNum) maxNum = num;
+  }
+
+  return { sku: `${prefix}${String(maxNum + 1).padStart(4, "0")}`, prefix };
 }

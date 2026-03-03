@@ -25,7 +25,10 @@ export type TranslationKey =
   | 'assets' | 'liabilities' | 'equity' | 'inventory_value' | 'accounts_receivable'
   | 'accounts_payable' | 'total_assets' | 'total_liabilities' | 'owners_equity'
   | 'revenue_by_category' | 'top_products_report' | 'profit' | 'margin' | 'qty_sold'
-  | 'tax_collected' | 'discounts_given' | 'transactions_count';
+  | 'tax_collected' | 'discounts_given' | 'transactions_count'
+  | 'payment_accounts' | 'delivery_methods'
+  | 'online_orders' | 'new_order' | 'processing' | 'confirmed' | 'returned'
+  | 'delivery_fee' | 'confirm_order' | 'return_order' | 'download_quotation';
 
 export type Translations = Record<TranslationKey, string>;
 
@@ -33,6 +36,7 @@ export const LANG_OPTIONS: { code: LangCode; flag: string; label: string }[] = [
   { code: 'en', flag: '🇬🇧', label: 'English' },
   { code: 'my', flag: '🇲🇲', label: 'မြန်မာ' },
   { code: 'zh', flag: '🇨🇳', label: '中文' },
+  { code: 'th', flag: '🇹🇭', label: 'ไทย' },
 ];
 
 export const translations: Record<LangCode, Translations> = {
@@ -82,6 +86,12 @@ export const translations: Record<LangCode, Translations> = {
     revenue_by_category: 'Revenue by Category', top_products_report: 'Top Products',
     profit: 'Profit', margin: 'Margin', qty_sold: 'Qty Sold',
     tax_collected: 'Tax Collected', discounts_given: 'Discounts Given', transactions_count: 'Transactions',
+    payment_accounts: 'Payment Accounts',
+    delivery_methods: 'Delivery Methods',
+    online_orders: 'Online Orders', new_order: 'New Order',
+    processing: 'Processing', confirmed: 'Confirmed', returned: 'Returned',
+    delivery_fee: 'Delivery Fee', confirm_order: 'Confirm', return_order: 'Return',
+    download_quotation: 'Download PNG',
   },
   my: {
     overview: 'အကျဉ်းချုပ်', sales_group: 'အရောင်းများ', inventory: 'ကုန်ပစ္စည်းစာရင်း',
@@ -130,6 +140,12 @@ export const translations: Record<LangCode, Translations> = {
     revenue_by_category: 'အမျိုးအစားအလိုက်ဝင်ငွေ', top_products_report: 'ထိပ်တန်းကုန်ပစ္စည်းများ',
     profit: 'အမြတ်', margin: 'မာဂျင်', qty_sold: 'ရောင်းချပမာဏ',
     tax_collected: 'ကောက်ခံငွေ', discounts_given: 'လျှော့ပေးငွေ', transactions_count: 'ငွေပေးငွေယူ',
+    payment_accounts: 'ငွေပေးချေမှုအကောင့်များ',
+    delivery_methods: 'ပို့ဆောင်မှုနည်းလမ်းများ',
+    online_orders: 'အွန်လိုင်းအော်ဒါများ', new_order: 'အော်ဒါသစ်',
+    processing: 'လုပ်ဆောင်နေသည်', confirmed: 'အတည်ပြုပြီး', returned: 'ပြန်လည်ပေးသွင်း',
+    delivery_fee: 'ပို့ဆောင်ကြေး', confirm_order: 'အတည်ပြုရန်', return_order: 'ပြန်လည်ပေးသွင်းရန်',
+    download_quotation: 'PNG ဒေါင်းလောဒ်',
   },
   zh: {
     overview: '概览', sales_group: '销售', inventory: '库存管理',
@@ -177,5 +193,64 @@ export const translations: Record<LangCode, Translations> = {
     revenue_by_category: '按类别收入', top_products_report: '热销产品',
     profit: '利润', margin: '利润率', qty_sold: '销量',
     tax_collected: '税款', discounts_given: '折扣', transactions_count: '交易笔数',
+    payment_accounts: '收款账户',
+    delivery_methods: '配送方式',
+    online_orders: '线上订单', new_order: '新订单',
+    processing: '处理中', confirmed: '已确认', returned: '已退货',
+    delivery_fee: '配送费', confirm_order: '确认', return_order: '退货',
+    download_quotation: '下载PNG',
+  },
+  th: {
+    overview: 'ภาพรวม', sales_group: 'การขาย', inventory: 'คลังสินค้า',
+    procurement: 'การจัดซื้อ', settings: 'การตั้งค่า',
+    dashboard: 'แดชบอร์ด', sales: 'การขาย', customers: 'ลูกค้า',
+    products: 'สินค้า', categories: 'หมวดหมู่', stock: 'สต็อก',
+    transfers: 'โอนย้าย', suppliers: 'ซัพพลายเออร์', purchase: 'ใบสั่งซื้อ',
+    locations: 'สาขา', users: 'ผู้ใช้งาน', profile: 'โปรไฟล์ของฉัน',
+    todays_revenue: 'รายได้วันนี้', total_customers: 'ลูกค้าทั้งหมด',
+    total_purchases: 'การซื้อเดือนนี้',
+    transactions: 'รายการ', low_stock_alerts: 'แจ้งเตือนสต็อกต่ำ',
+    vs_yesterday: 'เทียบเมื่อวาน', recent_transactions: 'รายการล่าสุด',
+    view_all: 'ดูทั้งหมด →', payment_methods: 'วิธีชำระเงิน',
+    top_products: 'สินค้าขายดีวันนี้', sold: 'ขายแล้ว',
+    new_customer: 'ลูกค้าใหม่', edit_customer: 'แก้ไขลูกค้า',
+    add_customer_desc: 'เพิ่มลูกค้าใหม่ในระบบ',
+    total_customers_label: 'ลูกค้าทั้งหมด',
+    search_placeholder: 'ค้นหาชื่อ อีเมล เบอร์โทร...',
+    all: 'ทั้งหมด', active: 'ใช้งาน', inactive: 'ไม่ใช้งาน', export: 'ส่งออก',
+    customer_col: 'ลูกค้า', contact: 'ติดต่อ', loyalty_points: 'คะแนน',
+    balance: 'ยอดคงเหลือ', status: 'สถานะ', showing: 'แสดง', of: 'จาก',
+    full_name: 'ชื่อ-นามสกุล', email_address: 'อีเมล',
+    phone_number: 'เบอร์โทรศัพท์', credit_limit: 'วงเงินเครดิต (฿)',
+    cancel: 'ยกเลิก', save_changes: 'บันทึกการเปลี่ยนแปลง', create_customer: 'สร้างลูกค้า',
+    delete_customer: 'ลบลูกค้า?',
+    delete_warning: 'การดำเนินการนี้ไม่สามารถยกเลิกได้ ประวัติรายการจะถูกเก็บไว้',
+    delete: 'ลบ', pts: 'คะแนน', no_customers: 'ไม่พบลูกค้า',
+    coming_soon: 'หน้านี้กำลังจะมาเร็วๆ นี้',
+    dark_mode: 'โหมดมืด', light_mode: 'โหมดสว่าง', collapse: 'ย่อ', admin: 'ผู้ดูแลระบบ',
+    cash: 'เงินสด', card: 'บัตร', qr_code: 'QR โค้ด', completed: 'สำเร็จ', voided: 'ยกเลิก',
+    ledger: 'บัญชีสต็อก', expenses: 'ค่าใช้จ่าย',
+    revenue_summary: 'สรุปรายได้', total_revenue: 'รายได้รวม', total_cost: 'ต้นทุนสินค้า',
+    gross_profit: 'กำไรขั้นต้น', profit_margin: 'อัตรากำไร',
+    expense_breakdown: 'รายละเอียดค่าใช้จ่าย', this_month: 'เดือนนี้', no_expenses: 'ไม่มีค่าใช้จ่าย',
+    financial_overview: 'ภาพรวมการเงิน', today: 'วันนี้',
+    net_profit: 'กำไรสุทธิ', net_margin: 'อัตรากำไรสุทธิ',
+    accounting: 'บัญชี', income_statement: 'งบกำไรขาดทุน',
+    cash_flow: 'กระแสเงินสด', balance_sheet: 'งบดุล', reports: 'รายงาน',
+    pl_statement: 'กำไร-ขาดทุน', gross_profit_margin: 'อัตรากำไรขั้นต้น', net_profit_margin: 'อัตรากำไรสุทธิ',
+    cash_inflow: 'เงินสดรับ', cash_outflow: 'เงินสดจ่าย', net_cash_flow: 'กระแสเงินสดสุทธิ', purchase_payments: 'ซื้อสินค้าคงคลัง',
+    assets: 'สินทรัพย์', liabilities: 'หนี้สิน', equity: 'ส่วนของเจ้าของ',
+    inventory_value: 'มูลค่าสินค้าคงคลัง', accounts_receivable: 'ลูกหนี้การค้า',
+    accounts_payable: 'เจ้าหนี้การค้า', total_assets: 'สินทรัพย์รวม',
+    total_liabilities: 'หนี้สินรวม', owners_equity: 'ส่วนของเจ้าของ',
+    revenue_by_category: 'รายได้ตามหมวดหมู่', top_products_report: 'สินค้าขายดี',
+    profit: 'กำไร', margin: 'อัตรากำไร', qty_sold: 'จำนวนที่ขาย',
+    tax_collected: 'ภาษีที่เก็บ', discounts_given: 'ส่วนลดที่ให้', transactions_count: 'จำนวนรายการ',
+    payment_accounts: 'บัญชีรับชำระเงิน',
+    delivery_methods: 'วิธีจัดส่ง',
+    online_orders: 'คำสั่งซื้อออนไลน์', new_order: 'คำสั่งใหม่',
+    processing: 'กำลังดำเนินการ', confirmed: 'ยืนยันแล้ว', returned: 'คืนสินค้า',
+    delivery_fee: 'ค่าจัดส่ง', confirm_order: 'ยืนยัน', return_order: 'คืนสินค้า',
+    download_quotation: 'ดาวน์โหลด PNG',
   },
 };

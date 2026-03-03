@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { db } from "../db";
-import { sales, saleItems, payments, products, productVariants, customers, users, locations, customerAddresses, stockLedger } from "../schemas/schema";
+import { sales, saleItems, payments, products, productVariants, customers, users, locations, stockLedger, deliveryMethods } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
 import { upsertVariantStock } from "./variant.service";
@@ -27,6 +27,7 @@ export type CreateSaleInput = {
   cashierId: string;
   customerId?: string;
   deliveryAddressId?: string;
+  deliveryMethodId?: string;
   items: CartItem[];
   payments: PaymentInput[];
   discountAmount?: number;  // Header-level discount
@@ -38,6 +39,7 @@ export type SaleFilter = {
   cashierId?: string;
   customerId?: string;
   status?: string;
+  orderType?: string;
   fromDate?: string;
   toDate?: string;
   page?: number;
@@ -176,6 +178,7 @@ export function createSale(input: CreateSaleInput) {
         cashierId: input.cashierId,
         customerId: input.customerId ?? null,
         deliveryAddressId: input.deliveryAddressId ?? null,
+        deliveryMethodId: input.deliveryMethodId ?? null,
         status: "completed",
         subtotal,
         discountAmount: headerDiscount,
@@ -228,8 +231,14 @@ export function getSaleById(id: string) {
       customerId: sales.customerId,
       customerName: customers.name,
       deliveryAddressId: sales.deliveryAddressId,
+      deliveryMethodId: sales.deliveryMethodId,
+      deliveryMethodName: deliveryMethods.provider,
+      deliveryMethodLogo: deliveryMethods.logoUrl,
       cashierId: sales.cashierId,
       cashierName: users.name,
+      orderType: sales.orderType,
+      onlineStatus: sales.onlineStatus,
+      deliveryFee: sales.deliveryFee,
       status: sales.status,
       subtotal: sales.subtotal,
       discountAmount: sales.discountAmount,
@@ -246,6 +255,7 @@ export function getSaleById(id: string) {
     .leftJoin(locations, eq(sales.locationId, locations.id))
     .leftJoin(customers, eq(sales.customerId, customers.id))
     .leftJoin(users, eq(sales.cashierId, users.id))
+    .leftJoin(deliveryMethods, eq(sales.deliveryMethodId, deliveryMethods.id))
     .where(eq(sales.id, id))
     .get();
 
@@ -258,6 +268,7 @@ export function getSaleById(id: string) {
       variantId: saleItems.variantId,
       productName: products.name,
       productSku: products.sku,
+      productImageUrl: products.imageUrl,
       qty: saleItems.qty,
       unitPrice: saleItems.unitPrice,
       unitCost: saleItems.unitCost,
@@ -290,6 +301,7 @@ export function listSales(params?: SaleFilter) {
   if (params?.cashierId) conditions.push(eq(sales.cashierId, params.cashierId));
   if (params?.customerId) conditions.push(eq(sales.customerId, params.customerId));
   if (params?.status) conditions.push(eq(sales.status, params.status as any));
+  if (params?.orderType) conditions.push(eq(sales.orderType, params.orderType as any));
   if (params?.fromDate) conditions.push(gte(sales.createdAt, params.fromDate));
   if (params?.toDate) conditions.push(lte(sales.createdAt, params.toDate));
 
@@ -303,8 +315,11 @@ export function listSales(params?: SaleFilter) {
       customerName: customers.name,
       cashierName: users.name,
       status: sales.status,
+      orderType: sales.orderType,
       totalAmount: sales.totalAmount,
       createdAt: sales.createdAt,
+      primaryPaymentMethod: sql<string>`(SELECT method FROM payments WHERE sale_id = ${sales.id} LIMIT 1)`,
+      primaryPaymentReference: sql<string | null>`(SELECT reference FROM payments WHERE sale_id = ${sales.id} LIMIT 1)`,
     })
     .from(sales)
     .leftJoin(locations, eq(sales.locationId, locations.id))
@@ -578,6 +593,376 @@ export function getDailyProfitSummary(locationId: string, fromDate: string, toDa
       transactions:  Number(row.transactions),
     };
   });
+}
+
+// ─── Online Orders ────────────────────────────────────────────
+
+export type CreateOnlineOrderInput = {
+  cashierId: string;
+  customerId: string;
+  locationId?: string;
+  deliveryAddressId?: string;
+  deliveryMethodId?: string;
+  deliveryFee?: number;
+  items: CartItem[];
+  paymentMethod: typeof payments.$inferInsert["method"];
+  paymentReference?: string;
+  discountAmount?: number;
+  notes?: string;
+};
+
+/** Create an online order (quotation) — stock is NOT deducted at creation */
+export function createOnlineOrder(input: CreateOnlineOrderInput) {
+  // Resolve locationId: use provided or fall back to default location
+  const locationId = input.locationId ?? (() => {
+    const loc = db.select({ id: locations.id }).from(locations).get();
+    if (!loc) throw new ValidationError("No location found. Please create a location first.");
+    return loc.id;
+  })();
+
+  const saleId = newId();
+  const receiptNo = generateDocNumber("ONL");
+
+  let subtotal = 0;
+  let totalTax = 0;
+  const saleItemRows: any[] = [];
+
+  for (const cartItem of input.items) {
+    const product = db.select().from(products).where(eq(products.id, cartItem.productId)).get();
+    if (!product || !product.isActive) {
+      throw new ValidationError(`Product not available: ${cartItem.productId}`);
+    }
+
+    let unitPrice: number;
+    let unitCost: number;
+
+    if (cartItem.variantId) {
+      const variant = db.select().from(productVariants).where(eq(productVariants.id, cartItem.variantId)).get();
+      if (!variant || !variant.isActive) {
+        throw new ValidationError(`Variant not available: ${cartItem.variantId}`);
+      }
+      unitPrice = cartItem.unitPrice ?? variant.sellingPrice;
+      unitCost = variant.costPrice;
+    } else {
+      unitPrice = cartItem.unitPrice ?? product.sellingPrice;
+      unitCost = product.costPrice;
+    }
+
+    const discount = cartItem.discountAmount ?? 0;
+    const lineNet = cartItem.qty * unitPrice - discount;
+    const lineTax = lineNet * product.taxRate;
+    const lineTotal = lineNet + lineTax;
+
+    subtotal += cartItem.qty * unitPrice;
+    totalTax += lineTax;
+
+    saleItemRows.push({
+      id: newId(),
+      saleId,
+      productId: product.id,
+      variantId: cartItem.variantId ?? null,
+      qty: cartItem.qty,
+      unitPrice,
+      unitCost,
+      discountAmount: discount,
+      taxAmount: lineTax,
+      totalAmount: lineTotal,
+    });
+  }
+
+  const headerDiscount = input.discountAmount ?? 0;
+  const deliveryFee = input.deliveryFee ?? 0;
+  const totalAmount = subtotal - headerDiscount + totalTax + deliveryFee;
+
+  db.insert(sales).values({
+    id: saleId,
+    receiptNo,
+    locationId,
+    cashierId: input.cashierId,
+    customerId: input.customerId,
+    deliveryAddressId: input.deliveryAddressId ?? null,
+    deliveryMethodId: input.deliveryMethodId ?? null,
+    orderType: "online",
+    onlineStatus: "processing",
+    deliveryFee,
+    status: "draft",
+    subtotal,
+    discountAmount: headerDiscount,
+    taxAmount: totalTax,
+    roundingAmount: 0,
+    totalAmount,
+    paidAmount: 0,
+    changeAmount: 0,
+    notes: input.notes ?? null,
+  }).run();
+
+  db.insert(saleItems).values(saleItemRows).run();
+
+  db.insert(payments).values({
+    id: newId(),
+    saleId,
+    method: input.paymentMethod,
+    amount: totalAmount,
+    reference: input.paymentReference ?? null,
+  }).run();
+
+  return getSaleById(saleId);
+}
+
+/** Confirm an online order — deducts stock and marks as completed */
+export function confirmOnlineOrder(id: string) {
+  return db.transaction(() => {
+    const sale = getSaleById(id);
+    if (sale.onlineStatus !== "processing") {
+      throw new ValidationError(`Order is not in processing status`);
+    }
+
+    for (const item of sale.items) {
+      let qtyBefore: number;
+      let qtyAfter: number;
+
+      if (item.variantId) {
+        ({ qtyBefore, qtyAfter } = upsertVariantStock(item.variantId, sale.locationId, -item.qty));
+      } else {
+        ({ qtyBefore, qtyAfter } = upsertStock(item.productId, sale.locationId, -item.qty));
+      }
+
+      appendLedger({
+        productId: item.productId,
+        variantId: item.variantId ?? undefined,
+        locationId: sale.locationId,
+        movementType: "sale_out",
+        qty: item.qty,
+        qtyBefore,
+        qtyAfter,
+        unitCost: item.unitCost,
+        totalCost: item.qty * item.unitCost,
+        referenceType: "sale",
+        referenceId: id,
+        createdBy: sale.cashierId,
+      });
+    }
+
+    db.update(sales).set({
+      onlineStatus: "confirmed",
+      status: "completed",
+      paidAmount: sale.totalAmount,
+      updatedAt: now(),
+    }).where(eq(sales.id, id)).run();
+
+    if (sale.customerId) {
+      addLoyaltyPoints(sale.customerId, Math.floor(sale.totalAmount));
+    }
+
+    return getSaleById(id);
+  });
+}
+
+/** Return an online order — restores stock */
+/** Mark a confirmed order as ready to ship */
+export function markReadyToShip(id: string) {
+  const sale = getSaleById(id);
+  if (sale.onlineStatus !== "confirmed") {
+    throw new ValidationError("Only confirmed orders can be marked as ready to ship");
+  }
+  db.update(sales).set({ onlineStatus: "ready_to_ship", updatedAt: now() })
+    .where(eq(sales.id, id)).run();
+  return getSaleById(id);
+}
+
+/** Mark a ready-to-ship order as shipped */
+export function markShipped(id: string) {
+  const sale = getSaleById(id);
+  if (sale.onlineStatus !== "ready_to_ship") {
+    throw new ValidationError("Only ready-to-ship orders can be marked as shipped");
+  }
+  db.update(sales).set({ onlineStatus: "shipped", updatedAt: now() })
+    .where(eq(sales.id, id)).run();
+  return getSaleById(id);
+}
+
+/** Return an online order — restores stock (allowed from confirmed, ready_to_ship, or shipped) */
+export function returnOnlineOrder(id: string) {
+  return db.transaction(() => {
+    const sale = getSaleById(id);
+    if (!["confirmed", "ready_to_ship", "shipped"].includes(sale.onlineStatus ?? "")) {
+      throw new ValidationError(`Order must be confirmed, ready to ship, or shipped to return`);
+    }
+
+    for (const item of sale.items) {
+      let qtyBefore: number;
+      let qtyAfter: number;
+
+      if (item.variantId) {
+        ({ qtyBefore, qtyAfter } = upsertVariantStock(item.variantId, sale.locationId, item.qty));
+      } else {
+        ({ qtyBefore, qtyAfter } = upsertStock(item.productId, sale.locationId, item.qty));
+      }
+
+      appendLedger({
+        productId: item.productId,
+        variantId: item.variantId ?? undefined,
+        locationId: sale.locationId,
+        movementType: "return_in",
+        qty: item.qty,
+        qtyBefore,
+        qtyAfter,
+        unitCost: item.unitCost,
+        totalCost: item.qty * item.unitCost,
+        referenceType: "sale",
+        referenceId: id,
+        notes: "Online order return",
+        createdBy: sale.cashierId,
+      });
+    }
+
+    db.update(sales).set({
+      onlineStatus: "returned",
+      status: "refunded",
+      updatedAt: now(),
+    }).where(eq(sales.id, id)).run();
+
+    return getSaleById(id);
+  });
+}
+
+export type UpdateOnlineOrderInput = Omit<CreateOnlineOrderInput, 'cashierId' | 'locationId'>;
+
+/** Update a processing online order — replaces items and payments, recalculates totals */
+export function updateOnlineOrder(id: string, input: UpdateOnlineOrderInput) {
+  return db.transaction(() => {
+    const sale = getSaleById(id);
+    if (sale.onlineStatus !== "processing") {
+      throw new ValidationError("Only processing orders can be edited");
+    }
+
+    let subtotal = 0;
+    let totalTax = 0;
+    const newItemRows: any[] = [];
+
+    for (const cartItem of input.items) {
+      const product = db.select().from(products).where(eq(products.id, cartItem.productId)).get();
+      if (!product || !product.isActive) throw new ValidationError(`Product not available: ${cartItem.productId}`);
+
+      let unitPrice: number;
+      let unitCost: number;
+
+      if (cartItem.variantId) {
+        const variant = db.select().from(productVariants).where(eq(productVariants.id, cartItem.variantId)).get();
+        if (!variant || !variant.isActive) throw new ValidationError(`Variant not available: ${cartItem.variantId}`);
+        unitPrice = cartItem.unitPrice ?? variant.sellingPrice;
+        unitCost = variant.costPrice;
+      } else {
+        unitPrice = cartItem.unitPrice ?? product.sellingPrice;
+        unitCost = product.costPrice;
+      }
+
+      const discount = cartItem.discountAmount ?? 0;
+      const lineNet = cartItem.qty * unitPrice - discount;
+      const lineTax = lineNet * product.taxRate;
+      const lineTotal = lineNet + lineTax;
+
+      subtotal += cartItem.qty * unitPrice;
+      totalTax += lineTax;
+
+      newItemRows.push({
+        id: newId(),
+        saleId: id,
+        productId: product.id,
+        variantId: cartItem.variantId ?? null,
+        qty: cartItem.qty,
+        unitPrice,
+        unitCost,
+        discountAmount: discount,
+        taxAmount: lineTax,
+        totalAmount: lineTotal,
+      });
+    }
+
+    const headerDiscount = input.discountAmount ?? 0;
+    const deliveryFee = input.deliveryFee ?? 0;
+    const totalAmount = subtotal - headerDiscount + totalTax + deliveryFee;
+
+    // Replace items and payments
+    db.delete(saleItems).where(eq(saleItems.saleId, id)).run();
+    db.delete(payments).where(eq(payments.saleId, id)).run();
+    db.insert(saleItems).values(newItemRows).run();
+    db.insert(payments).values({
+      id: newId(),
+      saleId: id,
+      method: input.paymentMethod,
+      amount: totalAmount,
+      reference: input.paymentReference ?? null,
+    }).run();
+
+    db.update(sales).set({
+      customerId: input.customerId,
+      deliveryAddressId: input.deliveryAddressId ?? null,
+      deliveryMethodId: input.deliveryMethodId ?? null,
+      deliveryFee,
+      subtotal,
+      discountAmount: headerDiscount,
+      taxAmount: totalTax,
+      totalAmount,
+      notes: input.notes ?? null,
+      updatedAt: now(),
+    }).where(eq(sales.id, id)).run();
+
+    return getSaleById(id);
+  });
+}
+
+/** Delete a processing or returned online order completely */
+export function deleteOnlineOrder(id: string) {
+  const sale = getSaleById(id);
+  if (sale.onlineStatus !== "processing" && sale.onlineStatus !== "returned") {
+    throw new ValidationError("Only processing or returned orders can be deleted");
+  }
+  // Cascade delete handled by FK onDelete: cascade on saleItems and payments
+  db.delete(sales).where(eq(sales.id, id)).run();
+}
+
+/** Move a returned online order back to processing (stock was already restored on return) */
+export function reprocessOnlineOrder(id: string) {
+  const sale = getSaleById(id);
+  if (sale.onlineStatus !== "returned") {
+    throw new ValidationError("Only returned orders can be moved back to processing");
+  }
+  db.update(sales).set({
+    onlineStatus: "processing",
+    status: "draft",
+    paidAmount: 0,
+    updatedAt: now(),
+  }).where(eq(sales.id, id)).run();
+  return getSaleById(id);
+}
+
+/** List online orders, optionally filtered by onlineStatus */
+export function listOnlineOrders(onlineStatus?: string) {
+  const conditions: any[] = [eq(sales.orderType, "online")];
+  if (onlineStatus) conditions.push(eq(sales.onlineStatus, onlineStatus as any));
+
+  return db
+    .select({
+      id: sales.id,
+      receiptNo: sales.receiptNo,
+      onlineStatus: sales.onlineStatus,
+      totalAmount: sales.totalAmount,
+      deliveryFee: sales.deliveryFee,
+      createdAt: sales.createdAt,
+      customerName: customers.name,
+      customerPhone: customers.phone,
+      deliveryMethodName: deliveryMethods.provider,
+      deliveryMethodLogo: deliveryMethods.logoUrl,
+      primaryPaymentMethod: sql<string>`(SELECT method FROM payments WHERE sale_id = ${sales.id} LIMIT 1)`,
+      itemCount: sql<number>`(SELECT COUNT(*) FROM sale_items WHERE sale_id = ${sales.id})`,
+    })
+    .from(sales)
+    .leftJoin(customers, eq(sales.customerId, customers.id))
+    .leftJoin(deliveryMethods, eq(sales.deliveryMethodId, deliveryMethods.id))
+    .where(conditions.length === 1 ? conditions[0] : and(...conditions))
+    .orderBy(desc(sales.createdAt))
+    .all();
 }
 
 /** Top selling products */

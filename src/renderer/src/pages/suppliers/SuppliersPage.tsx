@@ -5,9 +5,9 @@ import { trpc } from "../../trpc-client/trpc";
 
 interface SupplierForm {
   name: string; contactName: string; email: string;
-  phone: string; address: string; taxId: string;
+  phone: string; address: string;
 }
-const EMPTY: SupplierForm = { name: "", contactName: "", email: "", phone: "", address: "", taxId: "" };
+const EMPTY: SupplierForm = { name: "", contactName: "", email: "", phone: "", address: "" };
 
 export const SuppliersPage: React.FC = () => {
   const t = useAppStore((s) => s.theme);
@@ -33,7 +33,7 @@ export const SuppliersPage: React.FC = () => {
   const closeModal = () => { setModal({ open: false, id: null }); setForm(EMPTY); };
   const openCreate = () => { setForm(EMPTY); setModal({ open: true, id: null }); };
   const openEdit = (s: typeof suppliers[0]) => {
-    setForm({ name: s.name, contactName: s.contactName ?? "", email: s.email ?? "", phone: s.phone ?? "", address: s.address ?? "", taxId: s.taxId ?? "" });
+    setForm({ name: s.name, contactName: s.contactName ?? "", email: s.email ?? "", phone: s.phone ?? "", address: s.address ?? "" });
     setModal({ open: true, id: s.id });
   };
 
@@ -45,7 +45,6 @@ export const SuppliersPage: React.FC = () => {
       email: form.email.trim() || undefined,
       phone: form.phone.trim() || undefined,
       address: form.address.trim() || undefined,
-      taxId: form.taxId.trim() || undefined,
     };
     if (!modal.id) createMut.mutate(payload);
     else updateMut.mutate({ id: modal.id, data: payload });
@@ -192,10 +191,6 @@ export const SuppliersPage: React.FC = () => {
               <div>
                 <label style={labelStyle}>Address</label>
                 <input value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} placeholder="Street, City, Province" style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Tax ID</label>
-                <input value={form.taxId} onChange={(e) => setForm((f) => ({ ...f, taxId: e.target.value }))} placeholder="Tax identification number" style={inputStyle} />
               </div>
             </div>
             <div style={{ padding: "0 22px 22px", display: "flex", gap: "10px" }}>

@@ -6,6 +6,7 @@ import { trpc } from '../../trpc-client/trpc'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { POSTerminal } from './POSTerminal'
 import { VoucherView, type SaleDetail } from './VoucherView'
+import { OnlineOrdersTab } from './OnlineOrdersTab'
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ const METHOD_LABELS: Record<string, string> = {
 	qr_code: 'QR Code', store_credit: 'Store Credit', loyalty_points: 'Points',
 }
 
-type Tab = 'history' | 'pos'
+type Tab = 'history' | 'pos' | 'online'
 
 // ── Sales History sub-component ───────────────────────────────
 
@@ -33,8 +34,10 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 	const isDark = useAppStore((s) => s.isDark)
 	const tr = useAppStore((s) => s.tr)
 	const sym = useAppStore((s) => s.currency.symbol)
+	const currentUser = useAppStore((s) => s.currentUser)
 
 	const [statusFilter, setStatusFilter] = useState<SaleStatus | undefined>(undefined)
+	const [orderTypeFilter, setOrderTypeFilter] = useState<'pos' | 'online' | undefined>(undefined)
 	const [page, setPage] = useState(1)
 	const [detailId, setDetailId] = useState<string | null>(null)
 	const [fromDate, setFromDate] = useState('')
@@ -54,6 +57,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 		page,
 		pageSize: PAGE_SIZE,
 		status: statusFilter,
+		orderType: orderTypeFilter,
 		fromDate: fromDate || undefined,
 		toDate: toDate || undefined,
 	})
@@ -152,28 +156,49 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 				</div>
 			</div>
 
-			{/* Status tabs */}
-			<div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-				{([undefined, 'completed', 'voided', 'refunded', 'partially_refunded', 'draft'] as (SaleStatus | undefined)[]).map((s) => {
-					const label = s ? s.replace('_', ' ') : 'All'
-					const active = statusFilter === s
-					const col = s ? STATUS_COLORS[s] : null
-					return (
-						<button
-							key={String(s)}
-							onClick={() => { setStatusFilter(s); setPage(1) }}
-							style={{ padding: '6px 13px', borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', background: active ? (col?.bg ?? 'var(--primary-15)') : t.inputBg, color: active ? (col?.text ?? 'var(--primary)') : t.textMuted }}
-						>
-							{label}
-						</button>
-					)
-				})}
+			{/* Filter rows */}
+			<div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+				{/* Type filter */}
+				<div style={{ display: 'flex', gap: '5px' }}>
+					{([undefined, 'pos', 'online'] as ('pos' | 'online' | undefined)[]).map((ot) => {
+						const label = ot === 'pos' ? 'POS' : ot === 'online' ? 'Online' : 'All Types'
+						const active = orderTypeFilter === ot
+						const bg = ot === 'pos' ? 'rgba(99,102,241,0.15)' : ot === 'online' ? 'rgba(6,182,212,0.15)' : 'var(--primary-15)'
+						const col = ot === 'pos' ? '#818cf8' : ot === 'online' ? '#06b6d4' : 'var(--primary)'
+						return (
+							<button
+								key={String(ot)}
+								onClick={() => { setOrderTypeFilter(ot); setPage(1) }}
+								style={{ padding: '5px 12px', borderRadius: '9px', border: 'none', fontSize: '11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: active ? bg : t.inputBg, color: active ? col : t.textFaint }}
+							>
+								{label}
+							</button>
+						)
+					})}
+				</div>
+				{/* Status tabs */}
+				<div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+					{([undefined, 'completed', 'voided', 'refunded', 'partially_refunded', 'draft'] as (SaleStatus | undefined)[]).map((s) => {
+						const label = s ? s.replace('_', ' ') : 'All Status'
+						const active = statusFilter === s
+						const col = s ? STATUS_COLORS[s] : null
+						return (
+							<button
+								key={String(s)}
+								onClick={() => { setStatusFilter(s); setPage(1) }}
+								style={{ padding: '5px 12px', borderRadius: '9px', border: 'none', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize', background: active ? (col?.bg ?? 'var(--primary-15)') : t.inputBg, color: active ? (col?.text ?? 'var(--primary)') : t.textFaint }}
+							>
+								{label}
+							</button>
+						)
+					})}
+				</div>
 			</div>
 
 			{/* Table */}
 			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: '16px', overflow: 'hidden' }}>
-				<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 90px 90px 100px', gap: '8px', padding: '10px 18px', borderBottom: `1px solid ${t.borderMid}` }}>
-					{['Sale #', 'Customer', 'Location', 'Status', 'Payment', 'Total'].map((h) => (
+				<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 110px 56px 90px 90px 100px', gap: '8px', padding: '10px 18px', borderBottom: `1px solid ${t.borderMid}` }}>
+					{['Sale #', 'Customer', 'Location', 'Date / Time', 'Type', 'Status', 'Payment', 'Total'].map((h) => (
 						<span key={h} style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px' }}>{h}</span>
 					))}
 				</div>
@@ -192,23 +217,29 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 						const customerName = (s as any).customerName ?? 'Walk-in'
 						const locationName = (s as any).locationName ?? '—'
 						const payMethod = (s as any).primaryPaymentMethod ?? '—'
+						const payRef = (s as any).primaryPaymentReference as string | null | undefined
 						const totalAmt = Number((s as any).totalAmount ?? 0)
+						const orderType = ((s as any).orderType ?? 'pos') as 'pos' | 'online'
+						const typeBg = orderType === 'online' ? 'rgba(6,182,212,0.15)' : 'rgba(99,102,241,0.12)'
+						const typeCol = orderType === 'online' ? '#06b6d4' : '#818cf8'
 						return (
 							<div
 								key={s.id}
 								onClick={() => setDetailId(s.id)}
-								style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 90px 90px 100px', gap: '8px', padding: '13px 18px', alignItems: 'center', borderBottom: `1px solid ${t.borderMid}`, cursor: 'pointer', transition: 'background 0.15s' }}
+								style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 110px 56px 90px 90px 100px', gap: '8px', padding: '13px 18px', alignItems: 'center', borderBottom: `1px solid ${t.borderMid}`, cursor: 'pointer', transition: 'background 0.15s' }}
 								onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
 								onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
 							>
 								<span style={{ color: t.textFaint, fontSize: '11px', fontFamily: 'monospace' }}>#{String(s.id).slice(-8).toUpperCase()}</span>
-								<div style={{ minWidth: 0 }}>
-									<p style={{ color: t.text, fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customerName}</p>
-									<p style={{ color: t.textFaint, fontSize: '11px' }}>{new Date((s as any).createdAt).toLocaleDateString()}</p>
-								</div>
+								<span style={{ color: t.text, fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{customerName}</span>
 								<span style={{ color: t.textMuted, fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{locationName}</span>
+								<div>
+									<p style={{ color: t.text, fontSize: '11px', fontWeight: 500 }}>{new Date((s as any).createdAt).toLocaleDateString()}</p>
+									<p style={{ color: t.textFaint, fontSize: '10px' }}>{new Date((s as any).createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+								</div>
+								<span style={{ display: 'inline-flex', padding: '2px 7px', borderRadius: '5px', fontSize: '10px', fontWeight: 700, background: typeBg, color: typeCol, textTransform: 'uppercase', width: 'fit-content' }}>{orderType}</span>
 								<span style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: sc.bg, color: sc.text, textTransform: 'capitalize', width: 'fit-content' }}>{status.replace('_', ' ')}</span>
-								<span style={{ color: t.textMuted, fontSize: '11px' }}>{METHOD_LABELS[payMethod] ?? payMethod}</span>
+								<span style={{ color: t.textMuted, fontSize: '11px' }}>{payMethod === 'qr_code' && payRef ? payRef.split(': ')[0] : METHOD_LABELS[payMethod] ?? payMethod}</span>
 								<span style={{ color: t.text, fontSize: '13px', fontWeight: 700 }}>{sym}{totalAmt.toLocaleString()}</span>
 							</div>
 						)
@@ -417,7 +448,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 											<div style={{ background: t.inputBg, borderRadius: '10px', overflow: 'hidden' }}>
 												{((detail as any).payments as any[]).map((pay: any, i: number) => (
 													<div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 12px', borderBottom: i < (detail as any).payments.length - 1 ? `1px solid ${t.borderMid}` : 'none' }}>
-														<span style={{ color: t.textMuted, fontSize: '12px' }}>{METHOD_LABELS[pay.method] ?? pay.method}</span>
+														<span style={{ color: t.textMuted, fontSize: '12px' }}>{pay.method === 'qr_code' && pay.reference ? pay.reference.split(': ')[0] : METHOD_LABELS[pay.method] ?? pay.method}</span>
 														<span style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
 													</div>
 												))}
@@ -454,7 +485,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 													Return Items
 												</button>
 											)}
-											{canVoid && (
+											{canVoid && currentUser?.role !== 'cashier' && (
 												<button
 													onClick={() => setActionMode('void')}
 													style={{ flex: 1, padding: '9px 0', borderRadius: '11px', border: `1.5px solid #ef4444`, background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -510,11 +541,12 @@ export const SalesPage: React.FC = () => {
 				<div>
 					<h1 style={{ color: t.text, fontSize: '21px', fontWeight: 800, letterSpacing: '-0.5px' }}>Sales</h1>
 					<p style={{ color: t.textMuted, fontSize: '12px', marginTop: '2px' }}>
-						{tab === 'pos' ? 'POS Terminal — process a new sale' : 'View and manage sales history'}
+						{tab === 'pos' ? 'POS Terminal — process a new sale' : tab === 'online' ? 'Manage online orders' : 'View and manage sales history'}
 					</p>
 				</div>
 				<div style={{ display: 'flex', gap: '8px' }}>
 					{tabBtn('New Sale', 'pos', 'plus')}
+					{tabBtn('Online Orders', 'online', 'sale')}
 					{tabBtn('History', 'history', 'sale')}
 				</div>
 			</div>
@@ -522,6 +554,9 @@ export const SalesPage: React.FC = () => {
 			{/* Tab content */}
 			{tab === 'history' && (
 				<SalesHistory onShowVoucher={(sale) => setVoucher(sale)} />
+			)}
+			{tab === 'online' && (
+				<OnlineOrdersTab />
 			)}
 			{tab === 'pos' && (
 				<POSTerminal

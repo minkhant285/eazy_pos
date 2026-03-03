@@ -56,6 +56,21 @@ export const SettingsPage: React.FC = () => {
   const setPrimaryPresetId   = useAppStore((s) => s.setPrimaryPresetId)
   const fontScale            = useAppStore((s) => s.fontScale)
   const setFontScale         = useAppStore((s) => s.setFontScale)
+  const currentUser          = useAppStore((s) => s.currentUser)
+  const [isBackingUp, setIsBackingUp] = useState(false)
+  const [backupMsg,   setBackupMsg]   = useState<string | null>(null)
+
+  const handleBackup = async () => {
+    setIsBackingUp(true)
+    setBackupMsg(null)
+    const result = await window.backupApi.save()
+    setIsBackingUp(false)
+    if (result.success) {
+      setBackupMsg(`Backup saved to ${result.path}`)
+    } else if (result.error) {
+      setBackupMsg(`Error: ${result.error}`)
+    }
+  }
 
   const optionBtn = (active: boolean): React.CSSProperties => ({
     padding: '10px 16px',
@@ -181,7 +196,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* ── GROUP: Regional ────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {currentUser?.role !== 'cashier' && <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <GroupLabel label="Regional" t={t} />
 
           <Section title="Currency" description="Used for all prices and totals across the app" t={t}>
@@ -217,10 +232,10 @@ export const SettingsPage: React.FC = () => {
               })}
             </div>
           </Section>
-        </div>
+        </div>}
 
         {/* ── GROUP: Inventory ───────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {currentUser?.role !== 'cashier' && <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <GroupLabel label="Inventory" t={t} />
           <Section title="Low Stock Warning" description="Flag products with quantity at or below this number" t={t}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -256,7 +271,51 @@ export const SettingsPage: React.FC = () => {
               </p>
             </div>
           </Section>
-        </div>
+        </div>}
+
+        {/* ── GROUP: Data ────────────────────────────────────── */}
+        {currentUser?.role !== 'cashier' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <GroupLabel label="Data" t={t} />
+            <Section title="Backup" description="Save an encrypted copy of all your data" t={t}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: t.text, fontSize: '13px', fontWeight: 600 }}>Export backup file</p>
+                  <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '3px' }}>
+                    Downloads a <strong style={{ color: t.textMuted }}>.mkbak</strong> file with all your store data, encrypted.
+                  </p>
+                </div>
+                <button
+                  onClick={handleBackup}
+                  disabled={isBackingUp}
+                  style={{
+                    padding: '9px 18px', borderRadius: '10px', border: 'none',
+                    background: 'var(--primary)', color: '#fff',
+                    fontSize: '12px', fontWeight: 700,
+                    cursor: isBackingUp ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', opacity: isBackingUp ? 0.7 : 1,
+                    display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0,
+                    transition: 'opacity 0.15s',
+                  }}
+                >
+                  <Icon name="download" size={13} />
+                  {isBackingUp ? 'Exporting…' : 'Export Backup'}
+                </button>
+              </div>
+              {backupMsg && (
+                <p style={{
+                  marginTop: '12px', fontSize: '12px',
+                  color: backupMsg.startsWith('Error') ? '#ef4444' : '#10b981',
+                  background: backupMsg.startsWith('Error') ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+                  border: `1px solid ${backupMsg.startsWith('Error') ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                  borderRadius: '8px', padding: '8px 12px',
+                }}>
+                  {backupMsg.startsWith('Error') ? backupMsg : `✅ ${backupMsg}`}
+                </p>
+              )}
+            </Section>
+          </div>
+        )}
 
         {/* ── GROUP: About ───────────────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -281,9 +340,6 @@ export const SettingsPage: React.FC = () => {
                   Easy<span style={{ color: 'var(--primary-light)' }}>POS</span>
                 </p>
                 <p style={{ color: t.textMuted, fontSize: '12px', marginTop: '2px' }}>Version {APP_VERSION}</p>
-                <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '4px' }}>
-                  Electron · React 19 · tRPC · SQLite
-                </p>
               </div>
             </div>
           </Section>

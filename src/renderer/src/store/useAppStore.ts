@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>()(
       setLang: (lang) => set({ lang, tr: translations[lang] }),
 
       // ── Currency ───────────────────────────────────────────────
-      currency: CURRENCIES[0], // default: THB ฿
+      currency: CURRENCIES.find((c) => c.code === 'MMK') ?? CURRENCIES[0], // default: MMK Kyat
       setCurrency: (currency) => set({ currency }),
 
       // ── Appearance ─────────────────────────────────────────────

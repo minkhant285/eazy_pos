@@ -30,6 +30,7 @@ export const icons = {
   logout:      'M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4 M16 17l5-5-5-5 M21 12H9',
   profile:     'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
   accounting:  'M12 2v20 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
+  payment:     'M1 4h22v16H1z M1 10h22 M5 16h4',
 } as const;
 
 export type IconKey = keyof typeof icons;

@@ -274,7 +274,16 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
   const [confirmDelete, setConfirmDelete]         = useState(false);
 
   const { data: categoriesData } = trpc.category.list.useQuery({});
-  const categories = (categoriesData ?? []) as { id: string; name: string }[];
+  const categories = (categoriesData ?? []) as { id: string; name: string; skuPrefix?: string | null }[];
+
+  // Auto-generate SKU when a category with a skuPrefix is selected (new products only)
+  const { data: nextSkuData } = trpc.category.nextSku.useQuery(
+    { categoryId: categoryId },
+    { enabled: !isEdit && !!categoryId && !!categories.find((c) => c.id === categoryId)?.skuPrefix }
+  );
+  React.useEffect(() => {
+    if (!isEdit && nextSkuData?.sku) setSku(nextSkuData.sku);
+  }, [nextSkuData?.sku, isEdit]);
 
   const createMut     = trpc.product.create.useMutation({ onSuccess: () => { onSuccess(); onClose(); } });
   const updateMut     = trpc.product.update.useMutation({ onSuccess: () => { onSuccess(); onClose(); } });
@@ -446,8 +455,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                     placeholder="e.g. PROD-001"
                     disabled={isEdit}
                     autoFocus={!isEdit}
-                    style={{ ...inputStyle, opacity: isEdit ? 0.6 : 1 }}
+                    style={{ ...inputStyle, opacity: isEdit ? 0.6 : 1, fontFamily: "monospace" }}
                   />
+                  {!isEdit && nextSkuData?.sku && sku === nextSkuData.sku && (
+                    <p style={{ color: "var(--primary)", fontSize: "10px", marginTop: "3px" }}>Auto-generated from category prefix</p>
+                  )}
                 </div>
                 <div>
                   <label style={labelStyle}>Product Name *</label>
@@ -471,7 +483,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                   <label style={labelStyle}>Category</label>
                  <AppSelect
                   value={categoryId}
-                  onChange={setCategoryId}
+                  onChange={(v) => {
+                    setCategoryId(v);
+                    // Clear SKU if switching to a category without prefix (only on new products)
+                    if (!isEdit) {
+                      const cat = categories.find((c) => c.id === v);
+                      if (!cat?.skuPrefix) setSku("");
+                    }
+                  }}
                   options={[{ value: '', label: '— No category —' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
                 />
                 </div>

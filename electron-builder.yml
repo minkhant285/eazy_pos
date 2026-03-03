@@ -1,6 +1,6 @@
 appId: com.easy-pos
 productName: Easy POS
-afterPack: ./build/afterPack.js
+afterSign: ./build/afterPack.js
 directories:
   buildResources: build
 files:
@@ -29,7 +29,7 @@ nsis:
   createDesktopShortcut: always
 mac:
   target:
-    - target: zip
+    - target: dmg
       arch:
         - arm64
   entitlementsInherit: build/entitlements.mac.plist

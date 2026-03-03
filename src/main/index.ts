@@ -1,12 +1,14 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import { join } from 'path'
+import fs from 'fs'
+import { spawn } from 'child_process'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { createIPCHandler } from './trpc-server/ipc-handler'
 import { appRouter } from './trpc-server/router'
-import './db/db'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { db } from './db/db'
+import { db, sqlite, dbPath } from './db/db'
+import { encryptDbFile, decryptMkbakToFile } from './backup/backup.service'
 
 import path from 'path'
 
@@ -94,6 +96,64 @@ app.whenReady().then(async() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // ── Backup: save .mkbak ──────────────────────────────────────
+  ipcMain.handle('backup:save', async () => {
+    const tmpPath = path.join(app.getPath('temp'), `easypos-bk-${Date.now()}.db`)
+    try {
+      await sqlite.backup(tmpPath)
+      const mkbakBuffer = encryptDbFile(tmpPath)
+      fs.unlinkSync(tmpPath)
+
+      const dateStr = new Date().toISOString().slice(0, 10)
+      const { filePath, canceled } = await dialog.showSaveDialog({
+        title: 'Save EasyPOS Backup',
+        defaultPath: `easypos-backup-${dateStr}.mkbak`,
+        filters: [{ name: 'EasyPOS Backup', extensions: ['mkbak'] }],
+      })
+      if (canceled || !filePath) return { success: false }
+
+      fs.writeFileSync(filePath, mkbakBuffer)
+      return { success: true, path: filePath }
+    } catch (e: unknown) {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // ── Backup: restore .mkbak ───────────────────────────────────
+  ipcMain.handle('backup:restore', async () => {
+    try {
+      const { filePaths, canceled } = await dialog.showOpenDialog({
+        title: 'Restore EasyPOS Backup',
+        filters: [{ name: 'EasyPOS Backup', extensions: ['mkbak'] }],
+        properties: ['openFile'],
+      })
+      if (canceled || !filePaths[0]) return { success: false }
+
+      const mkbakBuffer = fs.readFileSync(filePaths[0])
+      const tmpPath = path.join(app.getPath('temp'), `easypos-restore-${Date.now()}.db`)
+      decryptMkbakToFile(mkbakBuffer, tmpPath)
+
+      // Close DB, replace file, relaunch
+      sqlite.close()
+      fs.copyFileSync(tmpPath, dbPath)
+      fs.unlinkSync(tmpPath)
+
+      // Spawn a new instance preserving env vars (important in dev — keeps ELECTRON_RENDERER_URL)
+      spawn(process.execPath, process.argv.slice(1), {
+        detached: true,
+        stdio: 'ignore',
+        env: process.env,
+      }).unref()
+
+      app.exit(0)
+      return { success: true }
+    } catch (e: unknown) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
    await runMigrations()
 
   createWindow()

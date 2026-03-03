@@ -26,6 +26,7 @@ const emptyForm = (): AddrForm => ({ receiverName: "", phoneNumber: "", detailAd
 
 const AddressBookModal: React.FC<{ customer: Customer; onClose: () => void }> = ({ customer, onClose }) => {
 	const t = useAppStore((s) => s.theme);
+	const currentUser = useAppStore((s) => s.currentUser);
 	const [form, setForm] = useState<AddrForm | null>(null);
 	const [editId, setEditId] = useState<string | null>(null);
 
@@ -105,9 +106,11 @@ const AddressBookModal: React.FC<{ customer: Customer; onClose: () => void }> = 
 									<button onClick={() => openEdit(a)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.surface, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 										<Icon name="edit" size={11} />
 									</button>
+									{currentUser?.role !== 'cashier' && (
 									<button onClick={() => deleteMut.mutate({ id: a.id })} disabled={deleteMut.isPending} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 										<Icon name="trash" size={11} />
 									</button>
+								)}
 								</div>
 							</div>
 						</div>
@@ -167,6 +170,7 @@ const colHelper = createColumnHelper<Customer>();
 export const CustomersPage: React.FC = () => {
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
+	const currentUser = useAppStore((s) => s.currentUser);
 
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<FilterKey>("all");
@@ -262,14 +266,16 @@ export const CustomersPage: React.FC = () => {
 					<button onClick={() => setModal({ open: true, customer: c })} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 						<Icon name="edit" size={11} />
 					</button>
+					{currentUser?.role !== 'cashier' && (
 					<button onClick={() => setDeleteId(c.id)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 						<Icon name="trash" size={11} />
 					</button>
+				)}
 				</div>
 			),
 		}),
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	], [t, tr]);
+	], [t, tr, currentUser]);
 
 	const table = useReactTable({
 		data: customers,

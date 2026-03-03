@@ -4,7 +4,7 @@ import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
 
-interface CatForm { name: string; description: string; parentId: string; }
+interface CatForm { name: string; description: string; parentId: string; skuPrefix: string; }
 interface ModalState { open: boolean; category: { id: string; name: string; description: string | null; parentId: string | null } | null; }
 
 export const CategoriesPage: React.FC = () => {
@@ -14,7 +14,7 @@ export const CategoriesPage: React.FC = () => {
 	const [search, setSearch] = useState("");
 	const [modal, setModal] = useState<ModalState>({ open: false, category: null });
 	const [deleteId, setDeleteId] = useState<string | null>(null);
-	const [form, setForm] = useState<CatForm>({ name: "", description: "", parentId: "" });
+	const [form, setForm] = useState<CatForm>({ name: "", description: "", parentId: "", skuPrefix: "" });
 
 	const { data: categories = [], isLoading, refetch } = trpc.category.list.useQuery({});
 	const createCat = trpc.category.create.useMutation({ onSuccess: () => { setModal({ open: false, category: null }); refetch(); } });
@@ -24,13 +24,13 @@ export const CategoriesPage: React.FC = () => {
 	const filtered = categories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
 
 	const openModal = (cat?: (typeof categories)[0]) => {
-		setForm({ name: cat?.name ?? "", description: cat?.description ?? "", parentId: cat?.parentId ?? "" });
+		setForm({ name: cat?.name ?? "", description: cat?.description ?? "", parentId: cat?.parentId ?? "", skuPrefix: (cat as any)?.skuPrefix ?? "" });
 		setModal({ open: true, category: cat ?? null });
 	};
 
 	const handleSubmit = () => {
 		if (!form.name.trim()) return;
-		const payload = { name: form.name.trim(), description: form.description.trim() || undefined, parentId: form.parentId || undefined };
+		const payload = { name: form.name.trim(), description: form.description.trim() || undefined, parentId: form.parentId || undefined, skuPrefix: form.skuPrefix.trim().toUpperCase() || undefined };
 		if (!modal.category) createCat.mutate(payload);
 		else updateCat.mutate({ id: modal.category.id, data: payload });
 	};
@@ -62,8 +62,8 @@ export const CategoriesPage: React.FC = () => {
 
 			{/* Table */}
 			<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", overflow: "hidden" }}>
-				<div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr 72px", gap: "10px", padding: "10px 18px", borderBottom: `1px solid ${t.borderMid}` }}>
-					{["Name", "Description", "Parent", ""].map((h, i) => (
+				<div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 1fr 72px", gap: "10px", padding: "10px 18px", borderBottom: `1px solid ${t.borderMid}` }}>
+					{["Name", "Description", "SKU Prefix", "Parent", ""].map((h, i) => (
 						<span key={i} style={{ color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.7px" }}>{h}</span>
 					))}
 				</div>
@@ -76,7 +76,7 @@ export const CategoriesPage: React.FC = () => {
 					const parent = categories.find((p) => p.id === c.parentId);
 					return (
 						<div key={c.id}
-							style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr 72px", gap: "10px", padding: "13px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s" }}
+							style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 1fr 72px", gap: "10px", padding: "13px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s" }}
 							onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
 							onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
 						>
@@ -87,6 +87,7 @@ export const CategoriesPage: React.FC = () => {
 								<span style={{ color: t.text, fontSize: "13px", fontWeight: 600 }}>{c.name}</span>
 							</div>
 							<span style={{ color: t.textMuted, fontSize: "12px" }}>{c.description ?? "—"}</span>
+							<span style={{ color: (c as any).skuPrefix ? "var(--primary)" : t.textFaint, fontSize: "12px", fontFamily: "monospace", fontWeight: (c as any).skuPrefix ? 700 : 400 }}>{(c as any).skuPrefix ?? "—"}</span>
 							<span style={{ color: t.textFaint, fontSize: "12px" }}>{parent?.name ?? "—"}</span>
 							<div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }}>
 								<button onClick={() => openModal(c)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={11} /></button>
@@ -134,6 +135,11 @@ export const CategoriesPage: React.FC = () => {
 							<div>
 								<label style={labelStyle}>Description</label>
 								<input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Optional description" style={inputStyle} />
+							</div>
+							<div>
+								<label style={labelStyle}>SKU Prefix</label>
+								<input value={form.skuPrefix} onChange={(e) => setForm((f) => ({ ...f, skuPrefix: e.target.value.toUpperCase() }))} placeholder="e.g. MCU (optional)" maxLength={10} style={{ ...inputStyle, fontFamily: "monospace", letterSpacing: "0.5px" }} />
+								<p style={{ color: t.textFaint, fontSize: "10px", marginTop: "4px" }}>Products in this category will auto-generate SKUs like MCU0001, MCU0002</p>
 							</div>
 							<div>
 								<label style={labelStyle}>Parent Category</label>

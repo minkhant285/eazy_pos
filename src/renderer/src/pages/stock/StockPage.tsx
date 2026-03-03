@@ -340,6 +340,7 @@ export const StockPage: React.FC = () => {
 	const [search, setSearch] = useState("");
 	const [page, setPage] = useState(1);
 	const [statusFilter, setStatusFilter] = useState<"active" | "inactive">("active");
+	const [lowStockFilter, setLowStockFilter] = useState(false);
 	const [sorting, setSorting] = useState<SortingState>([]);
 	const [editQty, setEditQty] = useState<any | null>(null);
 	const [variantStockItem, setVariantStockItem] = useState<any | null>(null);
@@ -353,10 +354,14 @@ export const StockPage: React.FC = () => {
 	}, [locations, locationId]);
 
 	const { data: inventoryData, isLoading, refetch } = trpc.stock.allProducts.useQuery(
-		{ locationId, page, pageSize: PAGE_SIZE, search: search || undefined, isActive: statusFilter === "active" },
+		{ locationId, page, pageSize: PAGE_SIZE, search: search || undefined, isActive: statusFilter === "active", lowStock: lowStockFilter || undefined, lowStockThreshold: lowStockFilter ? lowStockThreshold : undefined },
 		{ enabled: !!locationId }
 	);
 	const { data: valueData } = trpc.stock.inventoryValue.useQuery({ locationId }, { enabled: !!locationId });
+	const { data: lowStockData } = trpc.stock.lowStockCount.useQuery(
+		{ locationId, threshold: lowStockThreshold },
+		{ enabled: !!locationId }
+	);
 
 	const inventory = inventoryData?.data ?? [];
 	const total = inventoryData?.total ?? 0;
@@ -369,12 +374,15 @@ export const StockPage: React.FC = () => {
 	}).filter((p) => p >= 1 && p <= totalPages);
 
 	const handleSearchChange = (v: string) => { setSearch(v); setPage(1); };
-	const handleStatusChange = (s: "active" | "inactive") => { setStatusFilter(s); setPage(1); setSearch(""); };
+	const handleStatusChange = (s: "active" | "inactive") => { setStatusFilter(s); setPage(1); setSearch(""); setLowStockFilter(false); };
 
-	const summaryCards: { label: string; value: string; color: string; icon: IconKey }[] = [
+	const lowStockCount = lowStockData?.count ?? 0;
+
+	const summaryCards: { label: string; value: string; color: string; icon: IconKey; onClick?: () => void; active?: boolean }[] = [
 		{ label: "Total Value", value: `${sym}${Number(valueData?.totalValue ?? 0).toLocaleString()}`, color: "var(--primary)", icon: "product" },
 		{ label: "Total SKUs", value: String(valueData?.totalItems ?? 0), color: "#3b82f6", icon: "stock" },
 		{ label: "Not Initialized", value: String(uninitializedCount), color: uninitializedCount > 0 ? "#f59e0b" : "#10b981", icon: "plus" },
+		{ label: "Low Stock", value: String(lowStockCount), color: lowStockCount > 0 ? "#ef4444" : "#10b981", icon: "bell", onClick: () => { setLowStockFilter((v) => !v); setPage(1); }, active: lowStockFilter },
 	];
 
 	const rowToProduct = useCallback((item: any): ProductForEdit => ({
@@ -548,7 +556,11 @@ export const StockPage: React.FC = () => {
 			{locationId && (
 				<div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
 					{summaryCards.map((card) => (
-						<div key={card.label} style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "12px" }}>
+						<div
+							key={card.label}
+							onClick={card.onClick}
+							style={{ background: card.active ? `${card.color}15` : t.surface, border: `1px solid ${card.active ? card.color : t.border}`, borderRadius: "14px", padding: "16px 18px", display: "flex", alignItems: "center", gap: "12px", cursor: card.onClick ? "pointer" : "default", transition: "all 0.15s" }}
+						>
 							<div style={{ width: "38px", height: "38px", borderRadius: "10px", background: `${card.color}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
 								<Icon name={card.icon} size={17} style={{ color: card.color }} />
 							</div>
@@ -568,6 +580,22 @@ export const StockPage: React.FC = () => {
 					<p style={{ color: "#f59e0b", fontSize: "12px", fontWeight: 600 }}>
 						{uninitializedCount} product{uninitializedCount !== 1 ? "s" : ""} have no stock record at this location. Click them to set an opening quantity before selling.
 					</p>
+				</div>
+			)}
+
+			{/* Low stock warning */}
+			{locationId && lowStockCount > 0 && !lowStockFilter && (
+				<div style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "10px" }}>
+					<Icon name="bell" size={15} style={{ color: "#ef4444", flexShrink: 0 }} />
+					<p style={{ color: "#ef4444", fontSize: "12px", fontWeight: 600, flex: 1 }}>
+						{lowStockCount} product{lowStockCount !== 1 ? "s are" : " is"} running low on stock.
+					</p>
+					<button
+						onClick={() => { setLowStockFilter(true); setPage(1); }}
+						style={{ padding: "5px 12px", borderRadius: "8px", border: "none", background: "#ef4444", color: "#fff", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+					>
+						View All
+					</button>
 				</div>
 			)}
 
@@ -593,6 +621,15 @@ export const StockPage: React.FC = () => {
 							</button>
 						))}
 					</div>
+
+					{/* Low stock filter button */}
+					<button
+						onClick={() => { setLowStockFilter((v) => !v); setPage(1); }}
+						style={{ padding: "7px 13px", borderRadius: "10px", border: `1px solid ${lowStockFilter ? "#ef4444" : t.inputBorder}`, background: lowStockFilter ? "rgba(239,68,68,0.12)" : t.inputBg, color: lowStockFilter ? "#ef4444" : t.textMuted, fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: "5px", transition: "all 0.15s" }}
+					>
+						<Icon name="bell" size={12} style={{ color: lowStockFilter ? "#ef4444" : t.textFaint }} />
+						Low Stock
+					</button>
 
 					{/* Search */}
 					<div style={{ position: "relative", maxWidth: "260px", flex: 1 }}>

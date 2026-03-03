@@ -59,6 +59,7 @@ export function getLocationInventory(
       qtyReserved: stock.qtyReserved,
       qtyAvailable: stock.qtyAvailable,
       costPrice: products.costPrice,
+      sellingPrice: products.sellingPrice,
       stockValue: sql<number>`${stock.qtyOnHand} * ${products.costPrice}`,
     })
     .from(stock)
@@ -346,7 +347,7 @@ export function updateReservedQty(productId: string, locationId: string, delta: 
  */
 export function listAllProductsForLocation(
   locationId: string,
-  params?: { page?: number; pageSize?: number; search?: string; isActive?: boolean }
+  params?: { page?: number; pageSize?: number; search?: string; isActive?: boolean; lowStock?: boolean; lowStockThreshold?: number }
 ) {
   const page = params?.page ?? 1;
   const pageSize = params?.pageSize ?? 50;
@@ -362,6 +363,10 @@ export function listAllProductsForLocation(
     conditions.push(
       sql`(${products.name} LIKE ${"%" + params.search + "%"} OR ${products.sku} LIKE ${"%" + params.search + "%"})`
     );
+  }
+  if (params?.lowStock && params.lowStockThreshold !== undefined) {
+    conditions.push(sql`${stock.id} IS NOT NULL`);
+    conditions.push(sql`COALESCE(${stock.qtyOnHand}, 0) <= ${params.lowStockThreshold}`);
   }
   const where = and(...conditions);
 
@@ -396,8 +401,11 @@ export function listAllProductsForLocation(
     .offset(offset)
     .all();
 
-  const total =
-    db.select({ c: sql<number>`COUNT(*)` }).from(products).where(where).get()?.c ?? 0;
+  const totalQuery = db.select({ c: sql<number>`COUNT(*)` }).from(products);
+  if (params?.lowStock) {
+    totalQuery.leftJoin(stock, and(eq(stock.productId, products.id), eq(stock.locationId, locationId)));
+  }
+  const total = totalQuery.where(where).get()?.c ?? 0;
 
   return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
 }

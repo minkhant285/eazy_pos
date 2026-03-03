@@ -28,6 +28,9 @@ export type SaleDetail = {
   customerName: string | null
   customerId: string | null
   deliveryAddressId?: string | null
+  deliveryMethodId?: string | null
+  deliveryMethodName?: string | null
+  deliveryMethodLogo?: string | null
   cashierName: string | null
   status: string
   subtotal: number
@@ -281,7 +284,11 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
               {sale.payments.map((pay, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: t.textMuted, fontSize: '11px' }}>{METHOD_LABELS[pay.method] ?? pay.method}</span>
+                  <span style={{ color: t.textMuted, fontSize: '11px' }}>
+                    {pay.method === 'qr_code' && pay.reference
+                      ? pay.reference.split(': ')[0]
+                      : METHOD_LABELS[pay.method] ?? pay.method}
+                  </span>
                   <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
                 </div>
               ))}
@@ -302,6 +309,24 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
                   <span className="addr-name" style={{ color: t.text, fontSize: '12px', fontWeight: 700 }}>{defaultAddress.receiverName}</span>
                   <span className="addr-phone" style={{ color: t.textMuted, fontSize: '11px' }}>{defaultAddress.phoneNumber}</span>
                   <span className="addr-detail" style={{ color: t.textMuted, fontSize: '11px', lineHeight: 1.5 }}>{defaultAddress.detailAddress}</span>
+                </div>
+              </>
+            )}
+
+            {/* Delivery provider */}
+            {sale.deliveryMethodName && (
+              <>
+                <div className="divider" style={{ borderTop: `1px dashed ${t.border}`, margin: '10px 0' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {sale.deliveryMethodLogo && (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '7px', background: '#fff', border: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={sale.deliveryMethodLogo} alt={sale.deliveryMethodName} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }} />
+                    </div>
+                  )}
+                  <div>
+                    <p style={{ color: t.textFaint, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '1px' }}>Delivery via</p>
+                    <p style={{ color: t.text, fontSize: '12px', fontWeight: 700 }}>{sale.deliveryMethodName}</p>
+                  </div>
                 </div>
               </>
             )}

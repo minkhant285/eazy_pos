@@ -6,9 +6,24 @@ import { SaleService } from '../../db/services'
 
 const CartItemSchema = z.object({
   productId: z.string().uuid(),
+  variantId: z.string().uuid().optional(),
   qty: z.number().positive(),
   unitPrice: z.number().positive().optional(),  // override sell price
   discountAmount: z.number().nonnegative().optional(),
+})
+
+const OnlineOrderInputSchema = z.object({
+  cashierId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  locationId: z.string().uuid().optional(),
+  deliveryAddressId: z.string().uuid().optional(),
+  deliveryMethodId: z.string().optional(),
+  deliveryFee: z.number().nonnegative().optional(),
+  items: z.array(CartItemSchema).min(1),
+  paymentMethod: z.enum(['cash', 'credit_card', 'debit_card', 'qr_code', 'store_credit', 'loyalty_points']),
+  paymentReference: z.string().optional(),
+  discountAmount: z.number().nonnegative().optional(),
+  notes: z.string().optional(),
 })
 
 const PaymentInputSchema = z.object({
@@ -22,6 +37,7 @@ const SaleFilterSchema = z.object({
   cashierId: z.string().uuid().optional(),
   customerId: z.string().uuid().optional(),
   status: z.enum(['draft', 'completed', 'voided', 'refunded', 'partially_refunded']).optional(),
+  orderType: z.enum(['pos', 'online']).optional(),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
   page: z.number().int().positive().default(1),
@@ -87,6 +103,7 @@ export const saleRouter = router({
         cashierId: z.string().uuid(),
         customerId: z.string().uuid().optional(),
         deliveryAddressId: z.string().uuid().optional(),
+        deliveryMethodId: z.string().optional(),
         items: z.array(CartItemSchema).min(1),
         payments: z.array(PaymentInputSchema).min(1),
         discountAmount: z.number().nonnegative().optional(),
@@ -203,6 +220,121 @@ export const saleRouter = router({
     .query(({ input }) => {
       try {
         return SaleService.getDailyProfitSummary(input.locationId, input.fromDate, input.toDate)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  // ── Online Orders ──────────────────────────────────────────────
+
+  /** POST /sale.createOnline — create an online order (no stock deduction) */
+  createOnline: publicProcedure
+    .input(OnlineOrderInputSchema)
+    .mutation(({ input }) => {
+      try {
+        return SaleService.createOnlineOrder(input)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.confirmOnline — confirm order and deduct stock */
+  confirmOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.confirmOnlineOrder(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.returnOnline — return confirmed order and restore stock */
+  returnOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.returnOnlineOrder(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.updateOnline — edit a processing online order */
+  updateOnline: publicProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        customerId: z.string().uuid(),
+        deliveryAddressId: z.string().uuid().optional(),
+        deliveryMethodId: z.string().optional(),
+        deliveryFee: z.number().nonnegative().optional(),
+        items: z.array(CartItemSchema).min(1),
+        paymentMethod: z.enum(['cash', 'credit_card', 'debit_card', 'qr_code', 'store_credit', 'loyalty_points']),
+        paymentReference: z.string().optional(),
+        discountAmount: z.number().nonnegative().optional(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(({ input }) => {
+      try {
+        const { id, ...rest } = input
+        return SaleService.updateOnlineOrder(id, rest)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.deleteOnline — permanently delete a processing or returned online order */
+  deleteOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.deleteOnlineOrder(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.readyToShipOnline — mark confirmed order as ready to ship */
+  readyToShipOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.markReadyToShip(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.shipOnline — mark ready-to-ship order as shipped */
+  shipOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.markShipped(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.reprocessOnline — move a returned order back to processing */
+  reprocessOnline: publicProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(({ input }) => {
+      try {
+        return SaleService.reprocessOnlineOrder(input.id)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** GET /sale.listOnline — list online orders, optionally filtered by status */
+  listOnline: publicProcedure
+    .input(z.object({ onlineStatus: z.string().optional() }).optional())
+    .query(({ input }) => {
+      try {
+        return SaleService.listOnlineOrders(input?.onlineStatus)
       } catch (err) {
         mapError(err)
       }
