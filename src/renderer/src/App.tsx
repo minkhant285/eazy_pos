@@ -83,7 +83,6 @@ const App: React.FC = () => {
 	const fontScale = useFontScale();
 	const currentUser = useAppStore((s) => s.currentUser);
 	const logout = useAppStore((s) => s.logout);
-	const onboardingDone = useAppStore((s) => s.onboardingDone);
 
 	// Validate that the persisted currentUser still exists in the DB.
 	// Handles the case where pos.db is deleted while the user session is still stored.
@@ -96,15 +95,14 @@ const App: React.FC = () => {
 		if (userGone) logout();
 	}, [userGone]);
 
-	// If the DB was wiped, onboardingDone stays true in the store but there are no locations.
-	// Force onboarding whenever locations table is empty.
-	// Use isFetching (not just isLoading) so background refetches are treated as "still checking".
-	const { data: locCheck, isLoading: locLoading, isFetching: locFetching } = trpc.location.list.useQuery(
+	// Derive onboarding state from DB: if no locations exist, onboarding is needed.
+	// Always query when logged in so that a restored backup (which has locations) skips onboarding
+	// even when onboardingDone is false in the persisted store (e.g. fresh install + restore).
+	const { data: locCheck, isLoading: locLoading } = trpc.location.list.useQuery(
 		{ pageSize: 1 },
-		{ enabled: !!currentUser && !userGone && onboardingDone }
+		{ enabled: !!currentUser && !userGone }
 	);
-	const locChecking = locLoading || locFetching;
-	const needsOnboarding = !onboardingDone || (!locChecking && locCheck !== undefined && locCheck.data.length === 0);
+	const needsOnboarding = locLoading || (locCheck !== undefined && locCheck.data.length === 0);
 
 	const pageLabel = tr[page as keyof typeof tr] ?? page;
 
