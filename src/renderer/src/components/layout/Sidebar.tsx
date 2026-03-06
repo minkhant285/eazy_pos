@@ -16,6 +16,7 @@ const PAGE_ACCESS: Record<string, ('admin' | 'manager' | 'cashier')[]> = {
   customers: ['admin', 'manager', 'cashier'],
   settings:  ['admin', 'manager', 'cashier'],
   categories:['admin', 'manager'],
+  brands:    ['admin', 'manager'],
   stock:     ['admin', 'manager'],
   transfers: ['admin', 'manager'],
   ledger:    ['admin', 'manager'],
@@ -39,7 +40,7 @@ export const Sidebar: React.FC = () => {
 	const allGroups: NavGroup[] = [
 		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }, { id: "accounting", label: tr.accounting, icon: "accounting" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
-		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
+		{ label: tr.inventory, items: [{ id: "categories", label: tr.categories, icon: "category" }, { id: "brands", label: tr.brands, icon: "brand" }, { id: "stock", label: tr.stock, icon: "stock" }, { id: "transfers", label: tr.transfers, icon: "transfer" }, { id: "ledger", label: tr.ledger, icon: "ledger" }] },
 		{ label: tr.procurement, items: [{ id: "suppliers", label: tr.suppliers, icon: "supplier" }, { id: "purchase", label: tr.purchase, icon: "purchase" }, { id: "expenses", label: tr.expenses, icon: "wallet" }] },
 		{ label: tr.settings, items: [{ id: 'settings', label: tr.settings, icon: 'settings' }, { id: "payment_accounts", label: tr.payment_accounts, icon: "payment" }, { id: "delivery_methods", label: tr.delivery_methods, icon: "transfer" }, { id: "locations", label: tr.locations, icon: "location" }, { id: "users", label: tr.users, icon: "users" }, { id: "profile", label: tr.profile, icon: "profile" }] },
 	];

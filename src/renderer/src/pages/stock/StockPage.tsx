@@ -338,6 +338,7 @@ export const StockPage: React.FC = () => {
 	const lowStockThreshold = useAppStore((s) => s.lowStockThreshold);
 	const [locationId, setLocationId] = useState("");
 	const [search, setSearch] = useState("");
+	const [brandId, setBrandId] = useState("");
 	const [page, setPage] = useState(1);
 	const [statusFilter, setStatusFilter] = useState<"active" | "inactive">("active");
 	const [lowStockFilter, setLowStockFilter] = useState(false);
@@ -353,8 +354,11 @@ export const StockPage: React.FC = () => {
 		if (!locationId && locations.length > 0) setLocationId(locations[0].id);
 	}, [locations, locationId]);
 
+	const { data: brandsData } = trpc.brand.list.useQuery({ onlyActive: true });
+	const brandOptions = (brandsData ?? []) as { id: string; name: string }[];
+
 	const { data: inventoryData, isLoading, refetch } = trpc.stock.allProducts.useQuery(
-		{ locationId, page, pageSize: PAGE_SIZE, search: search || undefined, isActive: statusFilter === "active", lowStock: lowStockFilter || undefined, lowStockThreshold: lowStockFilter ? lowStockThreshold : undefined },
+		{ locationId, page, pageSize: PAGE_SIZE, search: search || undefined, isActive: statusFilter === "active", lowStock: lowStockFilter || undefined, lowStockThreshold: lowStockFilter ? lowStockThreshold : undefined, brandId: brandId || undefined },
 		{ enabled: !!locationId }
 	);
 	const { data: valueData } = trpc.stock.inventoryValue.useQuery({ locationId }, { enabled: !!locationId });
@@ -392,6 +396,7 @@ export const StockPage: React.FC = () => {
 		name: item.name,
 		description: item.description ?? null,
 		categoryId: item.categoryId ?? null,
+		brandId: item.brandId ?? null,
 		unitOfMeasure: item.unitOfMeasure,
 		costPrice: item.costPrice,
 		sellingPrice: item.sellingPrice,
@@ -630,6 +635,17 @@ export const StockPage: React.FC = () => {
 						<Icon name="bell" size={12} style={{ color: lowStockFilter ? "#ef4444" : t.textFaint }} />
 						Low Stock
 					</button>
+
+					{/* Brand filter */}
+					{brandOptions.length > 0 && (
+						<AppSelect
+							value={brandId}
+							onChange={(v) => { setBrandId(v); setPage(1); }}
+							options={[{ value: '', label: 'All Brands' }, ...brandOptions.map((b) => ({ value: b.id, label: b.name }))]}
+							isSearchable={false}
+							minWidth={140}
+						/>
+					)}
 
 					{/* Search */}
 					<div style={{ position: "relative", maxWidth: "260px", flex: 1 }}>

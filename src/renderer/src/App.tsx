@@ -50,9 +50,10 @@ import { RestoreOrNewScreen } from './pages/onboarding/RestoreOrNewScreen';
 import { AccountingPage } from './pages/accounting/AccountingPage';
 import { PaymentAccountsPage } from './pages/payment-accounts/PaymentAccountsPage';
 import { DeliveryMethodsPage } from './pages/delivery-methods/DeliveryMethodsPage';
+import { BrandsPage } from './pages/brands/BrandsPage';
 import { trpc } from './trpc-client/trpc';
 
-const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile', 'payment_accounts', 'delivery_methods'] as const;
+const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'brands', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile', 'payment_accounts', 'delivery_methods'] as const;
 
 // Checks whether any user account exists; shows RestoreOrNewScreen on first run, LoginPage otherwise.
 const AuthGate: React.FC = () => {
@@ -157,6 +158,7 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 						{page === 'profile' && <ProfilePage />}
 						{page === 'payment_accounts' && <PaymentAccountsPage />}
 					{page === 'delivery_methods' && <DeliveryMethodsPage />}
+					{page === 'brands' && <BrandsPage />}
 						{!IMPLEMENTED_PAGES.includes(page as typeof IMPLEMENTED_PAGES[number]) && (
 							<ComingSoon label={String(pageLabel)} />
 						)}

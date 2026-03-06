@@ -1,6 +1,6 @@
 import { eq, like, and, sql, or } from "drizzle-orm";
 import { db } from "../db";
-import { products, productPriceHistory, categories, stock, stockLedger, saleItems } from "../schemas/schema";
+import { products, productPriceHistory, categories, brands, stock, stockLedger, saleItems } from "../schemas/schema";
 import { newId, now, NotFoundError, ValidationError, PaginationParams } from "../utils";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -11,6 +11,7 @@ export type CreateProductInput = {
   name: string;
   description?: string;
   categoryId?: string;
+  brandId?: string;
   unitOfMeasure?: string;
   costPrice: number;
   sellingPrice: number;
@@ -24,6 +25,7 @@ export type UpdateProductInput = Partial<Omit<CreateProductInput, "sku">>;
 export type ProductFilter = PaginationParams & {
   search?: string;        // name, sku, barcode
   categoryId?: string;
+  brandId?: string;
   isActive?: boolean;
 };
 
@@ -57,6 +59,7 @@ export function createProduct(input: CreateProductInput) {
       name: input.name,
       description: input.description ?? null,
       categoryId: input.categoryId ?? null,
+      brandId: input.brandId ?? null,
       unitOfMeasure: input.unitOfMeasure ?? "pcs",
       costPrice: input.costPrice,
       sellingPrice: input.sellingPrice,
@@ -81,6 +84,8 @@ export function getProductById(id: string) {
       description: products.description,
       categoryId: products.categoryId,
       categoryName: categories.name,
+      brandId: products.brandId,
+      brandName: brands.name,
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
@@ -93,6 +98,7 @@ export function getProductById(id: string) {
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
+    .leftJoin(brands, eq(products.brandId, brands.id))
     .where(eq(products.id, id))
     .get();
 
@@ -123,6 +129,7 @@ export function listProducts(params?: ProductFilter) {
   const conditions:any[] = [];
   if (params?.isActive !== undefined) conditions.push(eq(products.isActive, params.isActive));
   if (params?.categoryId) conditions.push(eq(products.categoryId, params.categoryId));
+  if (params?.brandId) conditions.push(eq(products.brandId, params.brandId));
   if (params?.search) {
     conditions.push(
       or(
@@ -142,6 +149,8 @@ export function listProducts(params?: ProductFilter) {
       name: products.name,
       categoryId: products.categoryId,
       categoryName: categories.name,
+      brandId: products.brandId,
+      brandName: brands.name,
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
@@ -152,6 +161,7 @@ export function listProducts(params?: ProductFilter) {
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
+    .leftJoin(brands, eq(products.brandId, brands.id))
     .where(where)
     .limit(pageSize)
     .offset(offset)

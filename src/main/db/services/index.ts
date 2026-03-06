@@ -16,6 +16,7 @@ export * as ExpenseService       from "./expense.service";
 export * as VariantService       from "./variant.service";
 export * as PaymentAccountService from "./payment-account.service";
 export * as DeliveryMethodService from "./delivery-method.service";
+export * as BrandService          from "./brand.service";
 
 // ============================================================
 // QUICK REFERENCE — Function Index

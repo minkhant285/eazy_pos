@@ -168,6 +168,7 @@ export const stockRouter = router({
         isActive: z.boolean().optional(),
         lowStock: z.boolean().optional(),
         lowStockThreshold: z.number().nonnegative().optional(),
+        brandId: z.string().uuid().optional(),
       })
     )
     .query(({ input }) => {

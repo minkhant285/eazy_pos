@@ -1,6 +1,6 @@
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { db } from "../db";
-import { stock, stockLedger, products, locations, users } from "../schemas/schema";
+import { stock, stockLedger, products, brands, locations, users } from "../schemas/schema";
 import { newId, now, NotFoundError, InsufficientStockError } from "../utils";
 
 // ─── Stock Read Operations ────────────────────────────────────
@@ -347,7 +347,7 @@ export function updateReservedQty(productId: string, locationId: string, delta: 
  */
 export function listAllProductsForLocation(
   locationId: string,
-  params?: { page?: number; pageSize?: number; search?: string; isActive?: boolean; lowStock?: boolean; lowStockThreshold?: number }
+  params?: { page?: number; pageSize?: number; search?: string; isActive?: boolean; lowStock?: boolean; lowStockThreshold?: number; brandId?: string }
 ) {
   const page = params?.page ?? 1;
   const pageSize = params?.pageSize ?? 50;
@@ -368,6 +368,7 @@ export function listAllProductsForLocation(
     conditions.push(sql`${stock.id} IS NOT NULL`);
     conditions.push(sql`COALESCE(${stock.qtyOnHand}, 0) <= ${params.lowStockThreshold}`);
   }
+  if (params?.brandId) conditions.push(eq(products.brandId, params.brandId));
   const where = and(...conditions);
 
   const data = db
@@ -378,6 +379,8 @@ export function listAllProductsForLocation(
       name: products.name,
       description: products.description,
       categoryId: products.categoryId,
+      brandId: products.brandId,
+      brandName: brands.name,
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
@@ -396,6 +399,7 @@ export function listAllProductsForLocation(
       stock,
       and(eq(stock.productId, products.id), eq(stock.locationId, locationId))
     )
+    .leftJoin(brands, eq(products.brandId, brands.id))
     .where(where)
     .limit(pageSize)
     .offset(offset)

@@ -31,6 +31,7 @@ export const icons = {
   profile:     'M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z',
   accounting:  'M12 2v20 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6',
   payment:     'M1 4h22v16H1z M1 10h22 M5 16h4',
+  brand:       'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z M7 7h.01',
 } as const;
 
 export type IconKey = keyof typeof icons;

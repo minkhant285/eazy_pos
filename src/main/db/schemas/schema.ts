@@ -75,6 +75,17 @@ export const categories = sqliteTable("categories", {
 });
 
 // ============================================================
+// BRANDS
+// ============================================================
+export const brands = sqliteTable("brands", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  ...timestamps,
+});
+
+// ============================================================
 // PRODUCTS
 // ============================================================
 export const products = sqliteTable("products", {
@@ -84,6 +95,7 @@ export const products = sqliteTable("products", {
   name: text("name").notNull(),
   description: text("description"),
   categoryId: text("category_id").references(() => categories.id),
+  brandId: text("brand_id").references(() => brands.id),
   unitOfMeasure: text("unit_of_measure").notNull().default("pcs"), // pcs, kg, liter, box
   costPrice: real("cost_price").notNull().default(0),       // Latest purchase cost
   sellingPrice: real("selling_price").notNull(),
@@ -569,8 +581,13 @@ export const expenses = sqliteTable(
 // ============================================================
 // RELATIONS
 // ============================================================
+export const brandsRelations = relations(brands, ({ many }) => ({
+  products: many(products),
+}));
+
 export const productsRelations = relations(products, ({ one, many }) => ({
   category: one(categories, { fields: [products.categoryId], references: [categories.id] }),
+  brand: one(brands, { fields: [products.brandId], references: [brands.id] }),
   stock: many(stock),
   stockLedger: many(stockLedger),
   priceHistory: many(productPriceHistory),

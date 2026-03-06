@@ -13,6 +13,7 @@ export type ProductForEdit = {
   name: string;
   description: string | null;
   categoryId: string | null;
+  brandId: string | null;
   unitOfMeasure: string;
   costPrice: number;
   sellingPrice: number;
@@ -265,6 +266,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
   const [barcode, setBarcode]         = useState(product?.barcode ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [categoryId, setCategoryId]   = useState(product?.categoryId ?? "");
+  const [brandId, setBrandId]         = useState(product?.brandId ?? "");
   const [unitOfMeasure, setUnit]      = useState(product?.unitOfMeasure ?? "pcs");
   const [costPrice, setCostPrice]     = useState(String(product?.costPrice ?? ""));
   const [sellingPrice, setSelling]    = useState(String(product?.sellingPrice ?? ""));
@@ -273,8 +275,24 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [confirmDelete, setConfirmDelete]         = useState(false);
 
-  const { data: categoriesData } = trpc.category.list.useQuery({});
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatPrefix, setNewCatPrefix] = useState("");
+
+  const { data: categoriesData, refetch: refetchCategories } = trpc.category.list.useQuery({});
   const categories = (categoriesData ?? []) as { id: string; name: string; skuPrefix?: string | null }[];
+  const { data: brandsData } = trpc.brand.list.useQuery({ onlyActive: true });
+
+  const createCatMut = trpc.category.create.useMutation({
+    onSuccess: (newCat: any) => {
+      refetchCategories();
+      setCategoryId(newCat.id);
+      setNewCatName("");
+      setNewCatPrefix("");
+      setShowNewCat(false);
+    },
+  });
+  const brandOptions = (brandsData ?? []) as { id: string; name: string }[];
 
   // Auto-generate SKU when a category with a skuPrefix is selected (new products only)
   const { data: nextSkuData } = trpc.category.nextSku.useQuery(
@@ -322,6 +340,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
       barcode:      barcode.trim() || undefined,
       description:  description.trim() || undefined,
       categoryId:   categoryId || undefined,
+      brandId:      brandId || undefined,
       unitOfMeasure,
       costPrice:    isNaN(costNum) ? 0 : costNum,
       sellingPrice: sellNum,
@@ -445,55 +464,108 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                 </div>
               </div>
 
-              {/* SKU + Name */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "10px" }}>
+              {/* Product Name — full width */}
+              <div>
+                <label style={labelStyle}>Product Name *</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Product name"
+                  autoFocus
+                  style={inputStyle}
+                />
+              </div>
+
+              {/* SKU + Barcode + Category */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px" }}>
                 <div>
-                  <label style={labelStyle}>SKU *</label>
+                  <label style={labelStyle}>SKU</label>
                   <input
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
-                    placeholder="e.g. PROD-001"
-                    disabled={isEdit}
-                    autoFocus={!isEdit}
-                    style={{ ...inputStyle, opacity: isEdit ? 0.6 : 1, fontFamily: "monospace" }}
+                    placeholder="Auto from category"
+                    disabled
+                    style={{ ...inputStyle, opacity: 0.6, fontFamily: "monospace" }}
                   />
                   {!isEdit && nextSkuData?.sku && sku === nextSkuData.sku && (
                     <p style={{ color: "var(--primary)", fontSize: "10px", marginTop: "3px" }}>Auto-generated from category prefix</p>
                   )}
                 </div>
                 <div>
-                  <label style={labelStyle}>Product Name *</label>
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Product name"
-                    autoFocus={isEdit}
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-
-              {/* Barcode + Category */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                <div>
                   <label style={labelStyle}>Barcode</label>
                   <input value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Optional" style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Category</label>
-                 <AppSelect
-                  value={categoryId}
-                  onChange={(v) => {
-                    setCategoryId(v);
-                    // Clear SKU if switching to a category without prefix (only on new products)
-                    if (!isEdit) {
-                      const cat = categories.find((c) => c.id === v);
-                      if (!cat?.skuPrefix) setSku("");
-                    }
-                  }}
-                  options={[{ value: '', label: '— No category —' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
-                />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                    <span style={labelStyle}>Category</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCat((v) => !v)}
+                      style={{ background: "none", border: "none", color: "var(--primary)", fontSize: "10px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: 0 }}
+                    >
+                      + New
+                    </button>
+                  </div>
+                  <AppSelect
+                    value={categoryId}
+                    onChange={(v) => {
+                      setCategoryId(v);
+                      if (!isEdit) {
+                        const cat = categories.find((c) => c.id === v);
+                        if (!cat?.skuPrefix) setSku("");
+                      }
+                    }}
+                    options={[{ value: '', label: '— No category —' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
+                  />
+                  {showNewCat && (
+                    <div style={{ marginTop: "6px", padding: "10px", background: "var(--primary-08, rgba(99,102,241,0.06))", border: "1px solid var(--primary-22, rgba(99,102,241,0.2))", borderRadius: "10px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                      <input
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Escape") { setShowNewCat(false); setNewCatName(""); setNewCatPrefix(""); } }}
+                        placeholder="Category name *"
+                        autoFocus
+                        style={{ ...inputStyle, fontSize: "12px", padding: "7px 10px" }}
+                      />
+                      <input
+                        value={newCatPrefix}
+                        onChange={(e) => setNewCatPrefix(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => { if (e.key === "Escape") { setShowNewCat(false); setNewCatName(""); setNewCatPrefix(""); } }}
+                        placeholder="SKU prefix (e.g. ELEC)"
+                        style={{ ...inputStyle, fontSize: "12px", padding: "7px 10px", fontFamily: "monospace" }}
+                      />
+                      <div style={{ display: "flex", gap: "5px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newCatName.trim()) createCatMut.mutate({ name: newCatName.trim(), skuPrefix: newCatPrefix.trim() || undefined });
+                          }}
+                          disabled={createCatMut.isPending || !newCatName.trim()}
+                          style={{ flex: 1, padding: "7px 10px", borderRadius: "8px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "11px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          {createCatMut.isPending ? "Saving..." : "Add Category"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowNewCat(false); setNewCatName(""); setNewCatPrefix(""); }}
+                          style={{ padding: "7px 10px", borderRadius: "8px", border: "none", background: "rgba(239,68,68,0.1)", color: "#ef4444", fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
+
+              {/* Brand */}
+              <div>
+                <label style={labelStyle}>Brand</label>
+                <AppSelect
+                  value={brandId}
+                  onChange={setBrandId}
+                  options={[{ value: '', label: '— No brand —' }, ...brandOptions.map((b) => ({ value: b.id, label: b.name }))]}
+                />
               </div>
 
               {/* Unit + Description */}

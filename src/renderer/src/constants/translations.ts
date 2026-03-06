@@ -26,7 +26,7 @@ export type TranslationKey =
   | 'accounts_payable' | 'total_assets' | 'total_liabilities' | 'owners_equity'
   | 'revenue_by_category' | 'top_products_report' | 'profit' | 'margin' | 'qty_sold'
   | 'tax_collected' | 'discounts_given' | 'transactions_count'
-  | 'payment_accounts' | 'delivery_methods'
+  | 'payment_accounts' | 'delivery_methods' | 'brands'
   | 'online_orders' | 'new_order' | 'processing' | 'confirmed' | 'returned'
   | 'delivery_fee' | 'confirm_order' | 'return_order' | 'download_quotation';
 
@@ -88,6 +88,7 @@ export const translations: Record<LangCode, Translations> = {
     tax_collected: 'Tax Collected', discounts_given: 'Discounts Given', transactions_count: 'Transactions',
     payment_accounts: 'Payment Accounts',
     delivery_methods: 'Delivery Methods',
+    brands: 'Brands',
     online_orders: 'Online Orders', new_order: 'New Order',
     processing: 'Processing', confirmed: 'Confirmed', returned: 'Returned',
     delivery_fee: 'Delivery Fee', confirm_order: 'Confirm', return_order: 'Return',
@@ -142,6 +143,7 @@ export const translations: Record<LangCode, Translations> = {
     tax_collected: 'ကောက်ခံငွေ', discounts_given: 'လျှော့ပေးငွေ', transactions_count: 'ငွေပေးငွေယူ',
     payment_accounts: 'ငွေပေးချေမှုအကောင့်များ',
     delivery_methods: 'ပို့ဆောင်မှုနည်းလမ်းများ',
+    brands: 'အမှတ်တံဆိပ်များ',
     online_orders: 'အွန်လိုင်းအော်ဒါများ', new_order: 'အော်ဒါသစ်',
     processing: 'လုပ်ဆောင်နေသည်', confirmed: 'အတည်ပြုပြီး', returned: 'ပြန်လည်ပေးသွင်း',
     delivery_fee: 'ပို့ဆောင်ကြေး', confirm_order: 'အတည်ပြုရန်', return_order: 'ပြန်လည်ပေးသွင်းရန်',
@@ -195,6 +197,7 @@ export const translations: Record<LangCode, Translations> = {
     tax_collected: '税款', discounts_given: '折扣', transactions_count: '交易笔数',
     payment_accounts: '收款账户',
     delivery_methods: '配送方式',
+    brands: '品牌',
     online_orders: '线上订单', new_order: '新订单',
     processing: '处理中', confirmed: '已确认', returned: '已退货',
     delivery_fee: '配送费', confirm_order: '确认', return_order: '退货',
@@ -248,6 +251,7 @@ export const translations: Record<LangCode, Translations> = {
     tax_collected: 'ภาษีที่เก็บ', discounts_given: 'ส่วนลดที่ให้', transactions_count: 'จำนวนรายการ',
     payment_accounts: 'บัญชีรับชำระเงิน',
     delivery_methods: 'วิธีจัดส่ง',
+    brands: 'แบรนด์',
     online_orders: 'คำสั่งซื้อออนไลน์', new_order: 'คำสั่งใหม่',
     processing: 'กำลังดำเนินการ', confirmed: 'ยืนยันแล้ว', returned: 'คืนสินค้า',
     delivery_fee: 'ค่าจัดส่ง', confirm_order: 'ยืนยัน', return_order: 'คืนสินค้า',

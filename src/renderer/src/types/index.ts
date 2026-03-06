@@ -2,7 +2,7 @@ export type PageId =
   | 'dashboard' | 'customers' | 'products' | 'categories'
   | 'stock' | 'transfers' | 'ledger' | 'suppliers' | 'purchase'
   | 'expenses' | 'locations' | 'users' | 'sales' | 'settings' | 'profile'
-  | 'accounting' | 'payment_accounts' | 'delivery_methods';
+  | 'accounting' | 'payment_accounts' | 'delivery_methods' | 'brands';
 
 export type LangCode = 'en' | 'my' | 'zh' | 'th';
 

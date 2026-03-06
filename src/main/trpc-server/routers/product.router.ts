@@ -10,6 +10,7 @@ const CreateProductSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   categoryId: z.string().uuid().optional(),
+  brandId: z.string().uuid().optional(),
   unitOfMeasure: z.string().optional(),
   costPrice: z.number().nonnegative(),
   sellingPrice: z.number().positive(),
@@ -23,6 +24,7 @@ const ProductFilterSchema = z.object({
   pageSize: z.number().int().positive().max(100).default(20),
   search: z.string().optional(),
   categoryId: z.string().uuid().optional(),
+  brandId: z.string().uuid().optional(),
   isActive: z.boolean().optional(),
 })
 
