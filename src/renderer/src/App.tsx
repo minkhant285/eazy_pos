@@ -51,6 +51,7 @@ import { AccountingPage } from './pages/accounting/AccountingPage';
 import { PaymentAccountsPage } from './pages/payment-accounts/PaymentAccountsPage';
 import { DeliveryMethodsPage } from './pages/delivery-methods/DeliveryMethodsPage';
 import { BrandsPage } from './pages/brands/BrandsPage';
+import { LicensePage } from './pages/license/LicensePage';
 import { trpc } from './trpc-client/trpc';
 
 const IMPLEMENTED_PAGES = ['dashboard', 'accounting', 'customers', 'categories', 'brands', 'stock', 'transfers', 'ledger', 'purchase', 'suppliers', 'locations', 'users', 'sales', 'settings', 'expenses', 'profile', 'payment_accounts', 'delivery_methods'] as const;
@@ -96,6 +97,14 @@ const App: React.FC = () => {
 		if (userGone) logout();
 	}, [userGone]);
 
+	// License check — polls every 30 s so expiry is caught mid-session without restart
+	const { data: licenseData, refetch: refetchLicense } = trpc.license.check.useQuery(
+		undefined,
+		{ refetchOnWindowFocus: false, staleTime: 0, refetchInterval: 30_000 }
+	);
+	const licenseStatus = licenseData?.status;
+	const licenseBlocked = licenseStatus === 'trial_expired' || licenseStatus === 'key_expired';
+
 	// Derive onboarding state from DB: if no locations exist, onboarding is needed.
 	// Always query when logged in so that a restored backup (which has locations) skips onboarding
 	// even when onboardingDone is false in the persisted store (e.g. fresh install + restore).
@@ -127,11 +136,19 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
         button:focus { outline: none; }
       `}</style>
 
-			{!currentUser || userGone ? (
+			{licenseBlocked && licenseData && (
+				<LicensePage
+					machineId={licenseData.machineId}
+					isExpired={licenseStatus === 'trial_expired'}
+					onActivated={() => refetchLicense()}
+				/>
+			)}
+
+			{!licenseBlocked && (!currentUser || userGone) ? (
 				<AuthGate />
-			) : needsOnboarding ? (
+			) : !licenseBlocked && needsOnboarding ? (
 				<OnboardingPage />
-			) : (
+			) : !licenseBlocked && (
 			<div style={{
 				display: 'flex', height: '100%', width: '100%',
 				background: t.bg, fontFamily: "'DM Sans', sans-serif",
@@ -141,6 +158,24 @@ body { font-family: 'DM Sans', sans-serif; background: ${t.bg}; transition: back
 
 				<div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
 					<Topbar />
+
+					{/* Trial banner */}
+					{licenseStatus === 'trial' && licenseData && (
+						<div style={{
+							background: 'rgba(245,158,11,0.12)',
+							borderBottom: '1px solid rgba(245,158,11,0.25)',
+							padding: '7px 22px',
+							display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+							flexShrink: 0,
+						}}>
+							<span style={{ color: '#d97706', fontSize: '12px', fontWeight: 600 }}>
+								Free trial — {licenseData.daysLeft} day{licenseData.daysLeft !== 1 ? 's' : ''} remaining
+							</span>
+							<span style={{ color: '#d97706', fontSize: '11px', opacity: 0.8 }}>
+								Contact your software provider to activate a license key.
+							</span>
+						</div>
+					)}
 
 					<main style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
 						{page === 'dashboard' && <DashboardPage />}

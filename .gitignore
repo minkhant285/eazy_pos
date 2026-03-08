@@ -6,3 +6,4 @@ out
 *.log*
 *.db
 .claude/settings.local.json
+scripts/keygen.js

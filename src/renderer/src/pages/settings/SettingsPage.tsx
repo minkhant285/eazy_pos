@@ -4,6 +4,7 @@ import { Icon } from '../../components/ui/Icon'
 import { CURRENCIES } from '../../constants/currencies'
 import { LANG_OPTIONS } from '../../constants/translations'
 import { PRIMARY_PRESETS, FONT_SCALES } from '../../constants/primaryPresets'
+import { trpc } from '../../trpc-client/trpc'
 
 const APP_VERSION = '1.0.0'
 
@@ -59,6 +60,26 @@ export const SettingsPage: React.FC = () => {
   const currentUser          = useAppStore((s) => s.currentUser)
   const [isBackingUp, setIsBackingUp] = useState(false)
   const [backupMsg,   setBackupMsg]   = useState<string | null>(null)
+
+  // License
+  const [licenseKey, setLicenseKey]   = useState('')
+  const [licenseMsg, setLicenseMsg]   = useState<{ ok: boolean; text: string } | null>(null)
+  const [midCopied,  setMidCopied]    = useState(false)
+  const { data: licenseData, refetch: refetchLicense } = trpc.license.check.useQuery(
+    undefined, { refetchOnWindowFocus: false, staleTime: 30_000 }
+  )
+  const activateMut = trpc.license.activate.useMutation({
+    onSuccess: (data) => {
+      if (data?.success) {
+        setLicenseMsg({ ok: true, text: 'License activated successfully!' })
+        setLicenseKey('')
+        refetchLicense()
+      } else {
+        setLicenseMsg({ ok: false, text: data?.error ?? 'Activation failed' })
+      }
+    },
+    onError: () => setLicenseMsg({ ok: false, text: 'Network error — please try again' }),
+  })
 
   const handleBackup = async () => {
     setIsBackingUp(true)
@@ -312,6 +333,179 @@ export const SettingsPage: React.FC = () => {
                 }}>
                   {backupMsg.startsWith('Error') ? backupMsg : `✅ ${backupMsg}`}
                 </p>
+              )}
+            </Section>
+          </div>
+        )}
+
+        {/* ── GROUP: License ─────────────────────────────────── */}
+        {currentUser?.role !== 'cashier' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <GroupLabel label="License" t={t} />
+            <Section title="Product Activation" description="Manage your Easy POS license" t={t}>
+              {licenseData ? (() => {
+                const s = licenseData.status
+                const isActive  = s === 'active'
+                const isTrial   = s === 'trial'
+                const isExpired = s === 'trial_expired' || s === 'key_expired'
+
+                const statusColor = isActive ? '#10b981' : isTrial ? '#d97706' : '#ef4444'
+                const statusBg    = isActive ? 'rgba(16,185,129,0.1)' : isTrial ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)'
+                const statusLabel = isActive ? 'Activated' : isTrial ? 'Trial' : s === 'key_expired' ? 'Key Expired' : 'Trial Expired'
+                const statusIcon  = isActive ? '✓' : isTrial ? '◷' : '✕'
+
+                const midDisplay = licenseData.machineId.match(/.{1,8}/g)?.join('-') ?? licenseData.machineId
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                    {/* Status card */}
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '14px',
+                      padding: '14px 16px',
+                      background: statusBg,
+                      border: `1px solid ${statusColor}30`,
+                      borderRadius: '12px',
+                    }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '10px', flexShrink: 0,
+                        background: statusColor + '20',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '18px', color: statusColor, fontWeight: 800,
+                      }}>
+                        {statusIcon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: t.text, fontSize: '13px', fontWeight: 700 }}>
+                            {isActive ? 'License Active' : isTrial ? 'Free Trial' : 'License Expired'}
+                          </span>
+                          <span style={{
+                            fontSize: '10px', fontWeight: 700, padding: '2px 8px',
+                            borderRadius: '20px', background: statusBg,
+                            color: statusColor, border: `1px solid ${statusColor}40`,
+                          }}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <p style={{ color: t.textMuted, fontSize: '11.5px', marginTop: '3px' }}>
+                          {isActive && licenseData.daysLeft !== undefined &&
+                            `Expires in ${licenseData.daysLeft} day${licenseData.daysLeft !== 1 ? 's' : ''}` +
+                            (licenseData.expiresAt ? ` · ${new Date(licenseData.expiresAt).toLocaleDateString()}` : '')}
+                          {isTrial && licenseData.daysLeft !== undefined &&
+                            `${licenseData.daysLeft} day${licenseData.daysLeft !== 1 ? 's' : ''} remaining in free trial`}
+                          {isExpired && 'Your license has expired. Enter a key below to continue.'}
+                        </p>
+                      </div>
+                      {/* Days pill for trial/active */}
+                      {(isActive || isTrial) && licenseData.daysLeft !== undefined && (
+                        <div style={{
+                          flexShrink: 0, textAlign: 'center',
+                          padding: '8px 14px',
+                          background: t.surface,
+                          border: `1px solid ${t.border}`,
+                          borderRadius: '10px',
+                        }}>
+                          <div style={{ color: statusColor, fontSize: '22px', fontWeight: 800, lineHeight: 1 }}>
+                            {licenseData.daysLeft}
+                          </div>
+                          <div style={{ color: t.textFaint, fontSize: '10px', marginTop: '2px' }}>
+                            day{licenseData.daysLeft !== 1 ? 's' : ''} left
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Machine ID */}
+                    <div>
+                      <p style={{ color: t.textMuted, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                        Machine ID
+                      </p>
+                      <div style={{
+                        display: 'flex', gap: '8px', alignItems: 'center',
+                        background: t.inputBg, border: `1px solid ${t.border}`,
+                        borderRadius: '10px', padding: '9px 12px',
+                      }}>
+                        <span style={{ flex: 1, fontFamily: 'monospace', fontSize: '10.5px', color: t.textSubtle, letterSpacing: '0.3px', wordBreak: 'break-all' }}>
+                          {midDisplay}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(licenseData.machineId)
+                            setMidCopied(true)
+                            setTimeout(() => setMidCopied(false), 2000)
+                          }}
+                          style={{
+                            flexShrink: 0, padding: '4px 10px', borderRadius: '7px',
+                            border: `1px solid ${t.inputBorder}`,
+                            background: midCopied ? 'rgba(16,185,129,0.1)' : t.surface,
+                            color: midCopied ? '#10b981' : t.textMuted,
+                            fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.15s',
+                          }}
+                        >
+                          {midCopied ? 'Copied!' : 'Copy'}
+                        </button>
+                      </div>
+                      <p style={{ color: t.textFaint, fontSize: '11px', marginTop: '5px' }}>
+                        Share this ID with your software provider to get a license key.
+                      </p>
+                    </div>
+
+                    {/* Activation key input */}
+                    <div>
+                      <p style={{ color: t.textMuted, fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                        {isActive ? 'Update License Key' : 'Enter Activation Key'}
+                      </p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          value={licenseKey}
+                          onChange={(e) => { setLicenseKey(e.target.value); setLicenseMsg(null) }}
+                          onKeyDown={(e) => e.key === 'Enter' && licenseKey.trim() && activateMut.mutate({ key: licenseKey.trim() })}
+                          placeholder="MKJRNL-…"
+                          spellCheck={false}
+                          style={{
+                            flex: 1,
+                            background: t.inputBg,
+                            border: `1px solid ${licenseMsg && !licenseMsg.ok ? '#ef4444' : t.inputBorder}`,
+                            borderRadius: '10px', padding: '10px 13px',
+                            color: t.text, fontSize: '12px', fontFamily: 'monospace',
+                            outline: 'none', boxSizing: 'border-box' as const,
+                            letterSpacing: '0.3px', transition: 'border-color 0.15s',
+                          }}
+                        />
+                        <button
+                          onClick={() => licenseKey.trim() && activateMut.mutate({ key: licenseKey.trim() })}
+                          disabled={!licenseKey.trim() || activateMut.isPending}
+                          style={{
+                            flexShrink: 0, padding: '10px 16px', borderRadius: '10px',
+                            border: 'none', background: 'var(--primary)', color: '#fff',
+                            fontSize: '12px', fontWeight: 700, cursor: !licenseKey.trim() || activateMut.isPending ? 'not-allowed' : 'pointer',
+                            fontFamily: 'inherit',
+                            opacity: !licenseKey.trim() || activateMut.isPending ? 0.6 : 1,
+                            transition: 'opacity 0.15s', whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {activateMut.isPending ? 'Verifying…' : 'Activate'}
+                        </button>
+                      </div>
+                      {licenseMsg && (
+                        <p style={{
+                          marginTop: '8px', fontSize: '12px',
+                          color: licenseMsg.ok ? '#10b981' : '#ef4444',
+                          background: licenseMsg.ok ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                          border: `1px solid ${licenseMsg.ok ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                          borderRadius: '8px', padding: '7px 11px',
+                        }}>
+                          {licenseMsg.ok ? '✅ ' : '❌ '}{licenseMsg.text}
+                        </p>
+                      )}
+                    </div>
+
+                  </div>
+                )
+              })() : (
+                <p style={{ color: t.textFaint, fontSize: '13px' }}>Loading license info…</p>
               )}
             </Section>
           </div>

@@ -66,6 +66,7 @@ import { accountingRouter }       from './routers/accounting.router'
 import { paymentAccountRouter }  from './routers/payment-account.router'
 import { deliveryMethodRouter }   from './routers/delivery-method.router'
 import { brandRouter }            from './routers/brand.router'
+import { licenseRouter }          from './routers/license.router'
 
 export const appRouter = router({
   user:             userRouter,
@@ -86,6 +87,7 @@ export const appRouter = router({
   paymentAccount:   paymentAccountRouter,
   deliveryMethod:   deliveryMethodRouter,
   brand:            brandRouter,
+  license:          licenseRouter,
 })
 
 /** Export the type — import this in your React app */
