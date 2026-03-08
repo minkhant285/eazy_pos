@@ -12,6 +12,7 @@ export type CreateCustomerInput = {
   address?: string;
   taxId?: string;
   creditLimit?: number;
+  customerType?: 'retail' | 'wholesale';
 };
 
 export type UpdateCustomerInput = Partial<CreateCustomerInput & { isActive: boolean }>;
@@ -37,6 +38,7 @@ export function createCustomer(input: CreateCustomerInput) {
       phone: input.phone ?? null,
       address: input.address ?? null,
       taxId: input.taxId ?? null,
+      customerType: input.customerType ?? 'retail',
       creditLimit: input.creditLimit ?? 0,
       loyaltyPoints: 0,
       outstandingBalance: 0,
@@ -62,7 +64,7 @@ export function getCustomerByPhone(phone: string) {
 }
 
 export function listCustomers(
-  params?: PaginationParams & { search?: string; isActive?: boolean }
+  params?: PaginationParams & { search?: string; isActive?: boolean; customerType?: 'retail' | 'wholesale' }
 ) {
   const page = params?.page ?? 1;
   const pageSize = params?.pageSize ?? 20;
@@ -70,6 +72,7 @@ export function listCustomers(
 
   const conditions:any[] = [];
   if (params?.isActive !== undefined) conditions.push(eq(customers.isActive, params.isActive));
+  if (params?.customerType) conditions.push(eq(customers.customerType, params.customerType));
   if (params?.search) {
     conditions.push(
       sql`(${customers.name} LIKE ${"%" + params.search + "%"} OR ${customers.phone} LIKE ${"%" + params.search + "%"} OR ${customers.email} LIKE ${"%" + params.search + "%"})`

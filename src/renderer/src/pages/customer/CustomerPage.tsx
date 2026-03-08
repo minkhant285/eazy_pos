@@ -161,7 +161,7 @@ const AddressBookModal: React.FC<{ customer: Customer; onClose: () => void }> = 
 
 // ── Customers Page ────────────────────────────────────────────
 
-type FilterKey = "all" | "active" | "inactive";
+type FilterKey = "all" | "active" | "inactive" | "wholesale";
 interface ModalState { open: boolean; customer: Customer | null; }
 
 const PAGE_SIZE = 20;
@@ -179,13 +179,15 @@ export const CustomersPage: React.FC = () => {
 	const [addressBookCustomer, setAddressBookCustomer] = useState<Customer | null>(null);
 	const [page, setPage] = useState(1);
 
-	const isActiveFilter = filter === "all" ? undefined : filter === "active";
+	const isActiveFilter = filter === "wholesale" || filter === "all" ? undefined : filter === "active";
+	const customerTypeFilter = filter === "wholesale" ? "wholesale" : undefined;
 
 	const { data, isLoading, refetch } = trpc.customer.list.useQuery({
 		page,
 		pageSize: PAGE_SIZE,
 		search: search || undefined,
 		isActive: isActiveFilter,
+		customerType: customerTypeFilter,
 	});
 
 	const customers = (data?.data ?? []) as Customer[];
@@ -200,6 +202,7 @@ export const CustomersPage: React.FC = () => {
 		{ key: "all", label: tr.all },
 		{ key: "active", label: tr.active },
 		{ key: "inactive", label: tr.inactive },
+		{ key: "wholesale", label: "Wholesale" },
 	];
 
 	const handleSearchChange = (value: string) => { setSearch(value); setPage(1); };
@@ -222,7 +225,12 @@ export const CustomersPage: React.FC = () => {
 						{c.name.charAt(0)}
 					</div>
 					<div style={{ minWidth: 0 }}>
-						<p style={{ color: t.text, fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</p>
+						<div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+							<p style={{ color: t.text, fontSize: "13px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</p>
+							{(c as any).customerType === 'wholesale' && (
+								<span style={{ fontSize: "8px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.15)", padding: "1px 5px", borderRadius: "3px", flexShrink: 0 }}>W</span>
+							)}
+						</div>
 						<p style={{ color: t.textFaint, fontSize: "10.5px", marginTop: "1px" }}>{String(c.createdAt).slice(0, 10)}</p>
 					</div>
 				</div>
@@ -284,23 +292,8 @@ export const CustomersPage: React.FC = () => {
 	});
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "14px" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.customers}</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} {tr.total_customers_label}</p>
-				</div>
-				<button
-					onClick={() => setModal({ open: true, customer: null })}
-					style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}
-				>
-					<Icon name="plus" size={13} />
-					{tr.new_customer}
-				</button>
-			</div>
-
-			{/* Filter bar */}
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
 			<div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
 				<div style={{ position: "relative", flex: 1, minWidth: "180px", maxWidth: "280px" }}>
 					<div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}>
@@ -325,6 +318,11 @@ export const CustomersPage: React.FC = () => {
 				<button style={{ display: "flex", alignItems: "center", gap: "5px", padding: "9px 12px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: t.inputBg, color: t.textMuted, fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
 					<Icon name="download" size={13} />{tr.export}
 				</button>
+				<div style={{ marginLeft: "auto" }}>
+					<button onClick={() => setModal({ open: true, customer: null })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+						<Icon name="plus" size={13} />{tr.new_customer}
+					</button>
+				</div>
 			</div>
 
 			{/* Table */}

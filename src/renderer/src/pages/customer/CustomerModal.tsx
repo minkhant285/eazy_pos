@@ -20,6 +20,9 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 		email: customer?.email ?? "",
 		phone: customer?.phone ?? "",
 	});
+	const [customerType, setCustomerType] = useState<'retail' | 'wholesale'>(
+		(customer as any)?.customerType ?? 'retail'
+	);
 
 	const create = trpc.customer.create.useMutation({ onSuccess });
 	const update = trpc.customer.update.useMutation({ onSuccess });
@@ -32,6 +35,7 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 				name: form.name.trim(),
 				email: form.email.trim() || undefined,
 				phone: form.phone.trim() || undefined,
+				customerType,
 			});
 		} else {
 			update.mutate({
@@ -40,6 +44,7 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 					name: form.name.trim(),
 					email: form.email.trim() || undefined,
 					phone: form.phone.trim() || undefined,
+					customerType,
 				},
 			});
 		}
@@ -107,6 +112,36 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 							</div>
 						</div>
 					))}
+				</div>
+
+				{/* Customer Type Toggle */}
+				<div style={{ padding: "0 22px 14px" }}>
+					<label style={{ color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "7px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+						Customer Type
+					</label>
+					<div style={{ display: "flex", gap: "8px" }}>
+						{(['retail', 'wholesale'] as const).map((type) => (
+							<button
+								key={type}
+								type="button"
+								onClick={() => setCustomerType(type)}
+								style={{
+									flex: 1, padding: "9px 0", borderRadius: "10px", fontFamily: "inherit",
+									fontSize: "12px", fontWeight: 700, cursor: "pointer",
+									border: customerType === type ? "none" : `1px solid ${t.inputBorder}`,
+									background: customerType === type
+										? (type === 'wholesale' ? 'rgba(245,158,11,0.15)' : 'var(--primary-15)')
+										: t.inputBg,
+									color: customerType === type
+										? (type === 'wholesale' ? '#f59e0b' : 'var(--primary)')
+										: t.textFaint,
+									textTransform: "capitalize",
+								}}
+							>
+								{type === 'wholesale' ? 'Wholesale' : 'Retail'}
+							</button>
+						))}
+					</div>
 				</div>
 
 				{/* Footer */}

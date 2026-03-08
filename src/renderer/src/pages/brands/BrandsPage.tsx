@@ -215,34 +215,28 @@ export const BrandsPage: React.FC = () => {
   const handleDeleteSuccess = () => { setDeleteTarget(null); refetch(); };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.brands}</h1>
-          <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>
-            {brands.length} brands · {activeCount} active
-          </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: "320px" }}>
+          <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}>
+            <Icon name="search" size={13} />
+          </div>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search brands..."
+            style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px 9px 33px", color: t.text, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+          />
         </div>
-        <button
-          onClick={() => setModal({ open: true, brand: null })}
-          style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}
-        >
-          <Icon name="plus" size={13} /> New Brand
-        </button>
-      </div>
-
-      {/* Search */}
-      <div style={{ position: "relative", maxWidth: "320px" }}>
-        <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}>
-          <Icon name="search" size={13} />
+        <div style={{ marginLeft: "auto" }}>
+          <button
+            onClick={() => setModal({ open: true, brand: null })}
+            style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+          >
+            <Icon name="plus" size={13} /> New Brand
+          </button>
         </div>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search brands..."
-          style={{ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px 9px 33px", color: t.text, fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-        />
       </div>
 
       {/* Table */}

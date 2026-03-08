@@ -384,6 +384,7 @@ export function listAllProductsForLocation(
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
+      wholesalePrice: products.wholesalePrice,
       taxRate: products.taxRate,
       isSerialized: products.isSerialized,
       imageUrl: products.imageUrl,
@@ -411,7 +412,27 @@ export function listAllProductsForLocation(
   }
   const total = totalQuery.where(where).get()?.c ?? 0;
 
-  return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
+  // Count uninitialized products (no stock record) across ALL pages using base conditions (no lowStock filter)
+  const baseConditions: any[] = [];
+  if (params?.isActive !== undefined) {
+    baseConditions.push(eq(products.isActive, params.isActive));
+  } else {
+    baseConditions.push(eq(products.isActive, true));
+  }
+  if (params?.search) {
+    baseConditions.push(
+      sql`(${products.name} LIKE ${"%" + params.search + "%"} OR ${products.sku} LIKE ${"%" + params.search + "%"})`
+    );
+  }
+  if (params?.brandId) baseConditions.push(eq(products.brandId, params.brandId));
+  const uninitializedCount = db
+    .select({ c: sql<number>`COUNT(*)` })
+    .from(products)
+    .leftJoin(stock, and(eq(stock.productId, products.id), eq(stock.locationId, locationId)))
+    .where(and(...baseConditions, sql`${stock.id} IS NULL`))
+    .get()?.c ?? 0;
+
+  return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize), uninitializedCount };
 }
 
 /**

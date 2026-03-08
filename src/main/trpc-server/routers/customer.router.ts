@@ -11,6 +11,7 @@ const CreateCustomerSchema = z.object({
   address: z.string().optional(),
   taxId: z.string().optional(),
   creditLimit: z.number().nonnegative().optional(),
+  customerType: z.enum(['retail', 'wholesale']).optional(),
 })
 
 const PaginationSchema = z.object({
@@ -27,6 +28,7 @@ export const customerRouter = router({
       PaginationSchema.extend({
         search: z.string().optional(), // searches name, email, phone
         isActive: z.boolean().optional(),
+        customerType: z.enum(['retail', 'wholesale']).optional(),
       }).optional()
     )
     .query(({ input }) => {

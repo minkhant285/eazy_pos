@@ -50,4 +50,11 @@ export const accountingRouter = router({
       try { return AccountingService.getTopProducts(input.fromDate, input.toDate, input.limit); }
       catch (err) { mapError(err); }
     }),
+
+  /** Debt snapshot: customer receivables + supplier payables with top debtors */
+  debtSummary: publicProcedure
+    .query(() => {
+      try { return AccountingService.getDebtSummary(); }
+      catch (err) { mapError(err); }
+    }),
 });

@@ -14,6 +14,7 @@ const CreateProductSchema = z.object({
   unitOfMeasure: z.string().optional(),
   costPrice: z.number().nonnegative(),
   sellingPrice: z.number().positive(),
+  wholesalePrice: z.number().nonnegative().optional(),
   taxRate: z.number().min(0).max(1).optional(),       // e.g. 0.07 = 7%
   isSerialized: z.boolean().optional(),
   imageUrl: z.string().optional(),

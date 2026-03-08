@@ -11,6 +11,19 @@ import {
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
 
+/** Update supplier outstanding balance (delta > 0 = owe more, delta < 0 = paid off) */
+function updateSupplierBalance(supplierId: string, delta: number) {
+  const supplier = db.select({ outstandingBalance: suppliers.outstandingBalance })
+    .from(suppliers).where(eq(suppliers.id, supplierId)).get();
+  if (!supplier) throw new NotFoundError("Supplier", supplierId);
+  const newBalance = Math.max(0, (supplier.outstandingBalance ?? 0) + delta);
+  db.update(suppliers)
+    .set({ outstandingBalance: newBalance, updatedAt: now() })
+    .where(eq(suppliers.id, supplierId))
+    .run();
+  return newBalance;
+}
+
 // ─── Types ───────────────────────────────────────────────────
 
 export type POItem = {
@@ -26,6 +39,7 @@ export type CreatePOInput = {
   expectedAt?: string;
   notes?: string;
   createdBy: string;
+  paidAmount?: number;  // Amount paid upfront (rest becomes supplier debt)
 };
 
 export type UpdatePOInput = {
@@ -70,6 +84,9 @@ export function createPurchaseOrder(input: CreatePOInput) {
     });
   }
 
+  const paidAmount = Math.min(input.paidAmount ?? 0, subtotal);
+  const debtAmount = subtotal - paidAmount;
+
   db.insert(purchaseOrders)
     .values({
       id,
@@ -81,12 +98,18 @@ export function createPurchaseOrder(input: CreatePOInput) {
       subtotal,
       taxAmount: 0,
       totalAmount: subtotal,
+      paidAmount,
       notes: input.notes ?? null,
       createdBy: input.createdBy,
     })
     .run();
 
   db.insert(purchaseOrderItems).values(itemRows).run();
+
+  // Track supplier debt if not fully paid upfront
+  if (debtAmount > 0) {
+    updateSupplierBalance(input.supplierId, debtAmount);
+  }
 
   return getPurchaseOrderById(id);
 }
@@ -106,6 +129,7 @@ export function getPurchaseOrderById(id: string) {
       subtotal: purchaseOrders.subtotal,
       taxAmount: purchaseOrders.taxAmount,
       totalAmount: purchaseOrders.totalAmount,
+      paidAmount: purchaseOrders.paidAmount,
       notes: purchaseOrders.notes,
       createdBy: users.name,
       createdAt: purchaseOrders.createdAt,
@@ -171,6 +195,7 @@ export function listPurchaseOrders(params?: {
       locationName: locations.name,
       status: purchaseOrders.status,
       totalAmount: purchaseOrders.totalAmount,
+      paidAmount: purchaseOrders.paidAmount,
       expectedAt: purchaseOrders.expectedAt,
       createdAt: purchaseOrders.createdAt,
     })
@@ -387,6 +412,35 @@ export function getPurchaseOrderSummary(fromDate: string, toDate: string) {
       )
     )
     .get();
+}
+
+// ─── Debt Payments ────────────────────────────────────────────
+
+/** Record a payment against a PO's outstanding debt. Reduces supplier balance. */
+export function recordPODebtPayment(poId: string, amount: number) {
+  return db.transaction(() => {
+    const po = getPurchaseOrderById(poId);
+    const remaining = po.totalAmount - (po.paidAmount ?? 0);
+
+    if (remaining <= 0) {
+      throw new ValidationError("This purchase order has no outstanding debt.");
+    }
+    if (amount <= 0 || amount > remaining + 0.001) {
+      throw new ValidationError(
+        `Payment ${amount.toFixed(2)} exceeds remaining debt ${remaining.toFixed(2)}.`
+      );
+    }
+
+    const newPaid = (po.paidAmount ?? 0) + amount;
+    db.update(purchaseOrders)
+      .set({ paidAmount: newPaid, updatedAt: now() })
+      .where(eq(purchaseOrders.id, poId))
+      .run();
+
+    updateSupplierBalance(po.supplierId, -amount);
+
+    return getPurchaseOrderById(poId);
+  });
 }
 
 // ─── Internal helpers ─────────────────────────────────────────

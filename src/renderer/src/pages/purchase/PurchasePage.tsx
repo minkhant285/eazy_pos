@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<POStatus, { bg: string; text: string }> = {
   cancelled:  { bg: "rgba(239,68,68,0.15)",   text: "#ef4444" },
 };
 
-interface POItem { productId: string; productName: string; qtyOrdered: number; unitCost: number; }
+interface POItem { productId: string; productName: string; productSku: string; imageUrl: string | null; qtyOrdered: number; unitCost: number; }
 
 // ── PO Detail Drawer ──────────────────────────────────────────
 
@@ -37,8 +37,11 @@ const PODetailDrawer: React.FC<PODetailDrawerProps> = ({ poId, onClose, onRefetc
 
   const { data: po, isLoading, refetch: refetchDetail } = trpc.purchaseOrder.getById.useQuery({ id: poId });
 
-  const sendMut   = trpc.purchaseOrder.send.useMutation({ onSuccess: () => { refetchDetail(); onRefetch(); } });
-  const cancelMut = trpc.purchaseOrder.cancel.useMutation({ onSuccess: () => { refetchDetail(); onRefetch(); } });
+  const sendMut    = trpc.purchaseOrder.send.useMutation({ onSuccess: () => { refetchDetail(); onRefetch(); } });
+  const cancelMut  = trpc.purchaseOrder.cancel.useMutation({ onSuccess: () => { refetchDetail(); onRefetch(); } });
+  const payDebtMut = trpc.purchaseOrder.payDebt.useMutation({ onSuccess: () => { refetchDetail(); onRefetch(); setDebtPayAmount(""); } });
+
+  const [debtPayAmount, setDebtPayAmount] = React.useState("");
 
   const status = ((po as any)?.status ?? "draft") as POStatus;
   const sc     = STATUS_COLORS[status];
@@ -47,6 +50,10 @@ const PODetailDrawer: React.FC<PODetailDrawerProps> = ({ poId, onClose, onRefetc
   const totalOrdered  = items.reduce((s, i) => s + Number(i.qtyOrdered),  0);
   const totalReceived = items.reduce((s, i) => s + Number(i.qtyReceived ?? 0), 0);
   const pct           = totalOrdered > 0 ? Math.round((totalReceived / totalOrdered) * 100) : 0;
+
+  const poTotalAmount = Number((po as any)?.totalAmount ?? 0);
+  const poPaidAmount  = Number((po as any)?.paidAmount ?? 0);
+  const poDebtAmount  = Math.max(0, poTotalAmount - poPaidAmount);
 
   const fieldStyle: React.CSSProperties = {
     display: "flex", flexDirection: "column", gap: "2px",
@@ -146,10 +153,56 @@ const PODetailDrawer: React.FC<PODetailDrawerProps> = ({ poId, onClose, onRefetc
                 <div style={fieldStyle}>
                   <span style={fieldLabel}>Total Amount</span>
                   <span style={{ ...fieldValue, color: "var(--primary)", fontWeight: 800, fontSize: "15px" }}>
-                    {sym}{Number((po as any)?.totalAmount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {sym}{poTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
                 </div>
+                <div style={fieldStyle}>
+                  <span style={fieldLabel}>Paid</span>
+                  <span style={{ ...fieldValue, color: poPaidAmount >= poTotalAmount ? "#10b981" : "#f59e0b", fontWeight: 700 }}>
+                    {sym}{poPaidAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                {poDebtAmount > 0 && (
+                  <div style={fieldStyle}>
+                    <span style={fieldLabel}>Outstanding Debt</span>
+                    <span style={{ ...fieldValue, color: "#ef4444", fontWeight: 800 }}>
+                      {sym}{poDebtAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
               </div>
+
+              {/* Debt payment section */}
+              {poDebtAmount > 0 && (
+                <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "12px", padding: "14px" }}>
+                  <p style={{ color: "#ef4444", fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "10px" }}>
+                    Record Debt Payment
+                  </p>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input
+                      type="number" min="0.01" max={poDebtAmount} step="0.01"
+                      value={debtPayAmount}
+                      onChange={(e) => setDebtPayAmount(e.target.value)}
+                      placeholder={`Max ${sym}${poDebtAmount.toFixed(2)}`}
+                      style={{ flex: 1, background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "9px", padding: "8px 12px", color: t.text, fontSize: "13px", outline: "none", fontFamily: "inherit" }}
+                    />
+                    <button
+                      onClick={() => {
+                        const amt = parseFloat(debtPayAmount);
+                        if (!amt || amt <= 0) return;
+                        payDebtMut.mutate({ poId, amount: amt });
+                      }}
+                      disabled={!debtPayAmount || parseFloat(debtPayAmount) <= 0 || payDebtMut.isPending}
+                      style={{ padding: "8px 16px", borderRadius: "9px", border: "none", background: "#ef4444", color: "#fff", fontSize: "12px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
+                    >
+                      {payDebtMut.isPending ? "Saving…" : "Pay"}
+                    </button>
+                  </div>
+                  {payDebtMut.error && (
+                    <p style={{ color: "#ef4444", fontSize: "11px", marginTop: "6px" }}>{(payDebtMut.error as any)?.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* Notes */}
               {(po as any)?.notes && (
@@ -592,6 +645,7 @@ export const PurchasePage: React.FC = () => {
   const [expectedAt, setExpectedAt] = useState("");
   const [items, setItems]           = useState<POItem[]>([]);
   const [productSearch, setProductSearch] = useState("");
+  const [paidAmount, setPaidAmount] = useState("");
 
   const PAGE_SIZE = 20;
 
@@ -609,7 +663,7 @@ export const PurchasePage: React.FC = () => {
   const { data: usersData } = trpc.user.list.useQuery({ pageSize: 100 });
   const users = usersData?.data ?? [];
 
-  const { data: productsData } = trpc.product.list.useQuery(
+  const { data: productsData, isFetching: productsFetching } = trpc.product.list.useQuery(
     { search: productSearch || undefined, pageSize: 30, isActive: true },
     { enabled: createOpen }
   );
@@ -619,12 +673,19 @@ export const PurchasePage: React.FC = () => {
 
   const closeCreate = () => {
     setCreateOpen(false); setSupplierId(""); setLocationId(""); setCreatedBy("");
-    setNotes(""); setExpectedAt(""); setItems([]); setProductSearch("");
+    setNotes(""); setExpectedAt(""); setItems([]); setProductSearch(""); setPaidAmount("");
   };
 
   const addItem = (p: typeof productResults[0]) => {
     if (items.find((i) => i.productId === p.id)) return;
-    setItems((prev) => [...prev, { productId: p.id, productName: p.name, qtyOrdered: 1, unitCost: Number((p as any).costPrice ?? 0) }]);
+    setItems((prev) => [...prev, {
+      productId: p.id,
+      productName: p.name,
+      productSku: (p as any).sku ?? "",
+      imageUrl: (p as any).imageUrl ?? null,
+      qtyOrdered: 1,
+      unitCost: Number((p as any).costPrice ?? 0),
+    }]);
     setProductSearch("");
   };
 
@@ -636,11 +697,13 @@ export const PurchasePage: React.FC = () => {
 
   const handleCreate = () => {
     if (!supplierId || !locationId || !createdBy || items.length === 0) return;
+    const paid = parseFloat(paidAmount) || 0;
     createMut.mutate({
       supplierId, locationId, createdBy,
       notes: notes.trim() || undefined,
       expectedAt: expectedAt || undefined,
       items: items.map(({ productId, qtyOrdered, unitCost }) => ({ productId, qtyOrdered, unitCost })),
+      paidAmount: paid > 0 ? paid : undefined,
     });
   };
 
@@ -656,31 +719,27 @@ export const PurchasePage: React.FC = () => {
   const labelStyle = { color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Purchase Orders</h1>
-          <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} orders</p>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Toolbar */}
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px" }}>
+          {([undefined, "draft", "sent", "partial", "received", "cancelled"] as (POStatus | undefined)[]).map((s) => {
+            const label  = s ?? "All";
+            const active = statusFilter === s;
+            const col    = s ? STATUS_COLORS[s] : null;
+            return (
+              <button key={String(s)} onClick={() => { setStatusFilter(s); setPage(1); }}
+                style={{ padding: "6px 11px", borderRadius: "8px", border: "none", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize", transition: "all 0.15s", background: active ? (col?.bg ?? t.surface) : "transparent", color: active ? (col?.text ?? t.text) : t.textMuted, boxShadow: active ? "0 1px 4px rgba(0,0,0,0.1)" : "none" }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
-        <button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-          <Icon name="plus" size={13} /> New Order
-        </button>
-      </div>
-
-      {/* Status Tabs */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        {([undefined, "draft", "sent", "partial", "received", "cancelled"] as (POStatus | undefined)[]).map((s) => {
-          const label  = s ?? "All";
-          const active = statusFilter === s;
-          const col    = s ? STATUS_COLORS[s] : null;
-          return (
-            <button key={String(s)} onClick={() => { setStatusFilter(s); setPage(1); }}
-              style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize", background: active ? (col?.bg ?? "var(--primary)20") : t.inputBg, color: active ? (col?.text ?? "var(--primary)") : t.textMuted }}>
-              {label}
-            </button>
-          );
-        })}
+        <div style={{ marginLeft: "auto" }}>
+          <button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            <Icon name="plus" size={13} /> New Order
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -704,6 +763,8 @@ export const PurchasePage: React.FC = () => {
           const locationName = (o as any).locationName ?? (o as any).location?.name ?? "—";
           const itemCount    = (o as any).itemCount ?? (o as any).items?.length ?? 0;
           const totalAmt     = Number((o as any).totalAmount ?? 0);
+          const paidAmt      = Number((o as any).paidAmount ?? 0);
+          const hasDebt      = paidAmt < totalAmt;
           const poNumber     = (o as any).poNumber ?? `#${String(o.id).slice(-8).toUpperCase()}`;
           const isSelected   = detailPoId === o.id;
           return (
@@ -726,7 +787,14 @@ export const PurchasePage: React.FC = () => {
               <span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{locationName}</span>
               <span style={{ display: "inline-flex", padding: "3px 9px", borderRadius: "6px", fontSize: "10px", fontWeight: 700, background: sc.bg, color: sc.text, textTransform: "capitalize", width: "fit-content" }}>{status}</span>
               <span style={{ color: t.textMuted, fontSize: "12px" }}>{itemCount}</span>
-              <span style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>{sym}{totalAmt.toLocaleString()}</span>
+              <div>
+                <span style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>{sym}{totalAmt.toLocaleString()}</span>
+                {hasDebt && (
+                  <p style={{ color: "#ef4444", fontSize: "10px", fontWeight: 700, marginTop: "1px" }}>
+                    Debt {sym}{(totalAmt - paidAmt).toLocaleString()}
+                  </p>
+                )}
+              </div>
 
               {/* Action buttons — stopPropagation so they don't open the drawer */}
               <div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
@@ -764,113 +832,205 @@ export const PurchasePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Create PO Modal */}
+      {/* Create PO Modal — full window, two-column */}
       {createOpen && (
         <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={closeCreate}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
-          <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: "560px", margin: "0 16px", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "20px", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", overflow: "hidden", animation: "slideUp 0.22s ease", display: "flex", flexDirection: "column", maxHeight: "90vh" }}>
-            <div style={{ padding: "22px 22px 16px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexShrink: 0 }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }} />
+          <div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "min(95vw, 1140px)", height: "min(90vh, 780px)", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "20px", boxShadow: "0 32px 100px rgba(0,0,0,0.35)", animation: "slideUp 0.22s ease", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+
+            {/* Header */}
+            <div style={{ padding: "18px 24px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
               <div>
                 <h2 style={{ color: t.text, fontWeight: 700, fontSize: "16px" }}>New Purchase Order</h2>
-                <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "3px" }}>Create a draft purchase order</p>
+                <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>Search and add products on the left, fill order details on the right</p>
               </div>
-              <button onClick={closeCreate} style={{ width: "28px", height: "28px", borderRadius: "8px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={13} /></button>
+              <button onClick={closeCreate} style={{ width: "30px", height: "30px", borderRadius: "8px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><Icon name="close" size={13} /></button>
             </div>
 
-            <div style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: "14px", overflowY: "auto", flex: 1 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={labelStyle}>Supplier *</label>
-                 <AppSelect
-                  value={supplierId}
-                  onChange={setSupplierId}
-                  options={[{ value: '', label: 'Select supplier' }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
-                />
-                </div>
-                <div>
-                  <label style={labelStyle}>Location *</label>
-                 <AppSelect
-                  value={locationId}
-                  onChange={setLocationId}
-                  options={[{ value: '', label: 'Select location' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
-                  isSearchable={false}
-                />
-                </div>
-              </div>
+            {/* Two-column body */}
+            <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 380px", overflow: "hidden" }}>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-                <div>
-                  <label style={labelStyle}>Created By *</label>
-                 <AppSelect
-                  value={createdBy}
-                  onChange={setCreatedBy}
-                  options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
-                  isSearchable={false}
-                />
-                  {users.length === 0 && <p style={{ color: "#f59e0b", fontSize: "11px", marginTop: "4px" }}>No users found — create a user first</p>}
-                </div>
-                <div>
-                  <label style={labelStyle}>Expected Date</label>
-                  <input type="date" value={expectedAt} onChange={(e) => setExpectedAt(e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
-                </div>
-              </div>
+              {/* ── LEFT: Stock search + selected items ── */}
+              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: `1px solid ${t.borderMid}` }}>
 
-              <div>
-                <label style={labelStyle}>Notes</label>
-                <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes" style={inputStyle} />
-              </div>
+                {/* Search bar */}
+                <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.borderMid}`, flexShrink: 0, position: "relative" }}>
+                  <div style={{ position: "relative" }}>
+                    <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: productSearch ? t.textMuted : t.textFaint }}>
+                      {productsFetching && productSearch
+                        ? <div style={{ width: "13px", height: "13px", border: `2px solid ${t.border}`, borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 0.6s linear infinite" }} />
+                        : <Icon name="search" size={13} />
+                      }
+                    </div>
+                    <input
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      placeholder="Search products to add…"
+                      style={{ ...inputStyle, paddingLeft: "33px" }}
+                      autoFocus
+                    />
+                  </div>
 
-              <div>
-                <label style={labelStyle}>Add Products</label>
-                <div style={{ position: "relative" }}>
-                  <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
-                  <input value={productSearch} onChange={(e) => setProductSearch(e.target.value)} placeholder="Search products to add..." style={{ ...inputStyle, paddingLeft: "33px" }} />
+                  {/* Dropdown — absolute, scoped to search section via position:relative parent */}
+                  {productSearch && !productsFetching && productResults.length === 0 && (
+                    <div style={{ position: "absolute", left: "20px", right: "20px", top: "100%", zIndex: 10, marginTop: "4px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "8px", animation: "dropdownOpen 0.18s cubic-bezier(0.22,1,0.36,1) both", transformOrigin: "top", boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
+                      <Icon name="search" size={14} style={{ color: t.textFaint, flexShrink: 0 }} />
+                      <p style={{ color: t.textFaint, fontSize: "12px" }}>No products found for "<span style={{ color: t.textMuted, fontWeight: 600 }}>{productSearch}</span>"</p>
+                    </div>
+                  )}
+                  {productSearch && productResults.length > 0 && (
+                    <div style={{ position: "absolute", left: "20px", right: "20px", top: "100%", zIndex: 10, marginTop: "4px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", overflow: "hidden", maxHeight: "260px", overflowY: "auto", transformOrigin: "top", animation: "dropdownOpen 0.18s cubic-bezier(0.22,1,0.36,1) both", boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
+                      {productResults.map((p, pi) => {
+                        const alreadyAdded = items.some((i) => i.productId === p.id);
+                        return (
+                          <div key={p.id} onClick={() => !alreadyAdded && addItem(p)}
+                            style={{ padding: "9px 14px", cursor: alreadyAdded ? "default" : "pointer", display: "flex", alignItems: "center", gap: "10px", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s, opacity 0.15s", opacity: alreadyAdded ? 0.45 : 1, animation: `rowSlideIn 0.18s ease both`, animationDelay: `${pi * 25}ms` }}
+                            onMouseEnter={(e) => { if (!alreadyAdded) e.currentTarget.style.background = t.surfaceHover; }}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                            <div style={{ width: "36px", height: "36px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: "#fff", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {(p as any).imageUrl
+                                ? <img src={(p as any).imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                : <Icon name="product" size={16} style={{ color: t.textFaint }} />
+                              }
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ color: t.text, fontWeight: 600, fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.name}</p>
+                              <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{(p as any).sku}</p>
+                            </div>
+                            {alreadyAdded
+                              ? <span style={{ fontSize: "10px", color: "#10b981", fontWeight: 700, flexShrink: 0 }}>Added</span>
+                              : <Icon name="plus" size={13} style={{ color: "var(--primary)", flexShrink: 0 }} />
+                            }
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                {productSearch && productResults.length > 0 && (
-                  <div style={{ marginTop: "4px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", overflow: "hidden", maxHeight: "160px", overflowY: "auto" }}>
-                    {productResults.map((p) => (
-                      <div key={p.id} onClick={() => addItem(p)}
-                        style={{ padding: "9px 12px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.1s" }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                        <div>
-                          <span style={{ color: t.text, fontWeight: 600 }}>{p.name}</span>
-                          <span style={{ color: t.textFaint, fontSize: "11px", marginLeft: "8px" }}>{(p as any).sku}</span>
-                        </div>
-                        <span style={{ color: "var(--primary)", fontSize: "12px" }}><Icon name="plus" size={12} /></span>
+
+                {/* Selected items list */}
+                <div style={{ flex: 1, overflowY: "auto" }}>
+                  {items.length === 0 ? (
+                    <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", opacity: 0.4 }}>
+                      <Icon name="product" size={36} style={{ color: t.textFaint }} />
+                      <p style={{ color: t.textFaint, fontSize: "13px" }}>Search and add products above</p>
+                    </div>
+                  ) : (
+                    <div style={{ animation: "slideUp 0.2s ease both" }}>
+                      {/* Column headers */}
+                      <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "8px 20px", borderBottom: `1px solid ${t.borderMid}`, position: "sticky", top: 0, background: t.surface, zIndex: 1 }}>
+                        {["", "Product", "Qty", `Cost (${sym})`, ""].map((h, i) => (
+                          <span key={i} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{h}</span>
+                        ))}
                       </div>
-                    ))}
+                      {items.map((item, idx) => (
+                        <div key={item.productId} style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "10px 20px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, animation: "rowSlideIn 0.22s cubic-bezier(0.22,1,0.36,1) both" }}>
+                          <div style={{ width: "36px", height: "36px", borderRadius: "7px", overflow: "hidden", background: "#fff", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            {item.imageUrl
+                              ? <img src={item.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                              : <Icon name="product" size={14} style={{ color: t.textFaint }} />
+                            }
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ color: t.text, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
+                            <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{item.productSku}</p>
+                          </div>
+                          <input type="number" min={1} value={item.qtyOrdered} onChange={(e) => updateItem(idx, "qtyOrdered", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px", textAlign: "center" }} />
+                          <input type="number" min={0} step={0.01} value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px" }} />
+                          <button onClick={() => removeItem(idx)} style={{ width: "24px", height: "24px", borderRadius: "6px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={10} /></button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Items count + subtotal bar */}
+                {items.length > 0 && (
+                  <div style={{ padding: "12px 20px", borderTop: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, background: t.inputBg }}>
+                    <span style={{ color: t.textMuted, fontSize: "12px" }}>{items.length} product{items.length !== 1 ? "s" : ""} selected</span>
+                    <span style={{ color: t.text, fontSize: "14px", fontWeight: 700 }}>{sym}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
               </div>
 
-              {items.length > 0 && (
-                <div style={{ background: t.inputBg, borderRadius: "12px", overflow: "hidden" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 90px 28px", gap: "8px", padding: "8px 12px", borderBottom: `1px solid ${t.borderMid}` }}>
-                    {["Product", "Qty", "Unit Cost", ""].map((h, i) => (
-                      <span key={i} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{h}</span>
-                    ))}
+              {/* ── RIGHT: Order form ── */}
+              <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+                <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "14px" }}>
+
+                  <div>
+                    <label style={labelStyle}>Supplier *</label>
+                    <AppSelect
+                      value={supplierId}
+                      onChange={setSupplierId}
+                      options={[{ value: '', label: 'Select supplier' }, ...suppliers.map((s) => ({ value: s.id, label: s.name }))]}
+                    />
                   </div>
-                  {items.map((item, idx) => (
-                    <div key={item.productId} style={{ display: "grid", gridTemplateColumns: "1fr 80px 90px 28px", gap: "8px", padding: "8px 12px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}` }}>
-                      <span style={{ color: t.text, fontSize: "12px", fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</span>
-                      <input type="number" min={1} value={item.qtyOrdered} onChange={(e) => updateItem(idx, "qtyOrdered", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px", textAlign: "center" }} />
-                      <input type="number" min={0} step={0.01} value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px" }} />
-                      <button onClick={() => removeItem(idx)} style={{ width: "24px", height: "24px", borderRadius: "6px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={10} /></button>
+
+                  <div>
+                    <label style={labelStyle}>Location *</label>
+                    <AppSelect
+                      value={locationId}
+                      onChange={setLocationId}
+                      options={[{ value: '', label: 'Select location' }, ...locations.map((l) => ({ value: l.id, label: l.name }))]}
+                      isSearchable={false}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Created By *</label>
+                    <AppSelect
+                      value={createdBy}
+                      onChange={setCreatedBy}
+                      options={[{ value: '', label: 'Select user' }, ...users.map((u) => ({ value: u.id, label: u.name }))]}
+                      isSearchable={false}
+                    />
+                    {users.length === 0 && <p style={{ color: "#f59e0b", fontSize: "11px", marginTop: "4px" }}>No users found — create a user first</p>}
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Expected Date</label>
+                    <input type="date" value={expectedAt} onChange={(e) => setExpectedAt(e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Notes</label>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes…" rows={3} style={{ ...inputStyle, resize: "none" as const, lineHeight: "1.5" }} />
+                  </div>
+
+                  {/* Payment */}
+                  <div style={{ background: t.inputBg, borderRadius: "12px", padding: "14px 16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <p style={{ color: t.textMuted, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Payment</p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ color: t.textMuted, fontSize: "12px" }}>Order Total</span>
+                      <span style={{ color: t.text, fontSize: "14px", fontWeight: 700 }}>{sym}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                     </div>
-                  ))}
-                  <div style={{ padding: "10px 12px", display: "flex", justifyContent: "flex-end" }}>
-                    <span style={{ color: t.text, fontSize: "13px", fontWeight: 700 }}>Total: {sym}{totalValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px" }}>
+                      <label style={{ color: t.textMuted, fontSize: "12px", flexShrink: 0 }}>Paid Now</label>
+                      <input
+                        type="number" min="0" max={totalValue} step="0.01"
+                        value={paidAmount}
+                        onChange={(e) => setPaidAmount(e.target.value)}
+                        placeholder="0.00"
+                        style={{ ...inputStyle, width: "130px", padding: "6px 10px", fontSize: "13px", textAlign: "right" }}
+                      />
+                    </div>
+                    {parseFloat(paidAmount) >= 0 && parseFloat(paidAmount) < totalValue && totalValue > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: "rgba(239,68,68,0.08)", borderRadius: "8px", border: "1px solid rgba(239,68,68,0.2)" }}>
+                        <span style={{ color: "#ef4444", fontSize: "12px", fontWeight: 600 }}>Supplier Debt</span>
+                        <span style={{ color: "#ef4444", fontSize: "13px", fontWeight: 700 }}>{sym}{(totalValue - (parseFloat(paidAmount) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div style={{ padding: "0 22px 22px", display: "flex", gap: "10px", flexShrink: 0 }}>
-              <button onClick={closeCreate} disabled={createMut.isPending} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
-              <button onClick={handleCreate} disabled={createMut.isPending || !canCreate} style={{ flex: 1, padding: "10px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canCreate ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: createMut.isPending || !canCreate ? 0.7 : 1 }}>
-                {createMut.isPending ? "Creating..." : "Create Draft PO"}
-              </button>
+                {/* Action buttons */}
+                <div style={{ padding: "16px 20px", borderTop: `1px solid ${t.borderMid}`, display: "flex", gap: "10px", flexShrink: 0 }}>
+                  <button onClick={closeCreate} disabled={createMut.isPending} style={{ flex: 1, padding: "11px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "13px", cursor: "pointer", fontFamily: "inherit" }}>{tr.cancel}</button>
+                  <button onClick={handleCreate} disabled={createMut.isPending || !canCreate} style={{ flex: 2, padding: "11px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: !canCreate ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: createMut.isPending || !canCreate ? 0.7 : 1 }}>
+                    {createMut.isPending ? "Creating…" : "Create Draft PO"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

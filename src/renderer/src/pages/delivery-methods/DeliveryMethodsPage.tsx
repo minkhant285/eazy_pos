@@ -273,25 +273,10 @@ export const DeliveryMethodsPage: React.FC = () => {
         <DeleteModal method={deleteTarget} onClose={() => setDeleteTarget(null)} onDeleted={refetch} />
       )}
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ color: t.text, fontSize: '20px', fontWeight: 800, letterSpacing: '-0.4px' }}>Delivery Methods</h1>
-          <p style={{ color: t.textFaint, fontSize: '12px', marginTop: '3px' }}>
-            Courier and shipping providers available at POS checkout
-          </p>
-        </div>
-        <button
-          onClick={() => setEditTarget('new')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            padding: '9px 16px', borderRadius: '11px', border: 'none',
-            background: 'var(--primary)', color: '#fff',
-            fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          <Icon name="plus" size={14} />
-          Add Provider
+      {/* Toolbar */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={() => setEditTarget('new')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '9px 16px', borderRadius: '11px', border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          <Icon name="plus" size={14} /> Add Provider
         </button>
       </div>
 

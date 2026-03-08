@@ -58,6 +58,7 @@ export const suppliers = sqliteTable("suppliers", {
   phone: text("phone"),
   address: text("address"),
   taxId: text("tax_id"),
+  outstandingBalance: real("outstanding_balance").notNull().default(0),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   ...timestamps,
 });
@@ -99,6 +100,7 @@ export const products = sqliteTable("products", {
   unitOfMeasure: text("unit_of_measure").notNull().default("pcs"), // pcs, kg, liter, box
   costPrice: real("cost_price").notNull().default(0),       // Latest purchase cost
   sellingPrice: real("selling_price").notNull(),
+  wholesalePrice: real("wholesale_price"),                  // Optional wholesale price
   taxRate: real("tax_rate").notNull().default(0),           // e.g. 0.07 for 7%
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   isSerialized: integer("is_serialized", { mode: "boolean" }).notNull().default(false),
@@ -137,6 +139,7 @@ export const productVariants = sqliteTable("product_variants", {
   barcode: text("barcode").unique(),
   costPrice: real("cost_price").notNull().default(0),
   sellingPrice: real("selling_price").notNull(),
+  wholesalePrice: real("wholesale_price"),
   imageUrl: text("image_url"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   ...timestamps,
@@ -287,6 +290,7 @@ export const customers = sqliteTable("customers", {
   phone: text("phone"),
   address: text("address"),
   taxId: text("tax_id"),
+  customerType: text("customer_type", { enum: ["retail", "wholesale"] }).notNull().default("retail"),
   loyaltyPoints: integer("loyalty_points").notNull().default(0),
   creditLimit: real("credit_limit").notNull().default(0),
   outstandingBalance: real("outstanding_balance").notNull().default(0),
@@ -442,6 +446,7 @@ export const purchaseOrders = sqliteTable("purchase_orders", {
   subtotal: real("subtotal").notNull().default(0),
   taxAmount: real("tax_amount").notNull().default(0),
   totalAmount: real("total_amount").notNull().default(0),
+  paidAmount: real("paid_amount").notNull().default(0),
   notes: text("notes"),
   createdBy: text("created_by").references(() => users.id),
   ...timestamps,

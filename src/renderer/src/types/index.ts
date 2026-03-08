@@ -17,6 +17,7 @@ export interface ThemeTokens {
 
 export interface Customer {
   id: string; name: string; email: string | null; phone: string | null;
+  customerType: 'retail' | 'wholesale';
   loyaltyPoints: number; outstandingBalance: number; creditLimit: number;
   isActive: boolean; createdAt: string;
 }

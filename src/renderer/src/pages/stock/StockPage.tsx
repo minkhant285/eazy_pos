@@ -220,8 +220,8 @@ const VariantStockModal: React.FC<VariantStockModalProps> = ({ productId, produc
 
 // ─────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 50;
-const COLS = "40px 80px 1.5fr 55px 85px 90px 80px";
+const PAGE_SIZE = 10;
+const COLS = "40px 80px 1.5fr 90px 90px 90px 55px 80px";
 
 // ── Set Qty Modal ─────────────────────────────────────────────
 
@@ -370,7 +370,7 @@ export const StockPage: React.FC = () => {
 	const inventory = inventoryData?.data ?? [];
 	const total = inventoryData?.total ?? 0;
 	const totalPages = Math.max(inventoryData?.totalPages ?? 1, 1);
-	const uninitializedCount = inventory.filter((i: any) => !i.hasRecord).length;
+	const uninitializedCount = inventoryData?.uninitializedCount ?? 0;
 
 	const pageButtons = Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
 		const start = Math.max(1, Math.min(page - 2, totalPages - 4));
@@ -400,6 +400,7 @@ export const StockPage: React.FC = () => {
 		unitOfMeasure: item.unitOfMeasure,
 		costPrice: item.costPrice,
 		sellingPrice: item.sellingPrice,
+		wholesalePrice: item.wholesalePrice ?? null,
 		taxRate: item.taxRate ?? 0,
 		isSerialized: item.isSerialized ?? false,
 		imageUrl: item.imageUrl ?? null,
@@ -459,25 +460,24 @@ export const StockPage: React.FC = () => {
 			},
 		},
 		{
-			id: "unitOfMeasure",
-			accessorKey: "unitOfMeasure",
-			header: "Unit",
+			id: "sellingPrice",
+			accessorKey: "sellingPrice",
+			header: "Unit Price",
 			cell: ({ getValue }) => (
-				<span style={{ color: t.textMuted, fontSize: "12px" }}>{getValue<string>()}</span>
+				<span style={{ color: t.text, fontSize: "13px", fontWeight: 500 }}>
+					{sym}{Number(getValue<number>()).toLocaleString()}
+				</span>
 			),
 		},
 		{
-			id: "qtyOnHand",
-			accessorKey: "qtyOnHand",
-			header: "On Hand",
-			cell: ({ row }) => {
-				const item = row.original;
-				return (
-					<span style={{ color: !item.hasRecord ? t.textFaint : t.text, fontSize: "13px", fontWeight: 500 }}>
-						{!item.hasRecord ? "—" : Number(item.qtyOnHand).toLocaleString()}
-					</span>
-				);
-			},
+			id: "costPrice",
+			accessorKey: "costPrice",
+			header: "Cost Price",
+			cell: ({ getValue }) => (
+				<span style={{ color: t.textMuted, fontSize: "13px", fontWeight: 500 }}>
+					{sym}{Number(getValue<number>()).toLocaleString()}
+				</span>
+			),
 		},
 		{
 			id: "qtyAvailable",
@@ -491,6 +491,14 @@ export const StockPage: React.FC = () => {
 					</span>
 				);
 			},
+		},
+		{
+			id: "unitOfMeasure",
+			accessorKey: "unitOfMeasure",
+			header: "Unit",
+			cell: ({ getValue }) => (
+				<span style={{ color: t.textMuted, fontSize: "12px" }}>{getValue<string>()}</span>
+			),
 		},
 		{
 			id: "actions",
@@ -526,34 +534,27 @@ export const StockPage: React.FC = () => {
 	});
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.stock}</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>
-						Click a row to set quantity · Edit or deactivate with the action buttons
-					</p>
-				</div>
-				<div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
+			<div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+				{locations.length > 0 ? (
+					<AppSelect
+						value={locationId}
+						onChange={(v) => { setLocationId(v); setPage(1); setSearch(""); }}
+						options={locations.map((l) => ({ value: l.id, label: l.name }))}
+						isSearchable={false}
+						minWidth={180}
+					/>
+				) : (
+					<span style={{ color: t.textFaint, fontSize: "13px" }}>No locations configured</span>
+				)}
+				<div style={{ marginLeft: "auto" }}>
 					<button
 						onClick={() => setProductModal("create")}
-						style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+						style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}
 					>
-						<Icon name="plus" size={13} style={{ color: "#fff" }} />
-						Add Product
+						<Icon name="plus" size={13} style={{ color: "#fff" }} /> Add Product
 					</button>
-					{locations.length > 0 ? (
-						<AppSelect
-					value={locationId}
-					onChange={(v) => { setLocationId(v); setPage(1); setSearch(""); }}
-					options={locations.map((l) => ({ value: l.id, label: l.name }))}
-					isSearchable={false}
-					minWidth={180}
-				/>
-					) : (
-						<span style={{ color: t.textFaint, fontSize: "13px" }}>No locations configured</span>
-					)}
 				</div>
 			</div>
 

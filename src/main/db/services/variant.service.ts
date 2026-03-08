@@ -147,6 +147,7 @@ export function updateVariant(
     barcode?: string | null;
     costPrice?: number;
     sellingPrice?: number;
+    wholesalePrice?: number | null;
     imageUrl?: string | null;
     isActive?: boolean;
   }

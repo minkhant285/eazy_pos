@@ -163,8 +163,11 @@ export const DashboardPage: React.FC = () => {
 			{ enabled }
 		);
 
-	const isRefreshing = f1 || f2 || f3 || f4 || f6 || f7 || f8;
-	const handleRefresh = () => { r1(); r2(); r3(); r4(); r6(); r7(); r8(); };
+	const { data: debtData, isFetching: f9, refetch: r9 } =
+		trpc.accounting.debtSummary.useQuery();
+
+	const isRefreshing = f1 || f2 || f3 || f4 || f6 || f7 || f8 || f9;
+	const handleRefresh = () => { r1(); r2(); r3(); r4(); r6(); r7(); r8(); r9(); };
 
 	// ── Derived ───────────────────────────────────────────────
 	const revenue      = Number(todaySummary?.totalRevenue     ?? 0);
@@ -366,6 +369,70 @@ export const DashboardPage: React.FC = () => {
 				))}
 			</div>
 
+			{/* Debt Overview */}
+			<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+
+				{/* Customer Debt */}
+				<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "18px 20px" }}>
+					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
+						<div>
+							<p style={{ color: t.textFaint, fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Customer Debt</p>
+							<p style={{ color: "#f59e0b", fontSize: "22px", fontWeight: 800, marginTop: "2px", letterSpacing: "-0.5px" }}>{fmt(debtData?.customerDebt ?? 0)}</p>
+							<p style={{ color: t.textFaint, fontSize: "11px", marginTop: "2px" }}>{debtData?.customerDebtCount ?? 0} customer{(debtData?.customerDebtCount ?? 0) !== 1 ? "s" : ""} owe you</p>
+						</div>
+						<div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#f59e0b,#ea580c)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75" /></svg>
+						</div>
+					</div>
+					{(debtData?.topCustomers?.length ?? 0) > 0 ? (
+						<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+							{debtData!.topCustomers.map((c, i) => (
+								<div key={c.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+									<div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+										<span style={{ color: t.textFaint, fontSize: "10px", fontWeight: 700, width: "14px", flexShrink: 0 }}>{i + 1}</span>
+										<span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</span>
+									</div>
+									<span style={{ color: "#f59e0b", fontSize: "12px", fontWeight: 700, flexShrink: 0, marginLeft: "8px" }}>{sym}{c.debt.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+								</div>
+							))}
+						</div>
+					) : (
+						<p style={{ color: t.textFaint, fontSize: "12px" }}>No outstanding customer debts</p>
+					)}
+					<button onClick={() => setPage("customers")} style={{ marginTop: "14px", width: "100%", padding: "8px", borderRadius: "9px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>View Customers →</button>
+				</div>
+
+				{/* Supplier Debt */}
+				<div style={{ background: t.surface, border: `1px solid ${t.border}`, borderRadius: "16px", padding: "18px 20px" }}>
+					<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "14px" }}>
+						<div>
+							<p style={{ color: t.textFaint, fontSize: "10.5px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Supplier Debt</p>
+							<p style={{ color: "#ef4444", fontSize: "22px", fontWeight: 800, marginTop: "2px", letterSpacing: "-0.5px" }}>{fmt(debtData?.supplierDebt ?? 0)}</p>
+							<p style={{ color: t.textFaint, fontSize: "11px", marginTop: "2px" }}>You owe {debtData?.supplierDebtCount ?? 0} supplier{(debtData?.supplierDebtCount ?? 0) !== 1 ? "s" : ""}</p>
+						</div>
+						<div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#ef4444,#dc2626)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z M3 6h18 M16 10a4 4 0 01-8 0" /></svg>
+						</div>
+					</div>
+					{(debtData?.topSuppliers?.length ?? 0) > 0 ? (
+						<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
+							{debtData!.topSuppliers.map((s, i) => (
+								<div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+									<div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+										<span style={{ color: t.textFaint, fontSize: "10px", fontWeight: 700, width: "14px", flexShrink: 0 }}>{i + 1}</span>
+										<span style={{ color: t.textMuted, fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</span>
+									</div>
+									<span style={{ color: "#ef4444", fontSize: "12px", fontWeight: 700, flexShrink: 0, marginLeft: "8px" }}>{sym}{s.debt.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+								</div>
+							))}
+						</div>
+					) : (
+						<p style={{ color: t.textFaint, fontSize: "12px" }}>No outstanding supplier debts</p>
+					)}
+					<button onClick={() => setPage("suppliers")} style={{ marginTop: "14px", width: "100%", padding: "8px", borderRadius: "9px", border: `1px solid ${t.inputBorder}`, background: "transparent", color: t.textMuted, fontSize: "11px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>View Suppliers →</button>
+				</div>
+			</div>
+
 			{/* Financial Overview + Expense side by side */}
 			<div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", alignItems: "stretch" }}>
 
@@ -454,10 +521,12 @@ export const DashboardPage: React.FC = () => {
 				{/* P&L rows */}
 				<div style={{ display: "flex", flexDirection: "column", gap: "7px" }}>
 					{[
-						{ label: tr.total_revenue, val: rangeRevenue,     color: t.text },
-						{ label: tr.total_cost,    val: rangeCogs,        color: t.textMuted },
-						{ label: tr.gross_profit,  val: rangeGrossProfit, color: rangeGrossProfit >= 0 ? "#10b981" : "#ef4444" },
-						{ label: tr.expenses,      val: totalExpenses,    color: totalExpenses > 0 ? "#ef4444" : t.textFaint },
+						{ label: tr.total_revenue,       val: rangeRevenue,                     color: t.text },
+						{ label: tr.total_cost,          val: rangeCogs,                        color: t.textMuted },
+						{ label: tr.gross_profit,        val: rangeGrossProfit,                 color: rangeGrossProfit >= 0 ? "#10b981" : "#ef4444" },
+						{ label: tr.expenses,            val: totalExpenses,                    color: totalExpenses > 0 ? "#ef4444" : t.textFaint },
+						{ label: "Receivables (Credit)", val: debtData?.customerDebt ?? 0,      color: "#f59e0b" },
+						{ label: "Payables (Owed)",      val: -(debtData?.supplierDebt ?? 0),   color: debtData?.supplierDebt ? "#ef4444" : t.textFaint },
 					].map((row) => (
 						<div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 							<span style={{ color: t.textFaint, fontSize: "12px" }}>{row.label}</span>

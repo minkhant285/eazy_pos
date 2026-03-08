@@ -17,6 +17,7 @@ export type ProductForEdit = {
   unitOfMeasure: string;
   costPrice: number;
   sellingPrice: number;
+  wholesalePrice: number | null;
   taxRate: number;
   isSerialized: boolean;
   imageUrl: string | null;
@@ -36,7 +37,7 @@ const VariantsTab: React.FC<{ productId: string }> = ({ productId }) => {
 
   const [newAttrName, setNewAttrName] = useState("");
   const [newOptionValues, setNewOptionValues] = useState<Record<string, string>>({});
-  const [editingVariant, setEditingVariant] = useState<Record<string, Partial<{ sku: string; costPrice: string; sellingPrice: string }>>>({});
+  const [editingVariant, setEditingVariant] = useState<Record<string, Partial<{ sku: string; costPrice: string; sellingPrice: string; wholesalePrice: string }>>>({});
 
   const { data: attrs, refetch: refetchAttrs } = trpc.variant.getAttributes.useQuery({ productId });
   const { data: variants, refetch: refetchVariants } = trpc.variant.listVariants.useQuery({ productId });
@@ -79,6 +80,7 @@ const VariantsTab: React.FC<{ productId: string }> = ({ productId }) => {
     if (field === "sku") data.sku = value;
     else if (field === "costPrice" && !isNaN(numVal)) data.costPrice = numVal;
     else if (field === "sellingPrice" && !isNaN(numVal) && numVal > 0) data.sellingPrice = numVal;
+    else if (field === "wholesalePrice") data.wholesalePrice = value.trim() ? (isNaN(numVal) ? null : numVal) : null;
     if (Object.keys(data).length > 0) updateVariant.mutate({ id, data });
     setEditingVariant((prev) => {
       const next = { ...prev };
@@ -188,9 +190,9 @@ const VariantsTab: React.FC<{ productId: string }> = ({ productId }) => {
           </p>
           <div style={{ border: `1px solid ${t.inputBorder}`, borderRadius: "10px", overflow: "hidden" }}>
             {/* Header */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 130px 90px 90px 60px", gap: "0", background: t.inputBg, padding: "7px 10px", borderBottom: `1px solid ${t.inputBorder}` }}>
-              {["Combination", "SKU", `Cost (${sym})`, `Price (${sym})`, "Active"].map((h) => (
-                <span key={h} style={{ color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>{h}</span>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 80px 80px 80px 52px", gap: "0", background: t.inputBg, padding: "7px 10px", borderBottom: `1px solid ${t.inputBorder}` }}>
+              {["Combination", "SKU", `Cost (${sym})`, `Price (${sym})`, `W.Price (${sym})`, "Active"].map((h, i) => (
+                <span key={h} style={{ color: i === 4 ? '#f59e0b' : t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase" }}>{h}</span>
               ))}
             </div>
             {variantList.map((v: any, i: number) => {
@@ -198,7 +200,7 @@ const VariantsTab: React.FC<{ productId: string }> = ({ productId }) => {
               return (
                 <div
                   key={v.id}
-                  style={{ display: "grid", gridTemplateColumns: "1fr 130px 90px 90px 60px", gap: "0", padding: "7px 10px", borderBottom: i < variantList.length - 1 ? `1px solid ${t.borderMid}` : "none", alignItems: "center" }}
+                  style={{ display: "grid", gridTemplateColumns: "1fr 120px 80px 80px 80px 52px", gap: "0", padding: "7px 10px", borderBottom: i < variantList.length - 1 ? `1px solid ${t.borderMid}` : "none", alignItems: "center" }}
                 >
                   <span style={{ color: t.text, fontSize: "12px", fontWeight: 600 }}>{v.optionLabel || "—"}</span>
 
@@ -226,6 +228,16 @@ const VariantsTab: React.FC<{ productId: string }> = ({ productId }) => {
                     onChange={(e) => setEditingVariant((p) => ({ ...p, [v.id]: { ...p[v.id], sellingPrice: e.target.value } }))}
                     onBlur={(e) => saveVariantField(v.id, "sellingPrice", e.target.value)}
                     style={{ ...inputStyle, fontSize: "11px", padding: "4px 7px" }}
+                  />
+
+                  {/* Wholesale Price */}
+                  <input
+                    type="number" min="0" step="0.01"
+                    value={editing.wholesalePrice ?? (v.wholesalePrice != null ? String(v.wholesalePrice) : "")}
+                    onChange={(e) => setEditingVariant((p) => ({ ...p, [v.id]: { ...p[v.id], wholesalePrice: e.target.value } }))}
+                    onBlur={(e) => saveVariantField(v.id, "wholesalePrice", e.target.value)}
+                    placeholder="—"
+                    style={{ ...inputStyle, fontSize: "11px", padding: "4px 7px", borderColor: (editing.wholesalePrice ?? (v.wholesalePrice != null ? String(v.wholesalePrice) : "")) ? 'rgba(245,158,11,0.4)' : undefined }}
                   />
 
                   {/* Active toggle */}
@@ -270,6 +282,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
   const [unitOfMeasure, setUnit]      = useState(product?.unitOfMeasure ?? "pcs");
   const [costPrice, setCostPrice]     = useState(String(product?.costPrice ?? ""));
   const [sellingPrice, setSelling]    = useState(String(product?.sellingPrice ?? ""));
+  const [wholesalePrice, setWholesale] = useState(String(product?.wholesalePrice ?? ""));
   const [taxRate, setTaxRate]         = useState(String(product?.taxRate ? product.taxRate * 100 : 0));
   const [isSerialized, setSerialized] = useState(product?.isSerialized ?? false);
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
@@ -344,6 +357,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
       unitOfMeasure,
       costPrice:    isNaN(costNum) ? 0 : costNum,
       sellingPrice: sellNum,
+      wholesalePrice: wholesalePrice.trim() ? parseFloat(wholesalePrice) : undefined,
       taxRate:      (parseFloat(taxRate) || 0) / 100,
       isSerialized,
       imageUrl:     imageUrl || undefined,
@@ -586,7 +600,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
               </div>
 
               {/* Prices */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 110px", gap: "10px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 100px", gap: "10px" }}>
                 <div>
                   <label style={labelStyle}>Cost Price ({sym}) *</label>
                   <input type="number" min="0" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00" style={inputStyle} />
@@ -594,6 +608,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, on
                 <div>
                   <label style={labelStyle}>Selling Price ({sym}) *</label>
                   <input type="number" min="0.01" step="0.01" value={sellingPrice} onChange={(e) => setSelling(e.target.value)} placeholder="0.00" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ ...labelStyle, color: '#f59e0b' }}>Wholesale Price ({sym})</label>
+                  <input type="number" min="0" step="0.01" value={wholesalePrice} onChange={(e) => setWholesale(e.target.value)} placeholder="Optional" style={{ ...inputStyle, borderColor: wholesalePrice ? 'rgba(245,158,11,0.4)' : undefined }} />
                 </div>
                 <div>
                   <label style={labelStyle}>Tax Rate (%)</label>

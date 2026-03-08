@@ -42,22 +42,16 @@ export const CategoriesPage: React.FC = () => {
 	const labelStyle = { color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.categories}</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{filtered.length} categories</p>
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
+			<div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+				<div style={{ position: "relative", flex: 1, maxWidth: "280px" }}>
+					<div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
+					<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search categories..." style={{ ...inputStyle, padding: "9px 12px 9px 33px", width: "100%" }} />
 				</div>
-				<button onClick={() => openModal()} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit" }}>
+				<button onClick={() => openModal()} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
 					<Icon name="plus" size={13} /> New Category
 				</button>
-			</div>
-
-			{/* Search */}
-			<div style={{ position: "relative", maxWidth: "280px" }}>
-				<div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
-				<input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search categories..." style={{ ...inputStyle, padding: "9px 12px 9px 33px", maxWidth: "280px" }} />
 			</div>
 
 			{/* Table */}

@@ -60,32 +60,28 @@ export const SuppliersPage: React.FC = () => {
   const labelStyle = { color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Suppliers</h1>
-          <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} suppliers</p>
-        </div>
-        <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-          <Icon name="plus" size={13} /> New Supplier
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Toolbar */}
+      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ position: "relative", flex: 1, minWidth: "200px", maxWidth: "280px" }}>
           <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search suppliers..." style={{ ...inputStyle, padding: "9px 12px 9px 33px" }} />
         </div>
-        {(["all", "active", "inactive"] as const).map((f) => {
-          const active = f === "all" ? isActive === undefined : f === "active" ? isActive === true : isActive === false;
-          return (
-            <button key={f} onClick={() => { setIsActive(f === "all" ? undefined : f === "active"); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "var(--primary)" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
-              {f}
-            </button>
-          );
-        })}
+        <div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px" }}>
+          {(["all", "active", "inactive"] as const).map((f) => {
+            const active = f === "all" ? isActive === undefined : f === "active" ? isActive === true : isActive === false;
+            return (
+              <button key={f} onClick={() => { setIsActive(f === "all" ? undefined : f === "active"); setPage(1); }} style={{ padding: "6px 11px", borderRadius: "8px", border: "none", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", background: active ? t.surface : "transparent", color: active ? t.text : t.textMuted, boxShadow: active ? "0 1px 4px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s", textTransform: "capitalize" }}>
+                {f}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+            <Icon name="plus" size={13} /> New Supplier
+          </button>
+        </div>
       </div>
 
       {/* Table */}

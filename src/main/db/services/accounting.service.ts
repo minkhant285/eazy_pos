@@ -2,7 +2,7 @@ import { eq, and, sql, gte, lte, inArray } from "drizzle-orm";
 import { db } from "../db";
 import {
   sales, saleItems, payments, expenses, expenseCategories,
-  products, categories, stock, customers, purchaseOrders,
+  products, categories, stock, customers, suppliers, purchaseOrders,
 } from "../schemas/schema";
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -98,9 +98,9 @@ export function getCashFlowSummary(fromDate: string, toDate: string) {
     .groupBy(expenses.paymentMethod)
     .all();
 
-  // Cash out: received purchases (inventory cost)
+  // Cash out: actual cash paid on purchases (paidAmount, not full PO total)
   const purchaseRow = db.select({
-    total: sql<number>`COALESCE(SUM(${purchaseOrders.totalAmount}), 0)`,
+    total: sql<number>`COALESCE(SUM(${purchaseOrders.paidAmount}), 0)`,
     count: sql<number>`COUNT(*)`,
   }).from(purchaseOrders)
     .where(and(
@@ -196,12 +196,12 @@ export function getBalanceSheet() {
     .where(and(eq(customers.isActive, true), sql`${customers.outstandingBalance} > 0`))
     .get();
 
-  // Liability: accounts payable (open/partial purchase orders)
+  // Liability: accounts payable — actual unpaid debt to suppliers
   const apRow = db.select({
-    total: sql<number>`COALESCE(SUM(${purchaseOrders.totalAmount}), 0)`,
+    total: sql<number>`COALESCE(SUM(${suppliers.outstandingBalance}), 0)`,
     count: sql<number>`COUNT(*)`,
-  }).from(purchaseOrders)
-    .where(inArray(purchaseOrders.status, ["draft", "sent", "partial"]))
+  }).from(suppliers)
+    .where(sql`${suppliers.outstandingBalance} > 0`)
     .get();
 
   const inventoryValue     = num(invRow?.value);
@@ -220,8 +220,8 @@ export function getBalanceSheet() {
     },
     liabilities: {
       accountsPayable,
-      apOrderCount: num(apRow?.count),
-      total:        totalLiabilities,
+      apSupplierCount: num(apRow?.count),
+      total:           totalLiabilities,
     },
     equity: totalAssets - totalLiabilities,
   };
@@ -296,4 +296,57 @@ export function getTopProducts(fromDate: string, toDate: string, limit = 15) {
         ? ((num(r.revenue) - num(r.cogs)) / num(r.revenue)) * 100
         : 0,
     }));
+}
+
+// ── Debt Summary ──────────────────────────────────────────────
+
+/** Snapshot of all outstanding debts — customer receivables + supplier payables */
+export function getDebtSummary() {
+  // Customer debt owed TO us (accounts receivable)
+  const arRow = db.select({
+    total: sql<number>`COALESCE(SUM(${customers.outstandingBalance}), 0)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(customers)
+    .where(and(eq(customers.isActive, true), sql`${customers.outstandingBalance} > 0`))
+    .get();
+
+  // Supplier debt WE owe (accounts payable)
+  const apRow = db.select({
+    total: sql<number>`COALESCE(SUM(${suppliers.outstandingBalance}), 0)`,
+    count: sql<number>`COUNT(*)`,
+  }).from(suppliers)
+    .where(sql`${suppliers.outstandingBalance} > 0`)
+    .get();
+
+  // Top 5 customers with highest debt
+  const topCustomers = db.select({
+    id:   customers.id,
+    name: customers.name,
+    debt: customers.outstandingBalance,
+  }).from(customers)
+    .where(and(eq(customers.isActive, true), sql`${customers.outstandingBalance} > 0`))
+    .orderBy(sql`${customers.outstandingBalance} DESC`)
+    .limit(5)
+    .all();
+
+  // Top 5 suppliers with highest debt
+  const topSuppliers = db.select({
+    id:   suppliers.id,
+    name: suppliers.name,
+    debt: suppliers.outstandingBalance,
+  }).from(suppliers)
+    .where(sql`${suppliers.outstandingBalance} > 0`)
+    .orderBy(sql`${suppliers.outstandingBalance} DESC`)
+    .limit(5)
+    .all();
+
+  return {
+    customerDebt:      num(arRow?.total),
+    customerDebtCount: num(arRow?.count),
+    supplierDebt:      num(apRow?.total),
+    supplierDebtCount: num(apRow?.count),
+    netReceivable:     num(arRow?.total) - num(apRow?.total),
+    topCustomers:      topCustomers.map(r => ({ id: r.id, name: r.name, debt: num(r.debt) })),
+    topSuppliers:      topSuppliers.map(r => ({ id: r.id, name: r.name, debt: num(r.debt) })),
+  };
 }

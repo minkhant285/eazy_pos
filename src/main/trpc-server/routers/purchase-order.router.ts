@@ -57,6 +57,7 @@ export const purchaseOrderRouter = router({
         expectedAt: z.string().optional(),
         notes: z.string().optional(),
         createdBy: z.string().uuid(),
+        paidAmount: z.number().nonnegative().optional(),
       })
     )
     .mutation(({ input }) => {
@@ -181,6 +182,20 @@ export const purchaseOrderRouter = router({
     .query(({ input }) => {
       try {
         return PurchaseOrderService.getPurchaseOrderSummary(input.fromDate, input.toDate)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /purchaseOrder.payDebt — record a payment against a PO's outstanding debt */
+  payDebt: publicProcedure
+    .input(z.object({
+      poId: z.string().uuid(),
+      amount: z.number().positive(),
+    }))
+    .mutation(({ input }) => {
+      try {
+        return PurchaseOrderService.recordPODebtPayment(input.poId, input.amount)
       } catch (err) {
         mapError(err)
       }

@@ -105,7 +105,7 @@ export const saleRouter = router({
         deliveryAddressId: z.string().uuid().optional(),
         deliveryMethodId: z.string().optional(),
         items: z.array(CartItemSchema).min(1),
-        payments: z.array(PaymentInputSchema).min(1),
+        payments: z.array(PaymentInputSchema).min(0),
         discountAmount: z.number().nonnegative().optional(),
         notes: z.string().optional(),
       })
@@ -335,6 +335,39 @@ export const saleRouter = router({
     .query(({ input }) => {
       try {
         return SaleService.listOnlineOrders(input?.onlineStatus)
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** POST /sale.payDebt — record a debt payment for a credit sale */
+  payDebt: publicProcedure
+    .input(
+      z.object({
+        saleId: z.string().uuid(),
+        method: z.enum(['cash', 'credit_card', 'debit_card', 'qr_code', 'store_credit', 'loyalty_points']),
+        amount: z.number().positive(),
+        reference: z.string().optional(),
+      })
+    )
+    .mutation(({ input }) => {
+      try {
+        return SaleService.recordSaleDebtPayment(input.saleId, {
+          method: input.method,
+          amount: input.amount,
+          reference: input.reference,
+        })
+      } catch (err) {
+        mapError(err)
+      }
+    }),
+
+  /** GET /sale.listDebts — list sales with outstanding debt */
+  listDebts: publicProcedure
+    .input(z.object({ customerId: z.string().uuid().optional() }).optional())
+    .query(({ input }) => {
+      try {
+        return SaleService.listDebtSales(input?.customerId)
       } catch (err) {
         mapError(err)
       }

@@ -30,6 +30,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 		unitOfMeasure: product?.unitOfMeasure ?? "pcs",
 		costPrice: String(product?.costPrice ?? "0"),
 		sellingPrice: String(product?.sellingPrice ?? "0"),
+		wholesalePrice: product?.wholesalePrice != null ? String(product.wholesalePrice) : "",
 		description: product?.description ?? "",
 	});
 
@@ -46,6 +47,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 			unitOfMeasure: form.unitOfMeasure.trim() || undefined,
 			costPrice: Number(form.costPrice) || 0,
 			sellingPrice: Number(form.sellingPrice) || 0,
+			wholesalePrice: form.wholesalePrice.trim() ? Number(form.wholesalePrice) : undefined,
 			description: form.description.trim() || undefined,
 		};
 		if (isNew) create.mutate({ sku: form.sku.trim(), ...base });
@@ -89,9 +91,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, categories, onClos
 					options={[{ value: '', label: 'No category' }, ...categories.map((c) => ({ value: c.id, label: c.name }))]}
 				/>
 					</div>
-					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
 						{field(`Cost Price (${sym})` as string, "costPrice", "0", "number")}
 						{field(`Selling Price (${sym}) *` as string, "sellingPrice", "0", "number")}
+						<div>
+							<label style={{ ...labelStyle, color: "#d97706" }}>Wholesale ({sym})</label>
+							<input value={form.wholesalePrice} onChange={(e) => setForm((f) => ({ ...f, wholesalePrice: e.target.value }))} placeholder="Optional" type="number" style={inputStyle()} />
+						</div>
 					</div>
 					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
 						{field("Unit of Measure", "unitOfMeasure", "pcs")}
@@ -156,19 +162,8 @@ export const ProductsPage: React.FC = () => {
 	const handleModalSuccess = () => { setModal({ open: false, product: null }); refetch(); };
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.products}</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} products</p>
-				</div>
-				<button onClick={() => setModal({ open: true, product: null })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-					<Icon name="plus" size={13} /> New Product
-				</button>
-			</div>
-
-			{/* Filter bar */}
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
 			<div style={{ display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "center" }}>
 				<div style={{ position: "relative", flex: 1, minWidth: "180px", maxWidth: "280px" }}>
 					<div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
@@ -182,6 +177,11 @@ export const ProductsPage: React.FC = () => {
 				<button style={{ display: "flex", alignItems: "center", gap: "5px", padding: "9px 12px", borderRadius: "11px", border: `1px solid ${t.inputBorder}`, background: t.inputBg, color: t.textMuted, fontSize: "12px", cursor: "pointer", fontFamily: "inherit" }}>
 					<Icon name="download" size={13} />{tr.export}
 				</button>
+				<div style={{ marginLeft: "auto" }}>
+					<button onClick={() => setModal({ open: true, product: null })} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+						<Icon name="plus" size={13} /> New Product
+					</button>
+				</div>
 			</div>
 
 			{/* Table */}

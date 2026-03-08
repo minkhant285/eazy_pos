@@ -64,33 +64,29 @@ export const UsersPage: React.FC = () => {
 	const labelStyle = { color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>Users</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} users</p>
-				</div>
-				<button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-					<Icon name="plus" size={13} /> New User
-				</button>
-			</div>
-
-			{/* Filters */}
-			<div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
+			<div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
 				<div style={{ position: "relative", flex: 1, minWidth: "200px", maxWidth: "280px" }}>
 					<div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", color: t.textFaint, pointerEvents: "none" }}><Icon name="search" size={13} /></div>
 					<input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search users..." style={{ ...inputStyle, padding: "9px 12px 9px 33px" }} />
 				</div>
-				{([undefined, "admin", "manager", "cashier"] as (UserRole | undefined)[]).map((r) => {
-					const label = r ?? "All";
-					const active = roleFilter === r;
-					return (
-						<button key={String(r)} onClick={() => { setRoleFilter(r); setPage(1); }} style={{ padding: "7px 14px", borderRadius: "10px", border: "none", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", background: active ? "var(--primary)" : t.inputBg, color: active ? "#fff" : t.textMuted, textTransform: "capitalize" }}>
-							{label}
-						</button>
-					);
-				})}
+				<div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px" }}>
+					{([undefined, "admin", "manager", "cashier"] as (UserRole | undefined)[]).map((r) => {
+						const label = r ?? "All";
+						const active = roleFilter === r;
+						return (
+							<button key={String(r)} onClick={() => { setRoleFilter(r); setPage(1); }} style={{ padding: "6px 11px", borderRadius: "8px", border: "none", fontSize: "12px", fontWeight: 500, cursor: "pointer", fontFamily: "inherit", background: active ? t.surface : "transparent", color: active ? t.text : t.textMuted, boxShadow: active ? "0 1px 4px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s", textTransform: "capitalize" }}>
+								{label}
+							</button>
+						);
+					})}
+				</div>
+				<div style={{ marginLeft: "auto" }}>
+					<button onClick={openCreate} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+						<Icon name="plus" size={13} /> New User
+					</button>
+				</div>
 			</div>
 
 			{/* Table */}

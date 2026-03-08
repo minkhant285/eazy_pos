@@ -545,25 +545,21 @@ export const TransfersPage: React.FC = () => {
 	];
 
 	return (
-		<div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-			{/* Header */}
-			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: "21px", fontWeight: 800, letterSpacing: "-0.5px" }}>{tr.transfers}</h1>
-					<p style={{ color: t.textMuted, fontSize: "12px", marginTop: "2px" }}>{total} stock transfers</p>
+		<div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+			{/* Toolbar */}
+			<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+				<div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px" }}>
+					{statusOptions.map((s) => (
+						<button key={s.key} onClick={() => { setStatusFilter(s.key); setPage(1); }}
+							style={{ padding: "6px 11px", borderRadius: "8px", fontSize: "12px", fontWeight: 500, border: "none", cursor: "pointer", fontFamily: "inherit", background: statusFilter === s.key ? t.surface : "transparent", color: statusFilter === s.key ? t.text : t.textMuted, boxShadow: statusFilter === s.key ? "0 1px 4px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}
+						>{s.label}</button>
+					))}
 				</div>
-				<button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "12px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 16px var(--primary-30)", fontFamily: "inherit", whiteSpace: "nowrap" }}>
-					<Icon name="plus" size={13} /> New Transfer
-				</button>
-			</div>
-
-			{/* Status filter */}
-			<div style={{ display: "flex", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "3px", gap: "2px", width: "fit-content" }}>
-				{statusOptions.map((s) => (
-					<button key={s.key} onClick={() => { setStatusFilter(s.key); setPage(1); }}
-						style={{ padding: "6px 11px", borderRadius: "8px", fontSize: "12px", fontWeight: 500, border: "none", cursor: "pointer", fontFamily: "inherit", background: statusFilter === s.key ? t.surface : "transparent", color: statusFilter === s.key ? t.text : t.textMuted, boxShadow: statusFilter === s.key ? "0 1px 4px rgba(0,0,0,0.1)" : "none", transition: "all 0.15s" }}
-					>{s.label}</button>
-				))}
+				<div style={{ marginLeft: "auto" }}>
+					<button onClick={() => setCreateOpen(true)} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}>
+						<Icon name="plus" size={13} /> New Transfer
+					</button>
+				</div>
 			</div>
 
 			{/* Table */}

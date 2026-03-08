@@ -15,6 +15,7 @@ export type CreateProductInput = {
   unitOfMeasure?: string;
   costPrice: number;
   sellingPrice: number;
+  wholesalePrice?: number;
   taxRate?: number;
   isSerialized?: boolean;
   imageUrl?: string;
@@ -63,6 +64,7 @@ export function createProduct(input: CreateProductInput) {
       unitOfMeasure: input.unitOfMeasure ?? "pcs",
       costPrice: input.costPrice,
       sellingPrice: input.sellingPrice,
+      wholesalePrice: input.wholesalePrice ?? null,
       taxRate: input.taxRate ?? 0,
       isSerialized: input.isSerialized ?? false,
       imageUrl: input.imageUrl ?? null,
@@ -89,6 +91,7 @@ export function getProductById(id: string) {
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
+      wholesalePrice: products.wholesalePrice,
       taxRate: products.taxRate,
       isActive: products.isActive,
       isSerialized: products.isSerialized,
@@ -154,6 +157,7 @@ export function listProducts(params?: ProductFilter) {
       unitOfMeasure: products.unitOfMeasure,
       costPrice: products.costPrice,
       sellingPrice: products.sellingPrice,
+      wholesalePrice: products.wholesalePrice,
       taxRate: products.taxRate,
       isActive: products.isActive,
       imageUrl: products.imageUrl,

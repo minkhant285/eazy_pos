@@ -43,6 +43,13 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 	const [fromDate, setFromDate] = useState('')
 	const [toDate, setToDate] = useState('')
 
+	// ── Debt payment state ───────────────────────────────────────
+	const [debtPayAmount, setDebtPayAmount] = useState('')
+	const payDebtMut = trpc.sale.payDebt.useMutation({
+		onSuccess: () => { refetch(); refetchDetail(); setDebtPayAmount('') },
+		onError: (e) => setActionError(e.message),
+	})
+
 	// ── Void / Return state ──────────────────────────────────────
 	const [actionMode, setActionMode] = useState<'void' | 'return' | null>(null)
 	const [voidReason, setVoidReason] = useState('')
@@ -80,6 +87,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 		setReturnQtys({})
 		setReturnReason('')
 		setActionError('')
+		setDebtPayAmount('')
 	}
 
 	// Auto-select first user as processedBy when users load
@@ -219,6 +227,8 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 						const payMethod = (s as any).primaryPaymentMethod ?? '—'
 						const payRef = (s as any).primaryPaymentReference as string | null | undefined
 						const totalAmt = Number((s as any).totalAmount ?? 0)
+						const paidAmt  = Number((s as any).paidAmount ?? totalAmt)
+						const hasDebt  = paidAmt < totalAmt - 0.001
 						const orderType = ((s as any).orderType ?? 'pos') as 'pos' | 'online'
 						const typeBg = orderType === 'online' ? 'rgba(6,182,212,0.15)' : 'rgba(99,102,241,0.12)'
 						const typeCol = orderType === 'online' ? '#06b6d4' : '#818cf8'
@@ -240,7 +250,14 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 								<span style={{ display: 'inline-flex', padding: '2px 7px', borderRadius: '5px', fontSize: '10px', fontWeight: 700, background: typeBg, color: typeCol, textTransform: 'uppercase', width: 'fit-content' }}>{orderType}</span>
 								<span style={{ display: 'inline-flex', padding: '3px 9px', borderRadius: '6px', fontSize: '10px', fontWeight: 700, background: sc.bg, color: sc.text, textTransform: 'capitalize', width: 'fit-content' }}>{status.replace('_', ' ')}</span>
 								<span style={{ color: t.textMuted, fontSize: '11px' }}>{payMethod === 'qr_code' && payRef ? payRef.split(': ')[0] : METHOD_LABELS[payMethod] ?? payMethod}</span>
+								<div>
 								<span style={{ color: t.text, fontSize: '13px', fontWeight: 700 }}>{sym}{totalAmt.toLocaleString()}</span>
+								{hasDebt && (
+									<p style={{ color: '#ef4444', fontSize: '10px', fontWeight: 700, marginTop: '1px' }}>
+										Debt {sym}{(totalAmt - paidAmt).toLocaleString()}
+									</p>
+								)}
+							</div>
 							</div>
 						)
 					})
@@ -472,6 +489,40 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 											<span style={{ color: t.text, fontSize: '14px', fontWeight: 700 }}>Total</span>
 											<span style={{ color: t.text, fontSize: '16px', fontWeight: 800 }}>{sym}{Number((detail as any).totalAmount ?? 0).toLocaleString()}</span>
 										</div>
+										{(() => {
+											const detailTotal = Number((detail as any).totalAmount ?? 0)
+											const detailPaid  = Number((detail as any).paidAmount ?? detailTotal)
+											const detailDebt  = Math.max(0, detailTotal - detailPaid)
+											if (detailDebt <= 0) return null
+											return (
+												<>
+													<div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '5px' }}>
+														<span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 700 }}>Outstanding Debt</span>
+														<span style={{ color: '#ef4444', fontSize: '14px', fontWeight: 800 }}>{sym}{detailDebt.toLocaleString()}</span>
+													</div>
+													<div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px', padding: '10px', display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+														<input
+															type="number" min="0.01" max={detailDebt} step="0.01"
+															value={debtPayAmount}
+															onChange={(e) => setDebtPayAmount(e.target.value)}
+															placeholder={`Max ${sym}${detailDebt.toFixed(2)}`}
+															style={{ flex: 1, background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: '8px', padding: '7px 10px', color: t.text, fontSize: '12px', outline: 'none', fontFamily: 'inherit' }}
+														/>
+														<button
+															onClick={() => {
+																const amt = parseFloat(debtPayAmount)
+																if (!amt || amt <= 0) return
+																payDebtMut.mutate({ saleId: detailId!, method: 'cash', amount: amt })
+															}}
+															disabled={!debtPayAmount || parseFloat(debtPayAmount) <= 0 || payDebtMut.isPending}
+															style={{ padding: '7px 14px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+														>
+															{payDebtMut.isPending ? 'Saving…' : 'Pay Debt'}
+														</button>
+													</div>
+												</>
+											)
+										})()}
 									</div>
 
 									{/* Action buttons */}
@@ -509,10 +560,22 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 
 export const SalesPage: React.FC = () => {
 	const t = useAppStore((s) => s.theme)
+	const currentUser = useAppStore((s) => s.currentUser)
 
 	const [tab, setTab] = useState<Tab>('pos')
 	const [voucher, setVoucher] = useState<SaleDetail | null>(null)
 	const [voucherAddressId, setVoucherAddressId] = useState<string | undefined>(undefined)
+	const [locationId, setLocationId] = useState('')
+
+	const { data: locationsData } = trpc.location.list.useQuery({ pageSize: 100 })
+	const locations = locationsData?.data ?? []
+
+	React.useEffect(() => {
+		if (!locationId && locations.length > 0) {
+			const def = locations.find((l: any) => l.isDefault) ?? locations[0]
+			if (def) setLocationId(def.id)
+		}
+	}, [locations, locationId])
 
 	const tabBtn = (label: string, value: Tab, icon: string) => {
 		const active = tab === value
@@ -535,16 +598,31 @@ export const SalesPage: React.FC = () => {
 	}
 
 	return (
-		<div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-			{/* Page header */}
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-				<div>
-					<h1 style={{ color: t.text, fontSize: '21px', fontWeight: 800, letterSpacing: '-0.5px' }}>Sales</h1>
-					<p style={{ color: t.textMuted, fontSize: '12px', marginTop: '2px' }}>
-						{tab === 'pos' ? 'POS Terminal — process a new sale' : tab === 'online' ? 'Manage online orders' : 'View and manage sales history'}
-					</p>
+		<div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+			{/* Single combined toolbar row */}
+			<div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+				{/* Left: Location + Cashier */}
+				<div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+					<AppSelect
+						value={locationId}
+						onChange={setLocationId}
+						options={[{ value: '', label: 'Select location…' }, ...locations.map((l: any) => ({ value: l.id, label: l.name }))]}
+						isSearchable={false}
+						minWidth={180}
+					/>
+					{!locationId && (
+						<span style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 600 }}>⚠ Select location</span>
+					)}
+					{locationId && (
+						<div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: '10px' }}>
+							<span style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cashier</span>
+							<span style={{ color: t.text, fontSize: '12px', fontWeight: 600 }}>{currentUser?.name ?? '—'}</span>
+						</div>
+					)}
 				</div>
-				<div style={{ display: 'flex', gap: '8px' }}>
+
+				{/* Right: Tabs */}
+				<div style={{ display: 'flex', gap: '6px', marginLeft: 'auto' }}>
 					{tabBtn('New Sale', 'pos', 'plus')}
 					{tabBtn('Online Orders', 'online', 'sale')}
 					{tabBtn('History', 'history', 'sale')}
@@ -560,6 +638,8 @@ export const SalesPage: React.FC = () => {
 			)}
 			{tab === 'pos' && (
 				<POSTerminal
+					locationId={locationId}
+					setLocationId={setLocationId}
 					onComplete={(sale, addressId) => {
 						setVoucher(sale)
 						setVoucherAddressId(addressId)

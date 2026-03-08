@@ -94,6 +94,7 @@ export const variantRouter = router({
           barcode: z.string().nullable().optional(),
           costPrice: z.number().nonnegative().optional(),
           sellingPrice: z.number().positive().optional(),
+          wholesalePrice: z.number().nonnegative().nullable().optional(),
           imageUrl: z.string().nullable().optional(),
           isActive: z.boolean().optional(),
         }),

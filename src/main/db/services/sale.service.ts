@@ -4,7 +4,7 @@ import { sales, saleItems, payments, products, productVariants, customers, users
 import { newId, now, NotFoundError, ValidationError, generateDocNumber } from "../utils";
 import { upsertStock, appendLedger } from "./stock.service";
 import { upsertVariantStock } from "./variant.service";
-import { addLoyaltyPoints } from "./customer.service";
+import { addLoyaltyPoints, updateOutstandingBalance } from "./customer.service";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -161,11 +161,12 @@ export function createSale(input: CreateSaleInput) {
     const headerDiscount = input.discountAmount ?? 0;
     const totalAmount = subtotal - headerDiscount + totalTax;
     const paidAmount = input.payments.reduce((s, p) => s + p.amount, 0);
-    const changeAmount = paidAmount - totalAmount;
+    const debtAmount = totalAmount - paidAmount;
+    const changeAmount = Math.max(0, paidAmount - totalAmount);
 
-    if (paidAmount < totalAmount) {
+    if (debtAmount > 0 && !input.customerId) {
       throw new ValidationError(
-        `Underpayment. Required: ${totalAmount.toFixed(2)}, Paid: ${paidAmount.toFixed(2)}`
+        `Underpayment. Required: ${totalAmount.toFixed(2)}, Paid: ${paidAmount.toFixed(2)}. Select a customer to allow credit sales.`
       );
     }
 
@@ -194,15 +195,17 @@ export function createSale(input: CreateSaleInput) {
     // ── Insert items ──
     tx.insert(saleItems).values(saleItemRows).run();
 
-    // ── Insert payments ──
-    const paymentRows = input.payments.map((p) => ({
-      id: newId(),
-      saleId,
-      method: p.method,
-      amount: p.amount,
-      reference: p.reference ?? null,
-    }));
-    tx.insert(payments).values(paymentRows).run();
+    // ── Insert payments (may be empty for full-credit sales) ──
+    if (input.payments.length > 0) {
+      const paymentRows = input.payments.map((p) => ({
+        id: newId(),
+        saleId,
+        method: p.method,
+        amount: p.amount,
+        reference: p.reference ?? null,
+      }));
+      tx.insert(payments).values(paymentRows).run();
+    }
 
     // ── Append ledger entries ──
     for (const entry of ledgerEntries) {
@@ -211,7 +214,12 @@ export function createSale(input: CreateSaleInput) {
 
     // ── Loyalty points (1 point per whole currency unit spent) ──
     if (input.customerId) {
-      addLoyaltyPoints(input.customerId, Math.floor(totalAmount));
+      addLoyaltyPoints(input.customerId, Math.floor(paidAmount > 0 ? paidAmount : 0));
+    }
+
+    // ── Outstanding balance for credit/debt sales ──
+    if (debtAmount > 0 && input.customerId) {
+      updateOutstandingBalance(input.customerId, debtAmount);
     }
 
     return getSaleById(saleId);
@@ -317,6 +325,7 @@ export function listSales(params?: SaleFilter) {
       status: sales.status,
       orderType: sales.orderType,
       totalAmount: sales.totalAmount,
+      paidAmount: sales.paidAmount,
       createdAt: sales.createdAt,
       primaryPaymentMethod: sql<string>`(SELECT method FROM payments WHERE sale_id = ${sales.id} LIMIT 1)`,
       primaryPaymentReference: sql<string | null>`(SELECT reference FROM payments WHERE sale_id = ${sales.id} LIMIT 1)`,
@@ -996,5 +1005,79 @@ export function getTopSellingProducts(
     .groupBy(saleItems.productId)
     .orderBy(sql`SUM(${saleItems.qty}) DESC`)
     .limit(limit)
+    .all();
+}
+
+// ─── Debt Payments ────────────────────────────────────────────
+
+export type DebtPaymentInput = {
+  method: typeof payments.$inferInsert["method"];
+  amount: number;
+  reference?: string;
+};
+
+/** Record a debt payment for a credit sale. Reduces customer outstanding balance. */
+export function recordSaleDebtPayment(saleId: string, input: DebtPaymentInput) {
+  return db.transaction(() => {
+    const sale = getSaleById(saleId);
+
+    const remaining = sale.totalAmount - sale.paidAmount;
+    if (remaining <= 0) {
+      throw new ValidationError("This sale has no outstanding debt.");
+    }
+    if (input.amount <= 0 || input.amount > remaining + 0.001) {
+      throw new ValidationError(
+        `Payment amount ${input.amount.toFixed(2)} exceeds remaining debt ${remaining.toFixed(2)}.`
+      );
+    }
+
+    // Insert payment record
+    db.insert(payments).values({
+      id: newId(),
+      saleId,
+      method: input.method,
+      amount: input.amount,
+      reference: input.reference ?? null,
+    }).run();
+
+    // Update sale's paid amount
+    const newPaid = sale.paidAmount + input.amount;
+    db.update(sales)
+      .set({ paidAmount: newPaid, updatedAt: now() })
+      .where(eq(sales.id, saleId))
+      .run();
+
+    // Reduce customer outstanding balance
+    if (sale.customerId) {
+      updateOutstandingBalance(sale.customerId, -input.amount);
+    }
+
+    return getSaleById(saleId);
+  });
+}
+
+/** List sales with outstanding debt (paidAmount < totalAmount) */
+export function listDebtSales(customerId?: string) {
+  const conditions: any[] = [
+    sql`${sales.paidAmount} < ${sales.totalAmount}`,
+    eq(sales.status, "completed"),
+  ];
+  if (customerId) conditions.push(eq(sales.customerId, customerId));
+
+  return db
+    .select({
+      id: sales.id,
+      receiptNo: sales.receiptNo,
+      customerId: sales.customerId,
+      customerName: customers.name,
+      totalAmount: sales.totalAmount,
+      paidAmount: sales.paidAmount,
+      debtAmount: sql<number>`${sales.totalAmount} - ${sales.paidAmount}`,
+      createdAt: sales.createdAt,
+    })
+    .from(sales)
+    .leftJoin(customers, eq(sales.customerId, customers.id))
+    .where(and(...conditions))
+    .orderBy(desc(sales.createdAt))
     .all();
 }
