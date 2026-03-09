@@ -66,6 +66,7 @@ export const ExpensePage: React.FC = () => {
   const [form, setForm]         = useState<ExpenseForm>(emptyForm())
   const [formErr, setFormErr]   = useState('')
   const [delConfirm, setDelConfirm] = useState<string | null>(null)
+  const [detailExpense, setDetailExpense] = useState<typeof expenses[0] | null>(null)
 
   // ── Category modal ───────────────────────────────────────────
   const [catModal, setCatModal]     = useState<'add' | 'edit' | null>(null)
@@ -318,12 +319,17 @@ export const ExpensePage: React.FC = () => {
             ) : expenses.map((row) => (
               <div
                 key={row.id}
+                onClick={() => setDetailExpense(row)}
                 style={{
                   display: 'grid', gridTemplateColumns: '110px 1.4fr 130px 120px 100px 120px 60px',
                   gap: '8px', padding: '11px 16px', alignItems: 'center',
                   borderBottom: `1px solid ${t.borderMid}`,
                   borderLeft: `3px solid ${row.categoryColor ?? 'var(--primary-light)'}`,
+                  cursor: 'pointer', transition: 'background 0.15s',
+                  background: detailExpense?.id === row.id ? t.surfaceHover : 'transparent',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = detailExpense?.id === row.id ? t.surfaceHover : 'transparent')}
               >
                 <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{row.expenseDate}</span>
 
@@ -352,7 +358,7 @@ export const ExpensePage: React.FC = () => {
 
                 <div style={{ display: 'flex', gap: '4px' }}>
                   <button
-                    onClick={() => openEdit(row)}
+                    onClick={(e) => { e.stopPropagation(); openEdit(row); }}
                     style={{ width: '26px', height: '26px', border: 'none', borderRadius: '7px', background: t.inputBg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -360,7 +366,7 @@ export const ExpensePage: React.FC = () => {
                     </svg>
                   </button>
                   <button
-                    onClick={() => setDelConfirm(row.id)}
+                    onClick={(e) => { e.stopPropagation(); setDelConfirm(row.id); }}
                     style={{ width: '26px', height: '26px', border: 'none', borderRadius: '7px', background: 'rgba(239,68,68,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
                   >
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -435,6 +441,52 @@ export const ExpensePage: React.FC = () => {
             ))}
           </div>
         </div>
+      )}
+
+      {/* ── EXPENSE DETAIL DRAWER ────────────────────────────── */}
+      {detailExpense && (
+        <>
+          <div onClick={() => setDetailExpense(null)} style={{ position: 'fixed', inset: 0, zIndex: 55, background: 'rgba(0,0,0,0.35)' }} />
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 56, width: '400px', maxWidth: '100vw', background: t.surface, borderLeft: `1px solid ${t.borderStrong}`, boxShadow: '-16px 0 48px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.22s ease' }}>
+            {/* Header */}
+            <div style={{ padding: '18px 20px', borderBottom: `1px solid ${t.borderMid}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <h2 style={{ color: t.text, fontWeight: 700, fontSize: '15px' }}>Expense Detail</h2>
+              <button onClick={() => setDetailExpense(null)} style={{ width: '30px', height: '30px', borderRadius: '9px', border: 'none', background: t.inputBg, color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>×</button>
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Amount hero */}
+              <div style={{ padding: '20px', borderRadius: '16px', background: `${detailExpense.categoryColor ?? 'var(--primary-light)'}15`, border: `1px solid ${detailExpense.categoryColor ?? 'var(--primary-light)'}30`, textAlign: 'center' }}>
+                <p style={{ color: t.textFaint, fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Amount</p>
+                <p style={{ color: detailExpense.categoryColor ?? 'var(--primary-light)', fontSize: '32px', fontWeight: 800, letterSpacing: '-1px' }}>{fmt(Number(detailExpense.amount))}</p>
+              </div>
+
+              {/* Details */}
+              <div style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {[
+                  ['Description', detailExpense.description],
+                  ['Category', detailExpense.categoryName],
+                  ['Date', detailExpense.expenseDate],
+                  ['Payment', PAYMENT_METHODS.find((m) => m.value === detailExpense.paymentMethod)?.label ?? detailExpense.paymentMethod],
+                  ['Location', detailExpense.locationName],
+                  ['Notes', detailExpense.notes],
+                ].map(([label, val]) => val ? (
+                  <div key={label}>
+                    <p style={{ color: t.textFaint, fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>{label}</p>
+                    <p style={{ color: t.text, fontSize: '13px', fontWeight: 500 }}>{val}</p>
+                  </div>
+                ) : null)}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '14px 20px', borderTop: `1px solid ${t.borderMid}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button onClick={() => { setDelConfirm(detailExpense.id); setDetailExpense(null); }} style={{ padding: '9px 16px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+              <button onClick={() => { openEdit(detailExpense); setDetailExpense(null); }} style={{ flex: 1, padding: '9px', borderRadius: '10px', border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Edit Expense</button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── EXPENSE MODAL ────────────────────────────────────── */}

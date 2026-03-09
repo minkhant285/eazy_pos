@@ -12,6 +12,7 @@ const CreateCustomerSchema = z.object({
   taxId: z.string().optional(),
   creditLimit: z.number().nonnegative().optional(),
   customerType: z.enum(['retail', 'wholesale']).optional(),
+  photoUrl: z.string().nullable().optional(),
 })
 
 const PaginationSchema = z.object({

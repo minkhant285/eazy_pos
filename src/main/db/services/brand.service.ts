@@ -8,6 +8,7 @@ import { newId, now, NotFoundError } from "../utils";
 export type CreateBrandInput = {
   name: string;
   description?: string | null;
+  logoUrl?: string | null;
 };
 
 export type UpdateBrandInput = Partial<CreateBrandInput> & {
@@ -37,6 +38,7 @@ export function createBrand(input: CreateBrandInput) {
       id,
       name: input.name,
       description: input.description ?? null,
+      logoUrl: input.logoUrl ?? null,
     })
     .run();
   return getBrandById(id);
@@ -50,6 +52,7 @@ export function updateBrand(id: string, input: UpdateBrandInput) {
     .set({
       ...(input.name !== undefined && { name: input.name }),
       ...(input.description !== undefined && { description: input.description }),
+      ...(input.logoUrl !== undefined && { logoUrl: input.logoUrl }),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
       updatedAt: now(),
     })

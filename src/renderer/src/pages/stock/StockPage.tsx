@@ -329,6 +329,178 @@ const SetQtyModal: React.FC<SetQtyModalProps> = ({ product, locationId, onClose,
 	);
 };
 
+// ── Product Detail Drawer ─────────────────────────────────────
+
+interface ProductDrawerProps {
+	item: any;
+	locationId: string;
+	lowStockThreshold: number;
+	onClose: () => void;
+	onEdit: () => void;
+	onVariantStock: () => void;
+	onStockSaved: () => void;
+}
+
+const ProductDrawer: React.FC<ProductDrawerProps> = ({ item, locationId, lowStockThreshold, onClose, onEdit, onVariantStock, onStockSaved }) => {
+	const t   = useAppStore((s) => s.theme);
+	const sym = useAppStore((s) => s.currency.symbol);
+
+	const [qty, setQty] = useState(item.hasRecord ? String(item.qtyOnHand ?? item.qtyAvailable) : "");
+	const [cost, setCost] = useState(String(item.costPrice ?? ""));
+	const [saved, setSaved] = useState(false);
+
+	const setQtyMut = trpc.stock.setQty.useMutation({
+		onSuccess: () => {
+			setSaved(true);
+			onStockSaved();
+			setTimeout(() => setSaved(false), 2000);
+		},
+	});
+
+	const handleSave = () => {
+		const qtyNum = Number(qty);
+		const costNum = Number(cost);
+		if (isNaN(qtyNum) || qtyNum < 0 || qty === "") return;
+		if (isNaN(costNum) || costNum < 0) return;
+		setQtyMut.mutate({ productId: item.productId, locationId, qty: qtyNum, unitCost: costNum });
+	};
+
+	const fl: React.CSSProperties = { color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "3px" };
+	const fv: React.CSSProperties = { color: t.text, fontSize: "13px", fontWeight: 500 };
+	const inp: React.CSSProperties = { width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", padding: "9px 12px", color: t.text, fontSize: "13px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" };
+
+	const qtyColor = !item.hasRecord ? t.textFaint : Number(item.qtyAvailable) <= 0 ? "#ef4444" : Number(item.qtyAvailable) <= lowStockThreshold ? "#f59e0b" : "#10b981";
+
+	return (
+		<>
+			<div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 55, background: "rgba(0,0,0,0.35)" }} />
+			<div style={{ position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 56, width: "440px", maxWidth: "100vw", background: t.surface, borderLeft: `1px solid ${t.borderStrong}`, boxShadow: "-16px 0 48px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", animation: "slideInRight 0.22s ease" }}>
+				{/* Header */}
+				<div style={{ padding: "18px 20px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+					<h2 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>Product Detail</h2>
+					<button onClick={onClose} style={{ width: "30px", height: "30px", borderRadius: "9px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+						<Icon name="close" size={13} />
+					</button>
+				</div>
+
+				{/* Body */}
+				<div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
+					{/* Identity */}
+					<div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+						<div style={{ width: "96px", height: "96px", borderRadius: "16px", flexShrink: 0, overflow: "hidden", background: item.imageUrl ? "#fff" : t.inputBg, border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+							{item.imageUrl
+								? <img src={item.imageUrl} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "contain", padding: "6px" }} />
+								: <Icon name="product" size={32} style={{ color: t.textFaint }} />
+							}
+						</div>
+						<div style={{ flex: 1, minWidth: 0 }}>
+							<h3 style={{ color: t.text, fontSize: "16px", fontWeight: 800, letterSpacing: "-0.3px", lineHeight: 1.3 }}>{item.name}</h3>
+							<p style={{ color: t.textFaint, fontSize: "11px", fontFamily: "monospace", marginTop: "4px" }}>{item.sku}</p>
+							<div style={{ display: "flex", gap: "5px", marginTop: "6px", flexWrap: "wrap" }}>
+								{!item.hasRecord && !item.hasVariants && <span style={{ fontSize: "9px", fontWeight: 700, color: "#f59e0b", background: "rgba(245,158,11,0.12)", padding: "2px 7px", borderRadius: "4px" }}>UNINITIALIZED</span>}
+								{item.hasVariants && <span style={{ fontSize: "9px", fontWeight: 700, color: "var(--primary)", background: "var(--primary-10)", padding: "2px 7px", borderRadius: "4px" }}>VARIANTS</span>}
+								{item.hasRecord && !item.hasVariants && Number(item.qtyAvailable) <= lowStockThreshold && <span style={{ fontSize: "9px", fontWeight: 700, color: "#ef4444", background: "rgba(239,68,68,0.1)", padding: "2px 7px", borderRadius: "4px" }}>LOW STOCK</span>}
+							</div>
+						</div>
+					</div>
+
+					{/* Stock qty display */}
+					{!item.hasVariants && (
+						<div style={{ padding: "14px 16px", borderRadius: "14px", background: `${qtyColor}12`, border: `1px solid ${qtyColor}30`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<span style={{ color: t.textMuted, fontSize: "13px", fontWeight: 600 }}>Current Stock</span>
+							<span style={{ color: qtyColor, fontSize: "22px", fontWeight: 800 }}>
+								{!item.hasRecord ? "—" : Number(item.qtyAvailable).toLocaleString()}
+								<span style={{ fontSize: "12px", fontWeight: 500, marginLeft: "4px", color: t.textFaint }}>{item.unitOfMeasure}</span>
+							</span>
+						</div>
+					)}
+
+					{/* Inline stock update (non-variant only) */}
+					{!item.hasVariants && (
+						<div style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: "14px", padding: "16px", display: "flex", flexDirection: "column", gap: "12px" }}>
+							<p style={{ color: t.textMuted, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Update Stock</p>
+							<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+								<div>
+									<label style={{ ...fl, display: "block", marginBottom: "5px" }}>New Qty *</label>
+									<input
+										type="number" min="0" step="1"
+										value={qty}
+										onChange={(e) => { setQty(e.target.value); setSaved(false); }}
+										placeholder={item.hasRecord ? String(item.qtyOnHand ?? item.qtyAvailable) : "0"}
+										style={inp}
+									/>
+								</div>
+								<div>
+									<label style={{ ...fl, display: "block", marginBottom: "5px" }}>Unit Cost ({sym})</label>
+									<input
+										type="number" min="0" step="0.01"
+										value={cost}
+										onChange={(e) => { setCost(e.target.value); setSaved(false); }}
+										placeholder="0.00"
+										style={inp}
+									/>
+								</div>
+							</div>
+							<button
+								onClick={handleSave}
+								disabled={setQtyMut.isPending || qty === ""}
+								style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "none", fontFamily: "inherit", fontSize: "13px", fontWeight: 700, cursor: setQtyMut.isPending || qty === "" ? "not-allowed" : "pointer", transition: "all 0.15s", background: saved ? "#10b981" : qty !== "" ? "var(--primary)" : t.inputBg, color: qty !== "" || saved ? "#fff" : t.textFaint, opacity: setQtyMut.isPending ? 0.7 : 1 }}
+							>
+								{saved ? "✓ Saved" : setQtyMut.isPending ? "Saving…" : "Save Stock"}
+							</button>
+						</div>
+					)}
+
+					{/* Variant stock button */}
+					{item.hasVariants && (
+						<button
+							onClick={onVariantStock}
+							style={{ padding: "12px", borderRadius: "12px", border: `1px solid ${t.inputBorder}`, background: t.inputBg, color: t.text, fontSize: "13px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+						>
+							<Icon name="stock" size={14} style={{ color: "var(--primary)" }} />
+							Manage Variant Stock
+						</button>
+					)}
+
+					{/* Pricing */}
+					<div style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: "14px", padding: "16px" }}>
+						<p style={{ color: t.textMuted, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "12px" }}>Pricing</p>
+						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+							<div>
+								<p style={fl}>Selling Price</p>
+								<p style={{ ...fv, fontSize: "16px", fontWeight: 800 }}>{sym}{Number(item.sellingPrice).toLocaleString()}</p>
+							</div>
+							<div>
+								<p style={fl}>Cost Price</p>
+								<p style={{ ...fv, color: t.textMuted }}>{sym}{Number(item.costPrice).toLocaleString()}</p>
+							</div>
+							{item.wholesalePrice && (
+								<div>
+									<p style={fl}>Wholesale</p>
+									<p style={{ ...fv, color: "#f59e0b" }}>{sym}{Number(item.wholesalePrice).toLocaleString()}</p>
+								</div>
+							)}
+						</div>
+					</div>
+
+					{/* Meta */}
+					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+						{item.categoryName && <div style={{ background: t.inputBg, borderRadius: "10px", padding: "10px 12px" }}><p style={fl}>Category</p><p style={{ ...fv, fontSize: "12px" }}>{item.categoryName}</p></div>}
+						{item.brandName && <div style={{ background: t.inputBg, borderRadius: "10px", padding: "10px 12px" }}><p style={fl}>Brand</p><p style={{ ...fv, fontSize: "12px" }}>{item.brandName}</p></div>}
+					</div>
+				</div>
+
+				{/* Footer */}
+				<div style={{ padding: "14px 20px", borderTop: `1px solid ${t.borderMid}`, flexShrink: 0 }}>
+					<button onClick={onEdit} style={{ width: "100%", padding: "10px", borderRadius: "10px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+						Edit Product
+					</button>
+				</div>
+			</div>
+		</>
+	);
+};
+
 // ── Main StockPage ────────────────────────────────────────────
 
 export const StockPage: React.FC = () => {
@@ -346,6 +518,7 @@ export const StockPage: React.FC = () => {
 	const [editQty, setEditQty] = useState<any | null>(null);
 	const [variantStockItem, setVariantStockItem] = useState<any | null>(null);
 	const [productModal, setProductModal] = useState<null | "create" | ProductForEdit>(null);
+	const [detailItem, setDetailItem] = useState<any | null>(null);
 
 	const { data: locationsData } = trpc.location.list.useQuery({ isActive: true, pageSize: 100 });
 	const locations = locationsData?.data ?? [];
@@ -712,10 +885,10 @@ export const StockPage: React.FC = () => {
 							return (
 								<div
 									key={row.id}
-									onClick={() => item.hasVariants ? setVariantStockItem(item) : setEditQty(item)}
-									style={{ display: "grid", gridTemplateColumns: COLS, gap: "8px", padding: "10px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, cursor: "pointer", transition: "background 0.15s" }}
+									onClick={() => setDetailItem(item)}
+									style={{ display: "grid", gridTemplateColumns: COLS, gap: "8px", padding: "10px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, cursor: "pointer", transition: "background 0.15s", background: detailItem?.productId === item.productId ? t.surfaceHover : "transparent" }}
 									onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
-									onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+									onMouseLeave={(e) => (e.currentTarget.style.background = detailItem?.productId === item.productId ? t.surfaceHover : "transparent")}
 								>
 									{row.getVisibleCells().map((cell) => (
 										<div key={cell.id} style={{ overflow: "hidden", display: "flex", alignItems: "center" }}>
@@ -739,6 +912,19 @@ export const StockPage: React.FC = () => {
 						)}
 					</div>
 				</div>
+			)}
+
+			{/* Product Detail Drawer */}
+			{detailItem && (
+				<ProductDrawer
+					item={detailItem}
+					locationId={locationId}
+					lowStockThreshold={lowStockThreshold}
+					onClose={() => setDetailItem(null)}
+					onEdit={() => { setProductModal(rowToProduct(detailItem)); setDetailItem(null); }}
+					onVariantStock={() => { setVariantStockItem(detailItem); setDetailItem(null); }}
+					onStockSaved={() => refetch()}
+				/>
 			)}
 
 			{/* Variant Stock modal */}

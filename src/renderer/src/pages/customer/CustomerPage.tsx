@@ -159,6 +159,118 @@ const AddressBookModal: React.FC<{ customer: Customer; onClose: () => void }> = 
 	);
 };
 
+// ── Customer Drawer ───────────────────────────────────────────
+
+const CustomerDrawer: React.FC<{ customer: Customer; onClose: () => void; onEdit: () => void; onDeactivate: () => void }> = ({ customer, onClose, onEdit, onDeactivate }) => {
+	const t   = useAppStore((s) => s.theme);
+	const sym = useAppStore((s) => s.currency.symbol);
+	const c = customer as any;
+
+	const fl: React.CSSProperties = { color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "3px" };
+	const fv: React.CSSProperties = { color: t.text, fontSize: "13px", fontWeight: 500 };
+
+	return (
+		<>
+			<div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 55, background: "rgba(0,0,0,0.35)" }} />
+			<div style={{ position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 56, width: "420px", maxWidth: "100vw", background: t.surface, borderLeft: `1px solid ${t.borderStrong}`, boxShadow: "-16px 0 48px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", animation: "slideInRight 0.22s ease" }}>
+				{/* Header */}
+				<div style={{ padding: "18px 20px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+					<h2 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>Customer Detail</h2>
+					<button onClick={onClose} style={{ width: "30px", height: "30px", borderRadius: "9px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+						<Icon name="close" size={13} />
+					</button>
+				</div>
+
+				{/* Body */}
+				<div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
+					{/* Identity */}
+					<div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+						<div style={{ width: "96px", height: "96px", borderRadius: "50%", flexShrink: 0, overflow: "hidden", background: c.photoUrl ? "#fff" : "linear-gradient(135deg,var(--primary-light),var(--primary))", border: c.photoUrl ? `1px solid ${t.border}` : "none", display: "flex", alignItems: "center", justifyContent: "center" }}>
+							{c.photoUrl
+								? <img src={c.photoUrl} alt={c.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+								: <span style={{ color: "#fff", fontSize: "32px", fontWeight: 700 }}>{c.name.charAt(0)}</span>
+							}
+						</div>
+						<div style={{ flex: 1, minWidth: 0 }}>
+							<div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+								<h3 style={{ color: t.text, fontSize: "17px", fontWeight: 800, letterSpacing: "-0.3px" }}>{c.name}</h3>
+								<span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "20px", background: c.isActive ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", color: c.isActive ? "#10b981" : "#ef4444" }}>
+									{c.isActive ? "Active" : "Inactive"}
+								</span>
+							</div>
+							{c.customerType && (
+								<span style={{ fontSize: "10px", fontWeight: 700, color: c.customerType === "wholesale" ? "#f59e0b" : "var(--primary)", background: c.customerType === "wholesale" ? "rgba(245,158,11,0.12)" : "var(--primary-10)", padding: "2px 8px", borderRadius: "20px", marginTop: "4px", display: "inline-block" }}>
+									{c.customerType === "wholesale" ? "Wholesale" : "Retail"}
+								</span>
+							)}
+						</div>
+					</div>
+
+					{/* Outstanding balance */}
+					{Number(c.outstandingBalance) > 0 && (
+						<div style={{ padding: "12px 16px", borderRadius: "12px", background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.2)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<span style={{ color: "#ef4444", fontSize: "12px", fontWeight: 700 }}>Outstanding Balance</span>
+							<span style={{ color: "#ef4444", fontSize: "16px", fontWeight: 800 }}>{sym}{Number(c.outstandingBalance).toLocaleString()}</span>
+						</div>
+					)}
+
+					{/* Contact & stats */}
+					<div style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: "14px", padding: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+						<p style={{ color: t.textMuted, fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px" }}>Contact</p>
+						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+							{[["Phone", c.phone], ["Email", c.email], ["Address", c.address]].map(([label, val]) => val ? (
+								<div key={label} style={{ gridColumn: label === "Email" || label === "Address" ? "1 / -1" : undefined }}>
+									<p style={fl}>{label}</p>
+									<p style={fv}>{val}</p>
+								</div>
+							) : null)}
+						</div>
+						{!c.phone && !c.email && !c.address && (
+							<p style={{ color: t.textFaint, fontSize: "12px" }}>No contact details</p>
+						)}
+					</div>
+
+					{/* Stats */}
+					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+						<div style={{ background: t.inputBg, borderRadius: "10px", padding: "12px 14px" }}>
+							<p style={fl}>Loyalty Points</p>
+							<p style={{ ...fv, color: "#f59e0b", fontSize: "18px", fontWeight: 800 }}>{Number(c.loyaltyPoints).toLocaleString()}</p>
+						</div>
+						<div style={{ background: t.inputBg, borderRadius: "10px", padding: "12px 14px" }}>
+							<p style={fl}>Credit Limit</p>
+							<p style={{ ...fv, fontSize: "14px", fontWeight: 700 }}>{sym}{Number(c.creditLimit).toLocaleString()}</p>
+						</div>
+					</div>
+
+					{/* Meta */}
+					<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+						<div style={{ background: t.inputBg, borderRadius: "10px", padding: "10px 12px" }}>
+							<p style={fl}>Joined</p>
+							<p style={{ ...fv, fontSize: "12px" }}>{new Date(c.createdAt).toLocaleDateString()}</p>
+						</div>
+						<div style={{ background: t.inputBg, borderRadius: "10px", padding: "10px 12px" }}>
+							<p style={fl}>Last Updated</p>
+							<p style={{ ...fv, fontSize: "12px" }}>{new Date(c.updatedAt).toLocaleDateString()}</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Footer */}
+				<div style={{ padding: "14px 20px", borderTop: `1px solid ${t.borderMid}`, display: "flex", gap: "8px", flexShrink: 0 }}>
+					{c.isActive && (
+						<button onClick={onDeactivate} style={{ padding: "9px 16px", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+							Deactivate
+						</button>
+					)}
+					<button onClick={onEdit} style={{ flex: 1, padding: "9px", borderRadius: "10px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+						Edit Customer
+					</button>
+				</div>
+			</div>
+		</>
+	);
+};
+
 // ── Customers Page ────────────────────────────────────────────
 
 type FilterKey = "all" | "active" | "inactive" | "wholesale";
@@ -177,6 +289,7 @@ export const CustomersPage: React.FC = () => {
 	const [modal, setModal] = useState<ModalState>({ open: false, customer: null });
 	const [deleteId, setDeleteId] = useState<string | null>(null);
 	const [addressBookCustomer, setAddressBookCustomer] = useState<Customer | null>(null);
+	const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
 	const [page, setPage] = useState(1);
 
 	const isActiveFilter = filter === "wholesale" || filter === "all" ? undefined : filter === "active";
@@ -268,14 +381,14 @@ export const CustomersPage: React.FC = () => {
 			header: "",
 			cell: ({ row: { original: c } }) => (
 				<div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }}>
-					<button title="Address book" onClick={() => setAddressBookCustomer(c)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+					<button title="Address book" onClick={(e) => { e.stopPropagation(); setAddressBookCustomer(c); }} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 						<Icon name="location" size={11} />
 					</button>
-					<button onClick={() => setModal({ open: true, customer: c })} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+					<button onClick={(e) => { e.stopPropagation(); setModal({ open: true, customer: c }); }} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 						<Icon name="edit" size={11} />
 					</button>
 					{currentUser?.role !== 'cashier' && (
-					<button onClick={() => setDeleteId(c.id)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+					<button onClick={(e) => { e.stopPropagation(); setDeleteId(c.id); }} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
 						<Icon name="trash" size={11} />
 					</button>
 				)}
@@ -356,9 +469,10 @@ export const CustomersPage: React.FC = () => {
 						) : table.getRowModel().rows.map((row) => (
 							<tr
 								key={row.id}
-								style={{ borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s" }}
+								onClick={() => setDetailCustomer(row.original)}
+								style={{ borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s", cursor: "pointer", background: detailCustomer?.id === row.original.id ? t.surfaceHover : "transparent" }}
 								onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
-								onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+								onMouseLeave={(e) => (e.currentTarget.style.background = detailCustomer?.id === row.original.id ? t.surfaceHover : "transparent")}
 							>
 								{row.getVisibleCells().map((cell) => (
 									<td key={cell.id} style={{ padding: "13px 18px", verticalAlign: "middle", overflow: "hidden" }}>
@@ -385,9 +499,19 @@ export const CustomersPage: React.FC = () => {
 				</div>
 			</div>
 
+			{/* Detail Drawer */}
+			{detailCustomer && (
+				<CustomerDrawer
+					customer={detailCustomer}
+					onClose={() => setDetailCustomer(null)}
+					onEdit={() => { setModal({ open: true, customer: detailCustomer }); setDetailCustomer(null); }}
+					onDeactivate={() => setDeleteId(detailCustomer.id)}
+				/>
+			)}
+
 			{/* Delete confirm */}
 			{deleteId && (
-				<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+				<div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
 					<div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} onClick={() => setDeleteId(null)} />
 					<div style={{ position: "relative", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "18px", padding: "22px", maxWidth: "340px", width: "calc(100% - 32px)", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", animation: "slideUp 0.2s ease" }}>
 						<h3 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>{tr.delete_customer}</h3>

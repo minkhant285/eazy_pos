@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
@@ -23,30 +23,35 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 	const [customerType, setCustomerType] = useState<'retail' | 'wholesale'>(
 		(customer as any)?.customerType ?? 'retail'
 	);
+	const [photoUrl, setPhotoUrl] = useState<string>((customer as any)?.photoUrl ?? "");
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const create = trpc.customer.create.useMutation({ onSuccess });
 	const update = trpc.customer.update.useMutation({ onSuccess });
 	const isPending = create.isPending || update.isPending;
 
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (file.size > 2 * 1024 * 1024) { alert("Image must be under 2 MB"); return; }
+		const reader = new FileReader();
+		reader.onload = () => setPhotoUrl(reader.result as string);
+		reader.readAsDataURL(file);
+	};
+
 	const handleSubmit = () => {
 		if (!form.name.trim()) return;
+		const payload = {
+			name: form.name.trim(),
+			email: form.email.trim() || undefined,
+			phone: form.phone.trim() || undefined,
+			customerType,
+			photoUrl: photoUrl || null,
+		};
 		if (isNew) {
-			create.mutate({
-				name: form.name.trim(),
-				email: form.email.trim() || undefined,
-				phone: form.phone.trim() || undefined,
-				customerType,
-			});
+			create.mutate(payload);
 		} else {
-			update.mutate({
-				id: customer.id,
-				data: {
-					name: form.name.trim(),
-					email: form.email.trim() || undefined,
-					phone: form.phone.trim() || undefined,
-					customerType,
-				},
-			});
+			update.mutate({ id: customer.id, data: payload });
 		}
 	};
 
@@ -58,7 +63,7 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 
 	return (
 		<div
-			style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}
+			style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}
 			onClick={onClose}
 		>
 			<div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
@@ -88,6 +93,31 @@ export const CustomerModal: React.FC<Props> = ({ customer, onClose, onSuccess })
 
 				{/* Form */}
 				<div style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: "13px" }}>
+					{/* Photo upload */}
+					<div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+						<div
+							onClick={() => fileInputRef.current?.click()}
+							style={{ width: "72px", height: "72px", borderRadius: "50%", border: `2px dashed ${t.inputBorder}`, background: t.inputBg, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", cursor: "pointer" }}
+						>
+							{photoUrl ? (
+								<img src={photoUrl} alt="photo" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+							) : (
+								<div style={{ textAlign: "center" }}>
+									<Icon name="customer" size={22} style={{ color: t.textFaint, display: "block", margin: "0 auto 4px" }} />
+									<span style={{ color: t.textFaint, fontSize: "9px" }}>Photo</span>
+								</div>
+							)}
+						</div>
+						<div style={{ flex: 1 }}>
+							<p style={{ color: t.textMuted, fontSize: "12px", fontWeight: 600, marginBottom: "4px" }}>Customer Photo</p>
+							<p style={{ color: t.textFaint, fontSize: "11px", lineHeight: 1.5 }}>Click the circle to upload. PNG, JPG under 2 MB.</p>
+							{photoUrl && (
+								<button onClick={() => setPhotoUrl("")} style={{ marginTop: "6px", background: "none", border: "none", color: "#ef4444", fontSize: "11px", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>Remove photo</button>
+							)}
+						</div>
+						<input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileChange} />
+					</div>
+
 					{fields.map((f) => (
 						<div key={f.key}>
 							<label style={{ color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.5px" }}>

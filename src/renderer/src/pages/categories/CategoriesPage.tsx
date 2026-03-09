@@ -7,6 +7,73 @@ import { trpc } from "../../trpc-client/trpc";
 interface CatForm { name: string; description: string; parentId: string; skuPrefix: string; }
 interface ModalState { open: boolean; category: { id: string; name: string; description: string | null; parentId: string | null } | null; }
 
+// ── Category Drawer ───────────────────────────────────────────
+
+type CatRow = { id: string; name: string; description: string | null; parentId: string | null; skuPrefix?: string | null; createdAt?: string };
+
+const CategoryDrawer: React.FC<{ category: CatRow; parentName?: string; onClose: () => void; onEdit: () => void; onDelete: () => void }> = ({ category, parentName, onClose, onEdit, onDelete }) => {
+	const t = useAppStore((s) => s.theme);
+	const fl: React.CSSProperties = { color: t.textFaint, fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "3px" };
+	const fv: React.CSSProperties = { color: t.text, fontSize: "13px", fontWeight: 500 };
+
+	return (
+		<>
+			<div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 55, background: "rgba(0,0,0,0.35)" }} />
+			<div style={{ position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 56, width: "380px", maxWidth: "100vw", background: t.surface, borderLeft: `1px solid ${t.borderStrong}`, boxShadow: "-16px 0 48px rgba(0,0,0,0.25)", display: "flex", flexDirection: "column", animation: "slideInRight 0.22s ease" }}>
+				{/* Header */}
+				<div style={{ padding: "18px 20px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+					<h2 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>Category Detail</h2>
+					<button onClick={onClose} style={{ width: "30px", height: "30px", borderRadius: "9px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+						<Icon name="close" size={13} />
+					</button>
+				</div>
+
+				{/* Body */}
+				<div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: "20px" }}>
+					{/* Identity */}
+					<div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+						<div style={{ width: "72px", height: "72px", borderRadius: "18px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+							<Icon name="category" size={28} style={{ color: "var(--primary)" }} />
+						</div>
+						<div>
+							<h3 style={{ color: t.text, fontSize: "18px", fontWeight: 800, letterSpacing: "-0.3px" }}>{category.name}</h3>
+							{category.description && <p style={{ color: t.textMuted, fontSize: "12px", marginTop: "4px", lineHeight: 1.5 }}>{category.description}</p>}
+						</div>
+					</div>
+
+					{/* Details */}
+					<div style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: "14px", padding: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+						<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+							<div>
+								<p style={fl}>SKU Prefix</p>
+								<p style={{ ...fv, fontFamily: "monospace", color: (category as any).skuPrefix ? "var(--primary)" : t.textFaint }}>
+									{(category as any).skuPrefix ?? "—"}
+								</p>
+							</div>
+							<div>
+								<p style={fl}>Parent Category</p>
+								<p style={fv}>{parentName ?? "—"}</p>
+							</div>
+						</div>
+						{category.createdAt && (
+							<div>
+								<p style={fl}>Created</p>
+								<p style={{ ...fv, fontSize: "12px" }}>{new Date(category.createdAt).toLocaleDateString()}</p>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Footer */}
+				<div style={{ padding: "14px 20px", borderTop: `1px solid ${t.borderMid}`, display: "flex", gap: "8px", flexShrink: 0 }}>
+					<button onClick={onDelete} style={{ padding: "9px 16px", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.08)", color: "#ef4444", fontSize: "12px", fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
+					<button onClick={onEdit} style={{ flex: 1, padding: "9px", borderRadius: "10px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Edit Category</button>
+				</div>
+			</div>
+		</>
+	);
+};
+
 export const CategoriesPage: React.FC = () => {
 	const t = useAppStore((s) => s.theme);
 	const tr = useAppStore((s) => s.tr);
@@ -14,6 +81,7 @@ export const CategoriesPage: React.FC = () => {
 	const [search, setSearch] = useState("");
 	const [modal, setModal] = useState<ModalState>({ open: false, category: null });
 	const [deleteId, setDeleteId] = useState<string | null>(null);
+	const [detailCat, setDetailCat] = useState<CatRow | null>(null);
 	const [form, setForm] = useState<CatForm>({ name: "", description: "", parentId: "", skuPrefix: "" });
 
 	const { data: categories = [], isLoading, refetch } = trpc.category.list.useQuery({});
@@ -70,9 +138,10 @@ export const CategoriesPage: React.FC = () => {
 					const parent = categories.find((p) => p.id === c.parentId);
 					return (
 						<div key={c.id}
-							style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 1fr 72px", gap: "10px", padding: "13px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s" }}
+							onClick={() => setDetailCat(c as CatRow)}
+							style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 90px 1fr 72px", gap: "10px", padding: "13px 18px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s", cursor: "pointer", background: detailCat?.id === c.id ? t.surfaceHover : "transparent" }}
 							onMouseEnter={(e) => (e.currentTarget.style.background = t.surfaceHover)}
-							onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+							onMouseLeave={(e) => (e.currentTarget.style.background = detailCat?.id === c.id ? t.surfaceHover : "transparent")}
 						>
 							<div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 								<div style={{ width: "28px", height: "28px", borderRadius: "8px", background: "var(--primary-15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -84,8 +153,8 @@ export const CategoriesPage: React.FC = () => {
 							<span style={{ color: (c as any).skuPrefix ? "var(--primary)" : t.textFaint, fontSize: "12px", fontFamily: "monospace", fontWeight: (c as any).skuPrefix ? 700 : 400 }}>{(c as any).skuPrefix ?? "—"}</span>
 							<span style={{ color: t.textFaint, fontSize: "12px" }}>{parent?.name ?? "—"}</span>
 							<div style={{ display: "flex", gap: "3px", justifyContent: "flex-end" }}>
-								<button onClick={() => openModal(c)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={11} /></button>
-								<button onClick={() => setDeleteId(c.id)} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={11} /></button>
+								<button onClick={(e) => { e.stopPropagation(); openModal(c); }} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: t.inputBg, color: t.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="edit" size={11} /></button>
+								<button onClick={(e) => { e.stopPropagation(); setDeleteId(c.id); }} style={{ width: "26px", height: "26px", borderRadius: "7px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="trash" size={11} /></button>
 							</div>
 						</div>
 					);
@@ -93,8 +162,18 @@ export const CategoriesPage: React.FC = () => {
 			</div>
 
 			{/* Delete confirm */}
-			{deleteId && (
-				<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+			{detailCat && (
+				<CategoryDrawer
+					category={detailCat}
+					parentName={categories.find((p) => p.id === detailCat.parentId)?.name}
+					onClose={() => setDetailCat(null)}
+					onEdit={() => { openModal(detailCat as any); setDetailCat(null); }}
+					onDelete={() => { setDeleteId(detailCat.id); setDetailCat(null); }}
+				/>
+			)}
+
+		{deleteId && (
+				<div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
 					<div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} onClick={() => setDeleteId(null)} />
 					<div style={{ position: "relative", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "18px", padding: "22px", maxWidth: "340px", width: "calc(100% - 32px)", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", animation: "slideUp 0.2s ease" }}>
 						<h3 style={{ color: t.text, fontWeight: 700, fontSize: "15px" }}>Delete Category?</h3>
@@ -111,7 +190,7 @@ export const CategoriesPage: React.FC = () => {
 
 			{/* Create / Edit Modal */}
 			{modal.open && (
-				<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setModal({ open: false, category: null })}>
+				<div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setModal({ open: false, category: null })}>
 					<div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }} />
 					<div onClick={(e) => e.stopPropagation()} style={{ position: "relative", width: "100%", maxWidth: "400px", margin: "0 16px", background: t.surface, border: `1px solid ${t.borderStrong}`, borderRadius: "20px", boxShadow: "0 24px 80px rgba(0,0,0,0.3)", overflow: "hidden", animation: "slideUp 0.22s ease" }}>
 						<div style={{ padding: "22px 22px 16px", borderBottom: `1px solid ${t.borderMid}`, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>

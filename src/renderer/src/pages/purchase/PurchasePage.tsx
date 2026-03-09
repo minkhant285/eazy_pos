@@ -9,6 +9,7 @@ import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../../components/ui/Icon";
 import { trpc } from "../../trpc-client/trpc";
+import { SingleDatePicker } from '../../components/ui/SingleDatePicker';
 
 type POStatus = "draft" | "sent" | "partial" | "received" | "cancelled";
 
@@ -627,9 +628,10 @@ const ReceiveModal: React.FC<ReceiveModalProps> = ({ poId, onClose, onSuccess })
 // ── Main PurchasePage ─────────────────────────────────────────
 
 export const PurchasePage: React.FC = () => {
-  const t   = useAppStore((s) => s.theme);
-  const sym = useAppStore((s) => s.currency.symbol);
-  const tr  = useAppStore((s) => s.tr);
+  const t      = useAppStore((s) => s.theme);
+  const isDark = useAppStore((s) => s.isDark);
+  const sym    = useAppStore((s) => s.currency.symbol);
+  const tr     = useAppStore((s) => s.tr);
 
   const [statusFilter, setStatusFilter] = useState<POStatus | undefined>(undefined);
   const [page, setPage]               = useState(1);
@@ -854,7 +856,7 @@ export const PurchasePage: React.FC = () => {
               <div style={{ display: "flex", flexDirection: "column", overflow: "hidden", borderRight: `1px solid ${t.borderMid}` }}>
 
                 {/* Search bar */}
-                <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.borderMid}`, flexShrink: 0, position: "relative" }}>
+                <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.borderMid}`, flexShrink: 0 }}>
                   <div style={{ position: "relative" }}>
                     <div style={{ position: "absolute", left: "11px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none", color: productSearch ? t.textMuted : t.textFaint }}>
                       {productsFetching && productSearch
@@ -870,21 +872,22 @@ export const PurchasePage: React.FC = () => {
                       autoFocus
                     />
                   </div>
+                </div>
 
-                  {/* Dropdown — absolute, scoped to search section via position:relative parent */}
-                  {productSearch && !productsFetching && productResults.length === 0 && (
-                    <div style={{ position: "absolute", left: "20px", right: "20px", top: "100%", zIndex: 10, marginTop: "4px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", padding: "14px 16px", display: "flex", alignItems: "center", gap: "8px", animation: "dropdownOpen 0.18s cubic-bezier(0.22,1,0.36,1) both", transformOrigin: "top", boxShadow: "0 8px 24px rgba(0,0,0,0.18)" }}>
-                      <Icon name="search" size={14} style={{ color: t.textFaint, flexShrink: 0 }} />
-                      <p style={{ color: t.textFaint, fontSize: "12px" }}>No products found for "<span style={{ color: t.textMuted, fontWeight: 600 }}>{productSearch}</span>"</p>
-                    </div>
-                  )}
-                  {productSearch && productResults.length > 0 && (
-                    <div style={{ position: "absolute", left: "20px", right: "20px", top: "100%", zIndex: 10, marginTop: "4px", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px", overflow: "hidden", maxHeight: "260px", overflowY: "auto", transformOrigin: "top", animation: "dropdownOpen 0.18s cubic-bezier(0.22,1,0.36,1) both", boxShadow: "0 12px 40px rgba(0,0,0,0.25)" }}>
-                      {productResults.map((p, pi) => {
+                {/* Search results — shown in-flow when searching */}
+                {productSearch && (
+                  <div style={{ flex: 1, overflowY: "auto" }}>
+                    {!productsFetching && productResults.length === 0 ? (
+                      <div style={{ padding: "32px 20px", display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Icon name="search" size={14} style={{ color: t.textFaint, flexShrink: 0 }} />
+                        <p style={{ color: t.textFaint, fontSize: "12px" }}>No products found for "<span style={{ color: t.textMuted, fontWeight: 600 }}>{productSearch}</span>"</p>
+                      </div>
+                    ) : (
+                      productResults.map((p, pi) => {
                         const alreadyAdded = items.some((i) => i.productId === p.id);
                         return (
                           <div key={p.id} onClick={() => !alreadyAdded && addItem(p)}
-                            style={{ padding: "9px 14px", cursor: alreadyAdded ? "default" : "pointer", display: "flex", alignItems: "center", gap: "10px", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s, opacity 0.15s", opacity: alreadyAdded ? 0.45 : 1, animation: `rowSlideIn 0.18s ease both`, animationDelay: `${pi * 25}ms` }}
+                            style={{ padding: "9px 20px", cursor: alreadyAdded ? "default" : "pointer", display: "flex", alignItems: "center", gap: "10px", borderBottom: `1px solid ${t.borderMid}`, transition: "background 0.15s, opacity 0.15s", opacity: alreadyAdded ? 0.45 : 1, animation: `rowSlideIn 0.18s ease both`, animationDelay: `${pi * 25}ms` }}
                             onMouseEnter={(e) => { if (!alreadyAdded) e.currentTarget.style.background = t.surfaceHover; }}
                             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
                             <div style={{ width: "36px", height: "36px", borderRadius: "8px", overflow: "hidden", flexShrink: 0, background: "#fff", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -903,46 +906,48 @@ export const PurchasePage: React.FC = () => {
                             }
                           </div>
                         );
-                      })}
-                    </div>
-                  )}
-                </div>
+                      })
+                    )}
+                  </div>
+                )}
 
-                {/* Selected items list */}
-                <div style={{ flex: 1, overflowY: "auto" }}>
-                  {items.length === 0 ? (
-                    <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", opacity: 0.4 }}>
-                      <Icon name="product" size={36} style={{ color: t.textFaint }} />
-                      <p style={{ color: t.textFaint, fontSize: "13px" }}>Search and add products above</p>
-                    </div>
-                  ) : (
-                    <div style={{ animation: "slideUp 0.2s ease both" }}>
-                      {/* Column headers */}
-                      <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "8px 20px", borderBottom: `1px solid ${t.borderMid}`, position: "sticky", top: 0, background: t.surface, zIndex: 1 }}>
-                        {["", "Product", "Qty", `Cost (${sym})`, ""].map((h, i) => (
-                          <span key={i} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{h}</span>
+                {/* Selected items list — shown when not searching */}
+                {!productSearch && (
+                  <div style={{ flex: 1, overflowY: "auto" }}>
+                    {items.length === 0 ? (
+                      <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "10px", opacity: 0.4 }}>
+                        <Icon name="product" size={36} style={{ color: t.textFaint }} />
+                        <p style={{ color: t.textFaint, fontSize: "13px" }}>Search and add products above</p>
+                      </div>
+                    ) : (
+                      <div style={{ animation: "slideUp 0.2s ease both" }}>
+                        {/* Column headers */}
+                        <div style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "8px 20px", borderBottom: `1px solid ${t.borderMid}`, position: "sticky", top: 0, background: t.surface, zIndex: 1 }}>
+                          {["", "Product", "Qty", `Cost (${sym})`, ""].map((h, i) => (
+                            <span key={i} style={{ color: t.textFaint, fontSize: "9px", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>{h}</span>
+                          ))}
+                        </div>
+                        {items.map((item, idx) => (
+                          <div key={item.productId} style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "10px 20px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, animation: "rowSlideIn 0.22s cubic-bezier(0.22,1,0.36,1) both" }}>
+                            <div style={{ width: "36px", height: "36px", borderRadius: "7px", overflow: "hidden", background: "#fff", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              {item.imageUrl
+                                ? <img src={item.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                                : <Icon name="product" size={14} style={{ color: t.textFaint }} />
+                              }
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ color: t.text, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
+                              <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{item.productSku}</p>
+                            </div>
+                            <input type="number" min={1} value={item.qtyOrdered} onChange={(e) => updateItem(idx, "qtyOrdered", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px", textAlign: "center" }} />
+                            <input type="number" min={0} step={0.01} value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px" }} />
+                            <button onClick={() => removeItem(idx)} style={{ width: "24px", height: "24px", borderRadius: "6px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={10} /></button>
+                          </div>
                         ))}
                       </div>
-                      {items.map((item, idx) => (
-                        <div key={item.productId} style={{ display: "grid", gridTemplateColumns: "36px 1fr 90px 110px 28px", gap: "8px", padding: "10px 20px", alignItems: "center", borderBottom: `1px solid ${t.borderMid}`, animation: "rowSlideIn 0.22s cubic-bezier(0.22,1,0.36,1) both" }}>
-                          <div style={{ width: "36px", height: "36px", borderRadius: "7px", overflow: "hidden", background: "#fff", border: `1px solid ${t.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            {item.imageUrl
-                              ? <img src={item.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                              : <Icon name="product" size={14} style={{ color: t.textFaint }} />
-                            }
-                          </div>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={{ color: t.text, fontSize: "12px", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.productName}</p>
-                            <p style={{ color: t.textFaint, fontSize: "10px", fontFamily: "monospace" }}>{item.productSku}</p>
-                          </div>
-                          <input type="number" min={1} value={item.qtyOrdered} onChange={(e) => updateItem(idx, "qtyOrdered", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px", textAlign: "center" }} />
-                          <input type="number" min={0} step={0.01} value={item.unitCost} onChange={(e) => updateItem(idx, "unitCost", Number(e.target.value))} style={{ ...inputStyle, padding: "5px 8px", fontSize: "12px" }} />
-                          <button onClick={() => removeItem(idx)} style={{ width: "24px", height: "24px", borderRadius: "6px", border: "none", background: "transparent", color: t.textFaint, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="close" size={10} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Items count + subtotal bar */}
                 {items.length > 0 && (
@@ -989,7 +994,13 @@ export const PurchasePage: React.FC = () => {
 
                   <div>
                     <label style={labelStyle}>Expected Date</label>
-                    <input type="date" value={expectedAt} onChange={(e) => setExpectedAt(e.target.value)} style={{ ...inputStyle, colorScheme: "dark" }} />
+                    <SingleDatePicker
+                      value={expectedAt}
+                      onChange={setExpectedAt}
+                      t={t}
+                      isDark={isDark}
+                      placeholder="Select expected date"
+                    />
                   </div>
 
                   <div>

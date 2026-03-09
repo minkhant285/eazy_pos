@@ -100,6 +100,7 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
             .green { color: #166534; }
             .red { color: #991b1b; }
             .meta-label { color: #6b7280; }
+            .credit-debt-row { border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 7px; margin-top: 2px; }
             .addr-block { border: 1px dashed #888; border-radius: 4px; padding: 8px 10px; margin: 8px 0; }
             .addr-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 5px; }
             .addr-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
@@ -281,24 +282,42 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
             <div className="divider" style={{ borderTop: `1px dashed ${t.border}`, margin: '10px 0' }} />
 
             {/* Payments */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              {sale.payments.map((pay, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: t.textMuted, fontSize: '11px' }}>
-                    {pay.method === 'qr_code' && pay.reference
-                      ? pay.reference.split(': ')[0]
-                      : METHOD_LABELS[pay.method] ?? pay.method}
-                  </span>
-                  <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
+            {(() => {
+              const debtAmount = sale.totalAmount - sale.paidAmount
+              const isCredit = debtAmount > 0
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {isCredit && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '9px', fontWeight: 800, color: '#ef4444', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', padding: '2px 7px', borderRadius: '5px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Credit Sale</span>
+                    </div>
+                  )}
+                  {sale.payments.map((pay, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: t.textMuted, fontSize: '11px' }}>
+                        {pay.method === 'qr_code' && pay.reference
+                          ? pay.reference.split(': ')[0]
+                          : METHOD_LABELS[pay.method] ?? pay.method}
+                        {isCredit ? ' (Deposit)' : ''}
+                      </span>
+                      <span style={{ color: t.text, fontSize: '11px', fontWeight: 600 }}>{sym}{Number(pay.amount).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {isCredit && (
+                    <div className="credit-debt-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 8px', borderRadius: '7px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                      <span style={{ color: '#ef4444', fontSize: '11px', fontWeight: 700 }}>Outstanding Debt</span>
+                      <span style={{ color: '#ef4444', fontSize: '12px', fontWeight: 800 }}>{sym}{debtAmount.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {sale.changeAmount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: t.textMuted, fontSize: '11px' }}>Change</span>
+                      <span className="green" style={{ color: '#10b981', fontSize: '11px', fontWeight: 700 }}>{sym}{Number(sale.changeAmount).toLocaleString()}</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-              {sale.changeAmount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: t.textMuted, fontSize: '11px' }}>Change</span>
-                  <span className="green" style={{ color: '#10b981', fontSize: '11px', fontWeight: 700 }}>{sym}{Number(sale.changeAmount).toLocaleString()}</span>
-                </div>
-              )}
-            </div>
+              )
+            })()}
 
             {/* Delivery address */}
             {defaultAddress && (

@@ -3,19 +3,19 @@ import type { ThemeTokens } from '../types';
 export const darkTheme: ThemeTokens = {
   bg: '#080a0f', surface: '#0f1117', surfaceHover: 'rgba(255,255,255,0.025)',
   border: 'rgba(255,255,255,0.07)', borderMid: 'rgba(255,255,255,0.055)', borderStrong: 'rgba(255,255,255,0.12)',
-  text: '#f1f2f5', textMuted: 'rgba(255,255,255,0.45)', textFaint: 'rgba(255,255,255,0.22)', textSubtle: 'rgba(255,255,255,0.62)',
+  text: '#f1f2f5', textMuted: 'rgba(255,255,255,0.62)', textFaint: 'rgba(255,255,255,0.45)', textSubtle: 'rgba(255,255,255,0.75)',
   inputBg: 'rgba(255,255,255,0.04)', inputBorder: 'rgba(255,255,255,0.09)',
   activeNav: 'var(--primary-18)', activeNavText: 'var(--primary-light)', activeNavDot: 'var(--primary-light)',
-  navText: 'rgba(255,255,255,0.38)', groupLabel: 'rgba(255,255,255,0.2)',
+  navText: 'rgba(255,255,255,0.55)', groupLabel: 'rgba(255,255,255,0.42)',
   divider: 'rgba(255,255,255,0.08)', scrollThumb: 'rgba(255,255,255,0.08)',
 };
 
 export const lightTheme: ThemeTokens = {
   bg: '#f1f3f6', surface: '#ffffff', surfaceHover: 'rgba(0,0,0,0.02)',
   border: 'rgba(0,0,0,0.08)', borderMid: 'rgba(0,0,0,0.06)', borderStrong: 'rgba(0,0,0,0.13)',
-  text: '#111318', textMuted: 'rgba(0,0,0,0.48)', textFaint: 'rgba(0,0,0,0.28)', textSubtle: 'rgba(0,0,0,0.62)',
+  text: '#111318', textMuted: 'rgba(0,0,0,0.62)', textFaint: 'rgba(0,0,0,0.50)', textSubtle: 'rgba(0,0,0,0.72)',
   inputBg: 'rgba(0,0,0,0.035)', inputBorder: 'rgba(0,0,0,0.10)',
   activeNav: 'var(--primary-10)', activeNavText: 'var(--primary-dark)', activeNavDot: 'var(--primary)',
-  navText: 'rgba(0,0,0,0.42)', groupLabel: 'rgba(0,0,0,0.3)',
+  navText: 'rgba(0,0,0,0.60)', groupLabel: 'rgba(0,0,0,0.52)',
   divider: 'rgba(0,0,0,0.08)', scrollThumb: 'rgba(0,0,0,0.12)',
 };

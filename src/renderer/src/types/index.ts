@@ -18,8 +18,9 @@ export interface ThemeTokens {
 export interface Customer {
   id: string; name: string; email: string | null; phone: string | null;
   customerType: 'retail' | 'wholesale';
+  photoUrl?: string | null;
   loyaltyPoints: number; outstandingBalance: number; creditLimit: number;
-  isActive: boolean; createdAt: string;
+  isActive: boolean; createdAt: string; updatedAt: string;
 }
 
 export interface CurrentUser {

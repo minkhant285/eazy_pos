@@ -5,6 +5,7 @@ import { BrandService } from '../../db/services'
 const BrandInput = z.object({
   name: z.string().min(1),
   description: z.string().nullable().optional(),
+  logoUrl: z.string().nullable().optional(),
 })
 
 export const brandRouter = router({

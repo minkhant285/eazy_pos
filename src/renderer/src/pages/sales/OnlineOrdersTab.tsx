@@ -283,14 +283,14 @@ const OrderFormModal: React.FC<{
   const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; phone: string | null } | null>(null)
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
   const [selectedDeliveryMethodId, setSelectedDeliveryMethodId] = useState<string | null>(null)
-  const [deliveryFee, setDeliveryFee] = useState<number>(0)
+  const [deliveryFee, setDeliveryFee] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'qr_code'>('cash')
   const [selectedPayAccount, setSelectedPayAccount] = useState<BankAccount | null>(null)
   const [showPayAccountPicker, setShowPayAccountPicker] = useState(false)
   const [productSearch, setProductSearch] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
   const [stockMap, setStockMap] = useState<Record<string, number>>({})
-  const [discount, setDiscount] = useState<number>(0)
+  const [discount, setDiscount] = useState('')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
 
@@ -309,11 +309,11 @@ const OrderFormModal: React.FC<{
     }
     setSelectedAddressId(sale.deliveryAddressId ?? null)
     setSelectedDeliveryMethodId(sale.deliveryMethodId ?? null)
-    setDeliveryFee(Number(sale.deliveryFee ?? 0))
+    setDeliveryFee(sale.deliveryFee ? String(sale.deliveryFee) : '')
     const m = sale.payments?.[0]?.method ?? 'cash'
     const validMethods = ['cash', 'qr_code']
     setPaymentMethod(validMethods.includes(m) ? (m as 'cash' | 'qr_code') : 'cash')
-    setDiscount(Number(sale.discountAmount ?? 0))
+    setDiscount(sale.discountAmount ? String(sale.discountAmount) : '')
     setNotes(sale.notes ?? '')
     setCart(
       (sale.items ?? []).map((item: any) => ({
@@ -461,7 +461,9 @@ const OrderFormModal: React.FC<{
   }
 
   const subtotal = cart.reduce((s, l) => s + l.qty * l.unitPrice - l.discountAmount, 0)
-  const total = subtotal - discount + deliveryFee
+  const discountNum = Math.max(0, Number(discount) || 0)
+  const deliveryFeeNum = Math.max(0, Number(deliveryFee) || 0)
+  const total = subtotal - discountNum + deliveryFeeNum
 
   const handleSubmit = () => {
     if (!selectedCustomer) { setError('Please select a customer'); return }
@@ -475,7 +477,7 @@ const OrderFormModal: React.FC<{
       customerId: selectedCustomer.id,
       deliveryAddressId: selectedAddressId ?? undefined,
       deliveryMethodId: selectedDeliveryMethodId ?? undefined,
-      deliveryFee,
+      deliveryFee: deliveryFeeNum,
       items: cart.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
@@ -485,7 +487,7 @@ const OrderFormModal: React.FC<{
       })),
       paymentMethod,
       paymentReference,
-      discountAmount: discount,
+      discountAmount: discountNum,
       notes: notes || undefined,
     }
     if (isEdit) {
@@ -684,7 +686,9 @@ const OrderFormModal: React.FC<{
             <input
               type="number" min={0}
               value={deliveryFee}
-              onChange={(e) => setDeliveryFee(Number(e.target.value) || 0)}
+              onChange={(e) => setDeliveryFee(e.target.value)}
+              onFocus={(e) => e.target.select()}
+              placeholder="0"
               style={{ ...inputSt, width: '140px' }}
             />
           </div>
@@ -907,7 +911,9 @@ const OrderFormModal: React.FC<{
               <input
                 type="number" min={0}
                 value={discount}
-                onChange={(e) => setDiscount(Number(e.target.value) || 0)}
+                onChange={(e) => setDiscount(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                placeholder="0"
                 style={inputSt}
               />
             </div>
@@ -927,8 +933,8 @@ const OrderFormModal: React.FC<{
             <div style={{ background: t.inputBg, borderRadius: '12px', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
               {[
                 ['Subtotal', `${sym}${subtotal.toLocaleString()}`],
-                ['Discount', `−${sym}${discount.toLocaleString()}`],
-                ['Delivery Fee', `${sym}${deliveryFee.toLocaleString()}`],
+                ['Discount', `−${sym}${discountNum.toLocaleString()}`],
+                ['Delivery Fee', `${sym}${deliveryFeeNum.toLocaleString()}`],
               ].map(([l, v]) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: t.textMuted, fontSize: '11px' }}>{l}</span>

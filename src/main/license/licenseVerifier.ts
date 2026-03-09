@@ -22,14 +22,15 @@ export function verifyKey(key: string, machineId: string): VerifyResult {
     if (!key.startsWith('MKJRNL-')) return { valid: false, error: 'Invalid key format' };
 
     const b64 = key.slice(7);
-    const payload = Buffer.from(b64, 'base64').toString('utf8');
+    const payload = Buffer.from(b64, 'base64url').toString('utf8');
     const parts = payload.split(':');
     if (parts.length !== 3) return { valid: false, error: 'Malformed key' };
 
     const [midPrefix, expStr, sigHex] = parts;
 
-    // Machine binding
-    if (!machineId.startsWith(midPrefix)) {
+    // Machine binding — server stores first 16 chars of SHA256(machineId)
+    const midHash = crypto.createHash('sha256').update(machineId).digest('hex');
+    if (midHash.slice(0, 16) !== midPrefix) {
       return { valid: false, error: 'Key not valid for this machine' };
     }
 

@@ -71,6 +71,7 @@ export type CreateSupplierInput = {
   phone?: string;
   address?: string;
   taxId?: string;
+  logoUrl?: string | null;
 };
 
 export type UpdateSupplierInput = Partial<CreateSupplierInput & { isActive: boolean }>;

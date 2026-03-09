@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { useAppStore } from '../../store/useAppStore'
 import { trpc } from '../../trpc-client/trpc'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { AppSelect } from '../../components/ui/AppSelect'
+
+const thisMonthStart = () => format(startOfMonth(new Date()), 'yyyy-MM-dd')
+const thisMonthEnd   = () => format(endOfMonth(new Date()), 'yyyy-MM-dd')
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -55,8 +59,8 @@ export const LedgerPage: React.FC = () => {
   const [locationId,   setLocationId]   = useState('')
   const [movementType, setMovementType] = useState('')
   const [direction,    setDirection]    = useState<DirectionFilter>('all')
-  const [fromDate,     setFromDate]     = useState('')
-  const [toDate,       setToDate]       = useState('')
+  const [fromDate,     setFromDate]     = useState(thisMonthStart)
+  const [toDate,       setToDate]       = useState(thisMonthEnd)
   const [page,         setPage]         = useState(1)
 
   // Resolve effective movementType: if direction forces a single type family and
@@ -149,9 +153,9 @@ export const LedgerPage: React.FC = () => {
         />
 
         {/* Clear */}
-        {(locationId || movementType || fromDate || toDate || direction !== 'all') && (
+        {(locationId || movementType || direction !== 'all' || fromDate !== thisMonthStart() || toDate !== thisMonthEnd()) && (
           <button
-            onClick={() => { setLocationId(''); setMovementType(''); setFromDate(''); setToDate(''); setDirection('all'); resetPage() }}
+            onClick={() => { setLocationId(''); setMovementType(''); setFromDate(thisMonthStart()); setToDate(thisMonthEnd()); setDirection('all'); resetPage() }}
             style={{ ...inp, color: t.textFaint, cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             Clear filters

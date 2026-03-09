@@ -568,7 +568,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 
 					<div style={{
 						display: 'grid',
-						gridTemplateColumns: 'repeat(6, 1fr)',
+						gridTemplateColumns: 'repeat(5, 1fr)',
 						gap: '8px',
 						flex: 1,
 						minHeight: 0,
@@ -602,7 +602,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 								onMouseLeave={(e) => { e.currentTarget.style.borderColor = outOfStock ? t.borderMid : t.border; e.currentTarget.style.background = t.surface }}
 							>
 								{/* Photo area */}
-								<div style={{ width: '100%', height: '80px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+								<div style={{ width: '100%', height: '110px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
 									{p.imageUrl
 										? <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
 										: <Icon name="product" size={28} style={{ color: t.textFaint }} />

@@ -13,6 +13,7 @@ export type CreateCustomerInput = {
   taxId?: string;
   creditLimit?: number;
   customerType?: 'retail' | 'wholesale';
+  photoUrl?: string | null;
 };
 
 export type UpdateCustomerInput = Partial<CreateCustomerInput & { isActive: boolean }>;
@@ -39,6 +40,7 @@ export function createCustomer(input: CreateCustomerInput) {
       address: input.address ?? null,
       taxId: input.taxId ?? null,
       customerType: input.customerType ?? 'retail',
+      photoUrl: input.photoUrl ?? null,
       creditLimit: input.creditLimit ?? 0,
       loyaltyPoints: 0,
       outstandingBalance: 0,

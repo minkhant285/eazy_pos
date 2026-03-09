@@ -102,6 +102,7 @@ const CreateSupplierSchema = z.object({
   phone: z.string().optional(),
   address: z.string().optional(),
   taxId: z.string().optional(),
+  logoUrl: z.string().nullable().optional(),
 })
 
 export const supplierRouter = router({

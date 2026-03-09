@@ -58,6 +58,7 @@ export const suppliers = sqliteTable("suppliers", {
   phone: text("phone"),
   address: text("address"),
   taxId: text("tax_id"),
+  logoUrl: text("logo_url"),
   outstandingBalance: real("outstanding_balance").notNull().default(0),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   ...timestamps,
@@ -82,6 +83,7 @@ export const brands = sqliteTable("brands", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  logoUrl: text("logo_url"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   ...timestamps,
 });
@@ -291,6 +293,7 @@ export const customers = sqliteTable("customers", {
   address: text("address"),
   taxId: text("tax_id"),
   customerType: text("customer_type", { enum: ["retail", "wholesale"] }).notNull().default("retail"),
+  photoUrl: text("photo_url"),
   loyaltyPoints: integer("loyalty_points").notNull().default(0),
   creditLimit: real("credit_limit").notNull().default(0),
   outstandingBalance: real("outstanding_balance").notNull().default(0),
