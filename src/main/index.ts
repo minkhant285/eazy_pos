@@ -9,6 +9,8 @@ import { appRouter } from './trpc-server/router'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import { db, sqlite, dbPath } from './db/db'
 import { encryptDbFile, decryptMkbakToFile } from './backup/backup.service'
+import { clearLicense } from './license/licenseService'
+import { UserService } from './db/services'
 
 import path from 'path'
 
@@ -141,6 +143,66 @@ app.whenReady().then(async() => {
       fs.unlinkSync(tmpPath)
 
       // Spawn a new instance preserving env vars (important in dev — keeps ELECTRON_RENDERER_URL)
+      spawn(process.execPath, process.argv.slice(1), {
+        detached: true,
+        stdio: 'ignore',
+        env: process.env,
+      }).unref()
+
+      app.exit(0)
+      return { success: true }
+    } catch (e: unknown) {
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // ── Backup: pick folder ──────────────────────────────────────
+  ipcMain.handle('backup:selectFolder', async () => {
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: 'Select Backup Folder',
+      properties: ['openDirectory', 'createDirectory'],
+    })
+    if (canceled || !filePaths[0]) return { success: false }
+    return { success: true, folderPath: filePaths[0] }
+  })
+
+  // ── Backup: save .mkbak to a specific folder ─────────────────
+  ipcMain.handle('backup:saveToFolder', async (_event, folderPath: string) => {
+    const tmpPath = path.join(app.getPath('temp'), `easypos-bk-${Date.now()}.db`)
+    try {
+      await sqlite.backup(tmpPath)
+      const mkbakBuffer = encryptDbFile(tmpPath)
+      fs.unlinkSync(tmpPath)
+
+      const dateStr = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-')
+      const fileName = `easypos-backup-${dateStr}.mkbak`
+      const filePath = path.join(folderPath, fileName)
+      fs.writeFileSync(filePath, mkbakBuffer)
+      return { success: true, path: filePath, fileName }
+    } catch (e: unknown) {
+      if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
+      return { success: false, error: (e as Error).message }
+    }
+  })
+
+  // ── Clean all data (admin password required) ─────────────────
+  ipcMain.handle('app:cleanData', async (_event, { email, password }: { email: string; password: string }) => {
+    try {
+      // Verify admin credentials
+      const user = UserService.verifyPassword(email, password)
+      if (!user) return { success: false, error: 'Incorrect email or password' }
+      if (user.role !== 'admin') return { success: false, error: 'Only admin accounts can clean app data' }
+
+      // 1. Close DB connection
+      sqlite.close()
+
+      // 2. Delete DB file
+      if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
+
+      // 3. Delete license file
+      clearLicense()
+
+      // 4. Relaunch fresh
       spawn(process.execPath, process.argv.slice(1), {
         detached: true,
         stdio: 'ignore',

@@ -5,6 +5,7 @@ import { trpc } from '../../trpc-client/trpc'
 export const LoginPage: React.FC = () => {
   const t = useAppStore((s) => s.theme)
   const setCurrentUser = useAppStore((s) => s.setCurrentUser)
+  const setPage = useAppStore((s) => s.setPage)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -12,12 +13,9 @@ export const LoginPage: React.FC = () => {
 
   const login = trpc.user.login.useMutation({
     onSuccess: (user) => {
-      setCurrentUser({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role as 'admin' | 'manager' | 'cashier',
-      })
+      const role = user.role as 'admin' | 'manager' | 'cashier'
+      setCurrentUser({ id: user.id, name: user.name, email: user.email, role })
+      setPage(role === 'cashier' ? 'sales' : 'dashboard')
     },
     onError: (err) => {
       setError(err.message)

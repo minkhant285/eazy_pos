@@ -103,6 +103,10 @@ export function checkLicense(): LicenseStatus {
   return { status: 'trial_expired', machineId };
 }
 
+export function clearLicense(): void {
+  try { fs.unlinkSync(getLicensePath()) } catch { /* already gone */ }
+}
+
 export function activateLicense(key: string): {
   success: boolean;
   error?: string;

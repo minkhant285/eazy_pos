@@ -87,7 +87,7 @@ export const useAppStore = create<AppState>()(
       // ── Auth ───────────────────────────────────────────────────
       currentUser: null,
       setCurrentUser: (currentUser) => set({ currentUser }),
-      logout: () => set({ currentUser: null, page: 'dashboard' }),
+      logout: () => set({ currentUser: null }),
 
       // ── Onboarding ─────────────────────────────────────────
       onboardingDone: false,
@@ -102,6 +102,7 @@ export const useAppStore = create<AppState>()(
         if (state) {
           state.theme = state.isDark ? darkTheme : lightTheme;
           state.tr = translations[state.lang];
+          if (state.currentUser?.role === 'cashier') state.page = 'sales';
         }
       },
     }

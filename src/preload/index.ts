@@ -52,6 +52,13 @@ const electronTRPC = {
 const backupApi = {
   save: () => ipcRenderer.invoke('backup:save') as Promise<{ success: boolean; path?: string; error?: string }>,
   restore: () => ipcRenderer.invoke('backup:restore') as Promise<{ success: boolean; error?: string }>,
+  selectFolder: () => ipcRenderer.invoke('backup:selectFolder') as Promise<{ success: boolean; folderPath?: string }>,
+  saveToFolder: (folderPath: string) => ipcRenderer.invoke('backup:saveToFolder', folderPath) as Promise<{ success: boolean; path?: string; fileName?: string; error?: string }>,
+}
+
+const appApi = {
+  cleanData: (email: string, password: string) =>
+    ipcRenderer.invoke('app:cleanData', { email, password }) as Promise<{ success: boolean; error?: string }>,
 }
 
 if (process.contextIsolated) {
@@ -60,6 +67,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', {})
     contextBridge.exposeInMainWorld('electronTRPC', electronTRPC)
     contextBridge.exposeInMainWorld('backupApi', backupApi)
+    contextBridge.exposeInMainWorld('appApi', appApi)
   } catch (error) {
     console.error(error)
   }

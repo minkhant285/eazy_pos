@@ -61,6 +61,57 @@ export const SettingsPage: React.FC = () => {
   const [isBackingUp, setIsBackingUp] = useState(false)
   const [backupMsg,   setBackupMsg]   = useState<string | null>(null)
 
+  // Cloud backup folder
+  const [cloudFolder,    setCloudFolder]    = useState(() => localStorage.getItem('backup_cloud_folder') ?? '')
+  const [isCloudBacking, setIsCloudBacking] = useState(false)
+  const [cloudMsg,       setCloudMsg]       = useState<string | null>(null)
+
+  const handleBrowseFolder = async () => {
+    const result = await window.backupApi.selectFolder()
+    if (result.success && result.folderPath) {
+      setCloudFolder(result.folderPath)
+      localStorage.setItem('backup_cloud_folder', result.folderPath)
+      setCloudMsg(null)
+    }
+  }
+
+  const handleCloudBackup = async () => {
+    if (!cloudFolder) { setCloudMsg('Error: Please select a backup folder first'); return }
+    setIsCloudBacking(true)
+    setCloudMsg(null)
+    const result = await window.backupApi.saveToFolder(cloudFolder)
+    setIsCloudBacking(false)
+    if (result.success) {
+      setCloudMsg(`Saved: ${result.fileName}`)
+    } else {
+      setCloudMsg(`Error: ${result.error}`)
+    }
+  }
+
+  // Clean all data
+  const [showCleanModal, setShowCleanModal] = useState(false)
+  const [cleanEmail,     setCleanEmail]     = useState('')
+  const [cleanPassword,  setCleanPassword]  = useState('')
+  const [cleanError,     setCleanError]     = useState('')
+  const [isCleaning,     setIsCleaning]     = useState(false)
+
+  const handleCleanData = async () => {
+    if (!cleanEmail || !cleanPassword) { setCleanError('Email and password are required'); return }
+    setIsCleaning(true)
+    setCleanError('')
+    localStorage.clear()
+    const result = await window.appApi.cleanData(cleanEmail, cleanPassword)
+    setIsCleaning(false)
+    if (!result.success) setCleanError(result.error ?? 'Failed')
+  }
+
+  const closeCleanModal = () => {
+    setShowCleanModal(false)
+    setCleanEmail('')
+    setCleanPassword('')
+    setCleanError('')
+  }
+
   // License
   const [licenseKey, setLicenseKey]   = useState('')
   const [licenseMsg, setLicenseMsg]   = useState<{ ok: boolean; text: string } | null>(null)
@@ -335,6 +386,192 @@ export const SettingsPage: React.FC = () => {
                 </p>
               )}
             </Section>
+
+            <Section title="Backup to Folder" description="Auto-save .mkbak to a local or cloud-synced folder (OneDrive, Dropbox, Google Drive)" t={t}>
+              {/* Folder path row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <div style={{
+                  flex: 1, background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                  borderRadius: '10px', padding: '8px 12px',
+                  color: cloudFolder ? t.text : t.textFaint, fontSize: '12px',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {cloudFolder || 'No folder selected'}
+                </div>
+                <button
+                  onClick={handleBrowseFolder}
+                  style={{
+                    padding: '8px 14px', borderRadius: '10px', border: `1px solid ${t.borderStrong}`,
+                    background: t.surface, color: t.text, fontSize: '12px', fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  Browse
+                </button>
+              </div>
+
+              {/* Backup now button */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: t.textFaint, fontSize: '11px' }}>
+                    Saves an encrypted <strong style={{ color: t.textMuted }}>.mkbak</strong> file directly to the selected folder. Point it to your OneDrive, Dropbox, or Google Drive folder for automatic cloud sync.
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloudBackup}
+                  disabled={isCloudBacking || !cloudFolder}
+                  style={{
+                    padding: '9px 18px', borderRadius: '10px', border: 'none',
+                    background: cloudFolder ? '#10b981' : t.inputBg,
+                    color: cloudFolder ? '#fff' : t.textFaint,
+                    fontSize: '12px', fontWeight: 700,
+                    cursor: isCloudBacking || !cloudFolder ? 'not-allowed' : 'pointer',
+                    fontFamily: 'inherit', opacity: isCloudBacking ? 0.7 : 1,
+                    display: 'flex', alignItems: 'center', gap: '7px', flexShrink: 0,
+                    transition: 'opacity 0.15s',
+                  }}
+                >
+                  <Icon name="upload" size={13} />
+                  {isCloudBacking ? 'Saving…' : 'Backup Now'}
+                </button>
+              </div>
+
+              {cloudMsg && (
+                <p style={{
+                  marginTop: '12px', fontSize: '12px',
+                  color: cloudMsg.startsWith('Error') ? '#ef4444' : '#10b981',
+                  background: cloudMsg.startsWith('Error') ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+                  border: `1px solid ${cloudMsg.startsWith('Error') ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                  borderRadius: '8px', padding: '8px 12px',
+                }}>
+                  {cloudMsg.startsWith('Error') ? cloudMsg : `✅ ${cloudMsg}`}
+                </p>
+              )}
+            </Section>
+          </div>
+        )}
+
+        {/* ── GROUP: Danger Zone ─────────────────────────────── */}
+        {currentUser?.role === 'admin' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <GroupLabel label="Danger Zone" t={t} />
+            <Section title="Clean All Data" description="Permanently delete all store data and reset the app" t={t}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ color: t.textFaint, fontSize: '11px' }}>
+                    Removes all sales, products, customers, settings, and license data. The app will restart fresh. <strong style={{ color: '#ef4444' }}>This cannot be undone.</strong>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCleanModal(true)}
+                  style={{
+                    padding: '9px 18px', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.4)',
+                    background: 'rgba(239,68,68,0.08)', color: '#ef4444',
+                    fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                    fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  Clean All Data
+                </button>
+              </div>
+            </Section>
+          </div>
+        )}
+
+        {/* Clean data confirmation modal */}
+        {showCleanModal && (
+          <div
+            onClick={closeCleanModal}
+            style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }} />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'relative', width: '100%', maxWidth: '420px', margin: '0 16px',
+                background: t.surface, border: `1px solid rgba(239,68,68,0.3)`,
+                borderRadius: '20px', boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Header */}
+              <div style={{ padding: '20px 24px 16px', borderBottom: `1px solid ${t.borderMid}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '10px', background: 'rgba(239,68,68,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: '18px' }}>⚠️</span>
+                  </div>
+                  <p style={{ color: '#ef4444', fontSize: '15px', fontWeight: 700 }}>Clean All Data</p>
+                </div>
+                <p style={{ color: t.textMuted, fontSize: '12px', lineHeight: 1.5 }}>
+                  This will permanently delete <strong style={{ color: t.text }}>all store data</strong> and the license, then restart the app. Enter your admin credentials to confirm.
+                </p>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <p style={{ color: t.textMuted, fontSize: '11px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admin Email</p>
+                  <input
+                    type="email"
+                    value={cleanEmail}
+                    onChange={(e) => setCleanEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                    autoFocus
+                    style={{
+                      width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                      borderRadius: '10px', padding: '9px 12px', color: t.text,
+                      fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div>
+                  <p style={{ color: t.textMuted, fontSize: '11px', fontWeight: 700, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Admin Password</p>
+                  <input
+                    type="password"
+                    value={cleanPassword}
+                    onChange={(e) => setCleanPassword(e.target.value)}
+                    placeholder="••••••••"
+                    onKeyDown={(e) => e.key === 'Enter' && handleCleanData()}
+                    style={{
+                      width: '100%', background: t.inputBg, border: `1px solid ${t.inputBorder}`,
+                      borderRadius: '10px', padding: '9px 12px', color: t.text,
+                      fontSize: '13px', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                {cleanError && (
+                  <p style={{ fontSize: '12px', color: '#ef4444', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', padding: '8px 12px' }}>
+                    {cleanError}
+                  </p>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '0 24px 20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={closeCleanModal}
+                  style={{
+                    padding: '9px 20px', borderRadius: '10px', border: `1px solid ${t.borderStrong}`,
+                    background: 'none', color: t.textMuted, fontSize: '13px', fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCleanData}
+                  disabled={isCleaning}
+                  style={{
+                    padding: '9px 20px', borderRadius: '10px', border: 'none',
+                    background: isCleaning ? 'rgba(239,68,68,0.4)' : '#ef4444',
+                    color: '#fff', fontSize: '13px', fontWeight: 700,
+                    cursor: isCleaning ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  {isCleaning ? 'Cleaning…' : 'Yes, Clean Everything'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

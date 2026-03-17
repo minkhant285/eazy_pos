@@ -32,6 +32,7 @@ export type CreateSaleInput = {
   payments: PaymentInput[];
   discountAmount?: number;  // Header-level discount
   notes?: string;
+  saleDate?: string;  // Optional YYYY-MM-DD override for createdAt
 };
 
 export type SaleFilter = {
@@ -189,6 +190,7 @@ export function createSale(input: CreateSaleInput) {
         paidAmount,
         changeAmount,
         notes: input.notes ?? null,
+        ...(input.saleDate ? { createdAt: `${input.saleDate}T12:00:00.000Z` } : {}),
       })
       .run();
 
@@ -618,6 +620,7 @@ export type CreateOnlineOrderInput = {
   paymentReference?: string;
   discountAmount?: number;
   notes?: string;
+  saleDate?: string;  // Optional YYYY-MM-DD override for createdAt
 };
 
 /** Create an online order (quotation) — stock is NOT deducted at creation */
@@ -703,6 +706,7 @@ export function createOnlineOrder(input: CreateOnlineOrderInput) {
     paidAmount: 0,
     changeAmount: 0,
     notes: input.notes ?? null,
+    ...(input.saleDate ? { createdAt: `${input.saleDate}T12:00:00.000Z` } : {}),
   }).run();
 
   db.insert(saleItems).values(saleItemRows).run();
@@ -835,7 +839,7 @@ export function returnOnlineOrder(id: string) {
   });
 }
 
-export type UpdateOnlineOrderInput = Omit<CreateOnlineOrderInput, 'cashierId' | 'locationId'>;
+export type UpdateOnlineOrderInput = Omit<CreateOnlineOrderInput, 'cashierId' | 'locationId'> & { saleDate?: string };
 
 /** Update a processing online order — replaces items and payments, recalculates totals */
 export function updateOnlineOrder(id: string, input: UpdateOnlineOrderInput) {
@@ -915,6 +919,7 @@ export function updateOnlineOrder(id: string, input: UpdateOnlineOrderInput) {
       totalAmount,
       notes: input.notes ?? null,
       updatedAt: now(),
+      ...(input.saleDate ? { createdAt: `${input.saleDate}T12:00:00.000Z` } : {}),
     }).where(eq(sales.id, id)).run();
 
     return getSaleById(id);
@@ -946,10 +951,12 @@ export function reprocessOnlineOrder(id: string) {
   return getSaleById(id);
 }
 
-/** List online orders, optionally filtered by onlineStatus */
-export function listOnlineOrders(onlineStatus?: string) {
+/** List online orders, optionally filtered by onlineStatus and/or date range */
+export function listOnlineOrders(params?: { onlineStatus?: string; fromDate?: string; toDate?: string }) {
   const conditions: any[] = [eq(sales.orderType, "online")];
-  if (onlineStatus) conditions.push(eq(sales.onlineStatus, onlineStatus as any));
+  if (params?.onlineStatus) conditions.push(eq(sales.onlineStatus, params.onlineStatus as any));
+  if (params?.fromDate) conditions.push(sql`DATE(${sales.createdAt}) >= ${params.fromDate}`);
+  if (params?.toDate) conditions.push(sql`DATE(${sales.createdAt}) <= ${params.toDate}`);
 
   return db
     .select({

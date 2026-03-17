@@ -12,12 +12,13 @@ interface Props {
   t: ThemeTokens
   isDark: boolean
   placeholder?: string
+  dropdownAlign?: 'left' | 'right'  // which edge of trigger the dropdown anchors to
 }
 
 const toDate = (s: string) => new Date(s + 'T12:00:00')
 
 export const DateRangePicker: React.FC<Props> = ({
-  fromDate, toDate: toDateStr, onChange, t, isDark, placeholder = 'Date range',
+  fromDate, toDate: toDateStr, onChange, t, isDark, placeholder = 'Date range', dropdownAlign = 'right',
 }) => {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -95,7 +96,7 @@ export const DateRangePicker: React.FC<Props> = ({
       {/* Dropdown calendar */}
       {open && (
         <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 9999,
+          position: 'absolute', top: 'calc(100% + 6px)', ...(dropdownAlign === 'left' ? { left: 0 } : { right: 0 }), zIndex: 9999,
           borderRadius: '14px', overflow: 'hidden',
           boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
           border: `1px solid ${t.border}`,

@@ -3,6 +3,7 @@ import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { trpc } from '../../trpc-client/trpc'
 import { QuotationView } from './QuotationView'
+import { DateRangePicker } from '../../components/ui/DateRangePicker'
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -292,6 +293,8 @@ const OrderFormModal: React.FC<{
   const [stockMap, setStockMap] = useState<Record<string, number>>({})
   const [discount, setDiscount] = useState('')
   const [notes, setNotes] = useState('')
+  const today = new Date().toISOString().slice(0, 10)
+  const [saleDate, setSaleDate] = useState(today)
   const [error, setError] = useState('')
 
   // Fetch existing order for edit mode
@@ -315,6 +318,7 @@ const OrderFormModal: React.FC<{
     setPaymentMethod(validMethods.includes(m) ? (m as 'cash' | 'qr_code') : 'cash')
     setDiscount(sale.discountAmount ? String(sale.discountAmount) : '')
     setNotes(sale.notes ?? '')
+    setSaleDate(sale.createdAt ? sale.createdAt.slice(0, 10) : today)
     setCart(
       (sale.items ?? []).map((item: any) => ({
         productId: item.productId,
@@ -489,6 +493,7 @@ const OrderFormModal: React.FC<{
       paymentReference,
       discountAmount: discountNum,
       notes: notes || undefined,
+      saleDate: saleDate !== today ? saleDate : undefined,
     }
     if (isEdit) {
       updateMut.mutate({ id: editOrderId!, ...commonPayload })
@@ -926,6 +931,23 @@ const OrderFormModal: React.FC<{
                 style={inputSt}
               />
             </div>
+            <div>
+              <p style={sectionLabel}>Sale Date</p>
+              <input
+                type="date"
+                value={saleDate}
+                onChange={(e) => setSaleDate(e.target.value || today)}
+                style={inputSt}
+              />
+              {saleDate !== today && (
+                <button
+                  onClick={() => setSaleDate(today)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--primary)', fontSize: '10px', marginTop: '2px', fontFamily: 'inherit' }}
+                >
+                  Reset to today
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Total summary */}
@@ -1071,6 +1093,8 @@ const KanbanColumn: React.FC<{
 // ── Main OnlineOrdersTab ───────────────────────────────────────
 
 export const OnlineOrdersTab: React.FC = () => {
+  const t = useAppStore((s) => s.theme)
+  const isDark = useAppStore((s) => s.isDark)
   const sym = useAppStore((s) => s.currency.symbol)
 
   const [showCreate, setShowCreate] = useState(false)
@@ -1078,12 +1102,16 @@ export const OnlineOrdersTab: React.FC = () => {
   const [viewOrderId, setViewOrderId] = useState<string | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
 
-  const { data: processingData,   refetch: refetchProcessing }   = trpc.sale.listOnline.useQuery({ onlineStatus: 'processing' })
-  const { data: confirmedData,    refetch: refetchConfirmed }    = trpc.sale.listOnline.useQuery({ onlineStatus: 'confirmed' })
-  const { data: readyToShipData, refetch: refetchReadyToShip }  = trpc.sale.listOnline.useQuery({ onlineStatus: 'ready_to_ship' })
-  const { data: shippedData,     refetch: refetchShipped }      = trpc.sale.listOnline.useQuery({ onlineStatus: 'shipped' })
-  const { data: returnedData,    refetch: refetchReturned }     = trpc.sale.listOnline.useQuery({ onlineStatus: 'returned' })
+  const dateFilter = { fromDate: fromDate || undefined, toDate: toDate || undefined }
+
+  const { data: processingData,   refetch: refetchProcessing }   = trpc.sale.listOnline.useQuery({ onlineStatus: 'processing',   ...dateFilter })
+  const { data: confirmedData,    refetch: refetchConfirmed }    = trpc.sale.listOnline.useQuery({ onlineStatus: 'confirmed',    ...dateFilter })
+  const { data: readyToShipData, refetch: refetchReadyToShip }  = trpc.sale.listOnline.useQuery({ onlineStatus: 'ready_to_ship', ...dateFilter })
+  const { data: shippedData,     refetch: refetchShipped }      = trpc.sale.listOnline.useQuery({ onlineStatus: 'shipped',       ...dateFilter })
+  const { data: returnedData,    refetch: refetchReturned }     = trpc.sale.listOnline.useQuery({ onlineStatus: 'returned',      ...dateFilter })
 
   const refetchAll = useCallback(() => {
     refetchProcessing()
@@ -1156,6 +1184,19 @@ export const OnlineOrdersTab: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Date range filter */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <DateRangePicker
+          fromDate={fromDate}
+          toDate={toDate}
+          onChange={(from, to) => { setFromDate(from); setToDate(to) }}
+          t={t}
+          isDark={isDark}
+          placeholder="Filter by date range"
+          dropdownAlign="left"
+        />
+      </div>
 
       {/* Kanban board */}
       <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', overflowX: 'auto', paddingBottom: '8px' }}>

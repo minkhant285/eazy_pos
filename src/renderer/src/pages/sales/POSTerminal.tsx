@@ -290,6 +290,9 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 	const [productSearch, setProductSearch] = useState('')
 	const [headerDiscount, setHeaderDiscount] = useState('')
 	const [notes, setNotes] = useState('')
+	const today = new Date().toISOString().slice(0, 10)
+	const [saleDate, setSaleDate] = useState(today)
+	const [showCustomDate, setShowCustomDate] = useState(false)
 
 	// ── Variant picker ──
 	const [pendingVariantProduct, setPendingVariantProduct] = useState<any>(null)
@@ -488,6 +491,7 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 			payments: paymentsArr,
 			discountAmount: discountNum || undefined,
 			notes: notes || undefined,
+			saleDate: showCustomDate ? saleDate : undefined,
 		})
 	}
 
@@ -953,6 +957,27 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 							placeholder="Notes (optional)"
 							style={{ ...inputStyle, marginBottom: '6px', fontSize: '12px', padding: '6px 10px' }}
 						/>
+
+						{/* Sale Date */}
+						<div style={{ marginBottom: '6px' }}>
+							<div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: showCustomDate ? '6px' : 0 }}>
+								<button
+									onClick={() => { setShowCustomDate(!showCustomDate); if (showCustomDate) setSaleDate(today) }}
+									style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: '4px', color: showCustomDate ? 'var(--primary)' : t.textMuted, fontSize: '11px', fontWeight: 600, fontFamily: 'inherit' }}
+								>
+									<span style={{ fontSize: '14px' }}>{showCustomDate ? '✓' : '📅'}</span> Custom Date
+								</button>
+								{showCustomDate && <span style={{ fontSize: '11px', color: t.textMuted }}>(today: {today})</span>}
+							</div>
+							{showCustomDate && (
+								<input
+									type="date"
+									value={saleDate}
+									onChange={(e) => setSaleDate(e.target.value)}
+									style={{ ...inputStyle, fontSize: '12px', padding: '6px 10px' }}
+								/>
+							)}
+						</div>
 
 						{/* Charge button */}
 						<button

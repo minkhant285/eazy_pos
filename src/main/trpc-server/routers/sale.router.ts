@@ -24,6 +24,7 @@ const OnlineOrderInputSchema = z.object({
   paymentReference: z.string().optional(),
   discountAmount: z.number().nonnegative().optional(),
   notes: z.string().optional(),
+  saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
 
 const PaymentInputSchema = z.object({
@@ -108,6 +109,7 @@ export const saleRouter = router({
         payments: z.array(PaymentInputSchema).min(0),
         discountAmount: z.number().nonnegative().optional(),
         notes: z.string().optional(),
+        saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       })
     )
     .mutation(({ input }) => {
@@ -274,6 +276,7 @@ export const saleRouter = router({
         paymentReference: z.string().optional(),
         discountAmount: z.number().nonnegative().optional(),
         notes: z.string().optional(),
+        saleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       })
     )
     .mutation(({ input }) => {
@@ -329,12 +332,16 @@ export const saleRouter = router({
       }
     }),
 
-  /** GET /sale.listOnline — list online orders, optionally filtered by status */
+  /** GET /sale.listOnline — list online orders, optionally filtered by status and date range */
   listOnline: publicProcedure
-    .input(z.object({ onlineStatus: z.string().optional() }).optional())
+    .input(z.object({
+      onlineStatus: z.string().optional(),
+      fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    }).optional())
     .query(({ input }) => {
       try {
-        return SaleService.listOnlineOrders(input?.onlineStatus)
+        return SaleService.listOnlineOrders(input)
       } catch (err) {
         mapError(err)
       }
