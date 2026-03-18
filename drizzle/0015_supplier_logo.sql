@@ -1,1 +1,1 @@
-ALTER TABLE `suppliers` ADD `logo_url` text;
+ALTER TABLE `suppliers` ADD COLUMN `logo_url` text;

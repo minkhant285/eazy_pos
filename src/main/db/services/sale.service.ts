@@ -481,10 +481,10 @@ export function getDailySummary(locationId: string, date: string) {
   return db
     .select({
       totalTransactions: sql<number>`COUNT(*)`,
-      totalRevenue: sql<number>`SUM(${sales.totalAmount})`,
+      totalRevenue: sql<number>`SUM(${sales.totalAmount} - COALESCE(${sales.deliveryFee}, 0))`,
       totalTax: sql<number>`SUM(${sales.taxAmount})`,
       totalDiscount: sql<number>`SUM(${sales.discountAmount})`,
-      averageTransaction: sql<number>`AVG(${sales.totalAmount})`,
+      averageTransaction: sql<number>`AVG(${sales.totalAmount} - COALESCE(${sales.deliveryFee}, 0))`,
     })
     .from(sales)
     .where(
@@ -530,7 +530,7 @@ export function getDailyProfitSummary(locationId: string, fromDate: string, toDa
   const baseSales = db
     .select({
       date:          sql<string>`DATE(${sales.createdAt})`,
-      revenue:       sql<number>`SUM(${sales.totalAmount})`,
+      revenue:       sql<number>`SUM(${sales.totalAmount} - COALESCE(${sales.deliveryFee}, 0))`,
       totalDiscount: sql<number>`SUM(${sales.discountAmount})`,
       transactions:  sql<number>`COUNT(*)`,
     })

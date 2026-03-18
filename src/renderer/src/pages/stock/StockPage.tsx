@@ -519,7 +519,6 @@ export const StockPage: React.FC = () => {
 	const [variantStockItem, setVariantStockItem] = useState<any | null>(null);
 	const [productModal, setProductModal] = useState<null | "create" | ProductForEdit>(null);
 	const [detailItem, setDetailItem] = useState<any | null>(null);
-
 	const { data: locationsData } = trpc.location.list.useQuery({ isActive: true, pageSize: 100 });
 	const locations = locationsData?.data ?? [];
 
@@ -721,7 +720,7 @@ export const StockPage: React.FC = () => {
 				) : (
 					<span style={{ color: t.textFaint, fontSize: "13px" }}>No locations configured</span>
 				)}
-				<div style={{ marginLeft: "auto" }}>
+				<div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
 					<button
 						onClick={() => setProductModal("create")}
 						style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 16px", borderRadius: "11px", border: "none", background: "var(--primary)", color: "#fff", fontSize: "13px", fontWeight: 700, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }}

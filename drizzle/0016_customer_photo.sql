@@ -1,1 +1,1 @@
-ALTER TABLE `customers` ADD `photo_url` text;
+ALTER TABLE `customers` ADD COLUMN `photo_url` text;

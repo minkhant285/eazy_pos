@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useAppStore } from "../../store/useAppStore";
 import { Icon } from "../ui/Icon";
 import type { PageId } from "../../types";
@@ -37,6 +38,8 @@ export const Sidebar: React.FC = () => {
 	const tr = useAppStore((s) => s.tr);
 	const role = useAppStore((s) => s.currentUser?.role ?? 'cashier');
 
+	const [tooltip, setTooltip] = useState<{ label: string; y: number } | null>(null);
+
 	const allGroups: NavGroup[] = [
 		{ label: tr.overview, items: [{ id: "dashboard", label: tr.dashboard, icon: "dashboard" }, { id: "accounting", label: tr.accounting, icon: "accounting" }] },
 		{ label: tr.sales_group, items: [{ id: "sales", label: tr.sales, icon: "sale" }, { id: "customers", label: tr.customers, icon: "customer" }] },
@@ -51,6 +54,7 @@ export const Sidebar: React.FC = () => {
 		.filter((g) => g.items.length > 0);
 
 	return (
+	<>
 		<aside style={{
 			width: collapsed ? "58px" : "208px",
 			flexShrink: 0, display: "flex", flexDirection: "column",
@@ -102,7 +106,12 @@ export const Sidebar: React.FC = () => {
 								<button
 									key={item.id}
 									onClick={() => setPage(item.id)}
-									title={collapsed ? item.label : undefined}
+									onMouseEnter={(e) => {
+										if (!collapsed) return;
+										const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+										setTooltip({ label: item.label, y: rect.top + rect.height / 2 });
+									}}
+									onMouseLeave={() => setTooltip(null)}
 									style={{
 										width: "100%", display: "flex", alignItems: "center",
 										gap: collapsed ? 0 : "8px",
@@ -151,5 +160,29 @@ export const Sidebar: React.FC = () => {
 				</button>
 			</div>
 		</aside>
+
+		{collapsed && tooltip && createPortal(
+			<div style={{
+				position: "fixed",
+				left: "66px",
+				top: tooltip.y,
+				transform: "translateY(-50%)",
+				background: t.surface,
+				border: `1px solid ${t.border}`,
+				borderRadius: "8px",
+				padding: "5px 11px",
+				fontSize: "12px",
+				fontWeight: 600,
+				color: t.text,
+				whiteSpace: "nowrap",
+				zIndex: 9999,
+				boxShadow: "0 4px 16px rgba(0,0,0,0.13)",
+				pointerEvents: "none",
+			}}>
+				{tooltip.label}
+			</div>,
+			document.body
+		)}
+	</>
 	);
 };

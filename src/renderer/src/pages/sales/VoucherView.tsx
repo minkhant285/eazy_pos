@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { trpc } from '../../trpc-client/trpc'
@@ -61,10 +61,12 @@ interface Props {
   onNewSale?: () => void
 }
 
+const esc = (s: string | null | undefined) =>
+  String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
 export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose, onNewSale }) => {
   const t = useAppStore((s) => s.theme)
   const sym = useAppStore((s) => s.currency.symbol)
-  const printRef = useRef<HTMLDivElement>(null)
 
   // Fetch customer addresses if customer is attached to this sale
   const { data: addresses = [] } = trpc.customerAddress.list.useQuery(
@@ -77,78 +79,136 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
     ? (addrList.find((a) => a.id === resolvedId) ?? addrList.find((a) => a.isDefault) ?? addrList[0] ?? null)
     : (addrList.find((a) => a.isDefault) ?? addrList[0] ?? null)
 
-  const handlePrint = () => {
-    const content = printRef.current?.innerHTML ?? ''
-    const win = window.open('', '_blank', 'width=420,height=700')
-    if (!win) return
-    win.document.write(`
-      <html>
-        <head>
-          <title>Receipt ${sale.receiptNo}</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 12px; color: #000; }
-            .center { text-align: center; }
-            .divider { border-top: 1px dashed #888; margin: 8px 0; }
-            .row { display: flex; justify-content: space-between; margin: 3px 0; }
-            .bold { font-weight: 700; }
-            .big { font-size: 16px; }
-            .store-name { font-size: 18px; font-weight: 900; }
-            .item-name { flex: 1; margin-right: 8px; }
-            .item-price { white-space: nowrap; font-weight: 700; }
-            .total-row { font-size: 15px; font-weight: 900; }
-            .green { color: #166534; }
-            .red { color: #991b1b; }
-            .meta-label { color: #6b7280; }
-            .credit-debt-row { border: 1px solid #fca5a5; border-radius: 4px; padding: 4px 7px; margin-top: 2px; }
-            .addr-block { border: 1px dashed #888; border-radius: 4px; padding: 8px 10px; margin: 8px 0; }
-            .addr-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; margin-bottom: 5px; }
-            .addr-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
-            .addr-phone { font-size: 11px; color: #374151; margin-bottom: 2px; }
-            .addr-detail { font-size: 11px; color: #374151; line-height: 1.4; }
-          </style>
-        </head>
-        <body>${content}</body>
-      </html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+  const buildReceiptHtml = () => {
+    const debtAmount = sale.totalAmount - sale.paidAmount
+    const isCredit = debtAmount > 0
+
+    const itemsHtml = sale.items.map(item => `
+      <div style="margin-bottom:7px;">
+        <div class="row">
+          <span class="item-name">${esc(item.productName)}</span>
+          <span class="item-price">${esc(sym)}${Number(item.totalAmount).toLocaleString()}</span>
+        </div>
+        <span style="color:#6b7280;font-size:10px;">${item.qty} &times; ${esc(sym)}${Number(item.unitPrice).toLocaleString()}${item.discountAmount > 0 ? ` (&minus;${esc(sym)}${Number(item.discountAmount).toLocaleString()})` : ''}</span>
+      </div>
+    `).join('')
+
+    const paymentsHtml = sale.payments.map(pay => `
+      <div class="row">
+        <span style="color:#6b7280;font-size:11px;">
+          ${pay.method === 'qr_code' && pay.reference ? esc(pay.reference.split(': ')[0]) : esc(METHOD_LABELS[pay.method] ?? pay.method)}
+          ${isCredit ? ' (Deposit)' : ''}
+        </span>
+        <span style="font-size:11px;font-weight:600;">${esc(sym)}${Number(pay.amount).toLocaleString()}</span>
+      </div>
+    `).join('')
+
+    const addressHtml = defaultAddress ? `
+      <div class="divider"></div>
+      <div style="border:1px dashed #888;border-radius:4px;padding:8px 10px;margin:8px 0;">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:5px;">Deliver to</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:2px;">${esc(defaultAddress.receiverName)}</div>
+        <div style="font-size:11px;color:#374151;margin-bottom:2px;">${esc(defaultAddress.phoneNumber)}</div>
+        <div style="font-size:11px;color:#374151;line-height:1.4;">${esc(defaultAddress.detailAddress)}</div>
+      </div>
+    ` : ''
+
+    const deliveryHtml = sale.deliveryMethodName ? `
+      <div class="divider"></div>
+      <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.5px;color:#6b7280;margin-bottom:2px;">Delivery via</div>
+      <div style="font-size:12px;font-weight:700;">${esc(sale.deliveryMethodName)}</div>
+    ` : ''
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Receipt ${esc(sale.receiptNo)}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', monospace; font-size: 12px; width: 80mm; margin: 0 auto; padding: 12px; color: #000; background: #fff; }
+    .center { text-align: center; }
+    .divider { border-top: 1px dashed #888; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; margin: 3px 0; }
+    .item-name { flex: 1; margin-right: 8px; }
+    .item-price { white-space: nowrap; font-weight: 700; }
+    .total-row { font-size: 15px; font-weight: 900; border-top: 1px solid #ccc; padding-top: 7px; margin-top: 4px; }
+    @media print { body { width: 80mm; } }
+  </style>
+</head>
+<body>
+  <div class="center" style="margin-bottom:14px;">
+    <div style="font-size:18px;font-weight:900;">Easy POS</div>
+    ${sale.locationName ? `<div style="color:#6b7280;font-size:11px;margin-top:3px;">${esc(sale.locationName)}</div>` : ''}
+  </div>
+  <div class="divider"></div>
+  <div style="margin-bottom:12px;">
+    ${[['Receipt #', sale.receiptNo], ['Date', new Date(sale.createdAt).toLocaleString()], ['Cashier', sale.cashierName ?? '—'], ['Customer', sale.customerName ?? 'Walk-in']].map(([l, v]) => `
+    <div class="row"><span style="color:#6b7280;font-size:11px;">${esc(l)}</span><span style="font-size:11px;font-weight:600;">${esc(v)}</span></div>
+    `).join('')}
+  </div>
+  <div class="divider"></div>
+  <div style="margin-bottom:12px;">${itemsHtml}</div>
+  <div class="divider"></div>
+  <div style="margin-bottom:10px;">
+    <div class="row"><span style="color:#6b7280;font-size:11px;">Subtotal</span><span style="font-size:11px;">${esc(sym)}${Number(sale.subtotal).toLocaleString()}</span></div>
+    ${sale.discountAmount > 0 ? `<div class="row"><span style="color:#6b7280;font-size:11px;">Discount</span><span style="color:#991b1b;font-size:11px;">&minus;${esc(sym)}${Number(sale.discountAmount).toLocaleString()}</span></div>` : ''}
+    ${sale.taxAmount > 0 ? `<div class="row"><span style="color:#6b7280;font-size:11px;">Tax</span><span style="font-size:11px;">${esc(sym)}${Number(sale.taxAmount).toLocaleString()}</span></div>` : ''}
+    <div class="row total-row">
+      <span>TOTAL</span>
+      <span>${esc(sym)}${Number(sale.totalAmount).toLocaleString()}</span>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div>
+    ${isCredit ? `<div style="font-size:9px;font-weight:800;color:#991b1b;border:1px solid #fca5a5;display:inline-block;padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Credit Sale</div>` : ''}
+    ${paymentsHtml}
+    ${isCredit ? `<div class="row" style="border:1px solid #fca5a5;border-radius:4px;padding:5px 8px;margin-top:3px;"><span style="color:#991b1b;font-size:11px;font-weight:700;">Outstanding Debt</span><span style="color:#991b1b;font-size:12px;font-weight:800;">${esc(sym)}${debtAmount.toLocaleString()}</span></div>` : ''}
+    ${sale.changeAmount > 0 ? `<div class="row"><span style="color:#6b7280;font-size:11px;">Change</span><span style="color:#166534;font-size:11px;font-weight:700;">${esc(sym)}${Number(sale.changeAmount).toLocaleString()}</span></div>` : ''}
+  </div>
+  ${addressHtml}
+  ${deliveryHtml}
+  <div class="divider" style="margin-top:14px;"></div>
+  <div class="center" style="color:#9ca3af;font-size:10px;">Thank you for your purchase!</div>
+</body>
+</html>`
   }
 
-  const handlePrintLabel = () => {
+  const buildLabelHtml = () => {
+    if (!defaultAddress) return ''
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Address Label</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; padding: 24px; color: #000; background: #fff; }
+    .label { border: 2px solid #000; border-radius: 8px; padding: 20px 24px; max-width: 340px; }
+    @media print { body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:10px;">Deliver To</div>
+    <div style="font-size:20px;font-weight:900;margin-bottom:6px;">${esc(defaultAddress.receiverName)}</div>
+    <div style="font-size:15px;font-weight:600;color:#333;margin-bottom:8px;">${esc(defaultAddress.phoneNumber)}</div>
+    <div style="font-size:13px;color:#444;line-height:1.6;">${esc(defaultAddress.detailAddress)}</div>
+    <div style="font-size:10px;color:#888;margin-top:14px;border-top:1px dashed #ccc;padding-top:8px;">Receipt: ${esc(sale.receiptNo)}</div>
+  </div>
+</body>
+</html>`
+  }
+
+  const handlePrint = async () => {
+    const html = buildReceiptHtml()
+    await window.printApi.printReceipt(html)
+  }
+
+  const handlePrintLabel = async () => {
     if (!defaultAddress) return
-    const win = window.open('', '_blank', 'width=400,height=300')
-    if (!win) return
-    win.document.write(`
-      <html>
-        <head>
-          <title>Address Label</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; padding: 24px; color: #000; }
-            .label { border: 2px solid #000; border-radius: 8px; padding: 20px 24px; max-width: 340px; }
-            .to { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #555; margin-bottom: 10px; }
-            .name { font-size: 20px; font-weight: 900; margin-bottom: 6px; }
-            .phone { font-size: 15px; font-weight: 600; color: #333; margin-bottom: 8px; }
-            .address { font-size: 13px; color: #444; line-height: 1.6; }
-            .receipt { font-size: 10px; color: #888; margin-top: 14px; border-top: 1px dashed #ccc; padding-top: 8px; }
-          </style>
-        </head>
-        <body>
-          <div class="label">
-            <p class="to">Deliver To</p>
-            <p class="name">${defaultAddress.receiverName}</p>
-            <p class="phone">${defaultAddress.phoneNumber}</p>
-            <p class="address">${defaultAddress.detailAddress}</p>
-            <p class="receipt">Receipt: ${sale.receiptNo}</p>
-          </div>
-        </body>
-      </html>
-    `)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print(); win.close() }, 300)
+    const html = buildLabelHtml()
+    await window.printApi.printReceipt(html)
   }
 
   const btnBase = {
@@ -208,7 +268,7 @@ export const VoucherView: React.FC<Props> = ({ sale, selectedAddressId, onClose,
 
         {/* Receipt body */}
         <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-          <div ref={printRef}>
+          <div>
 
             {/* Store name */}
             <div className="center" style={{ textAlign: 'center', marginBottom: '14px' }}>

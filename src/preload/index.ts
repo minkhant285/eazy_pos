@@ -61,6 +61,12 @@ const appApi = {
     ipcRenderer.invoke('app:cleanData', { email, password }) as Promise<{ success: boolean; error?: string }>,
 }
 
+const printApi = {
+  printReceipt: (html: string) =>
+    ipcRenderer.invoke('print:receipt', html) as Promise<{ success: boolean; error?: string }>,
+}
+
+
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
@@ -68,6 +74,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electronTRPC', electronTRPC)
     contextBridge.exposeInMainWorld('backupApi', backupApi)
     contextBridge.exposeInMainWorld('appApi', appApi)
+    contextBridge.exposeInMainWorld('printApi', printApi)
   } catch (error) {
     console.error(error)
   }

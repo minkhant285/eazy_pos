@@ -185,6 +185,48 @@ app.whenReady().then(async() => {
     }
   })
 
+  // ── Print receipt / label ─────────────────────────────────────
+  ipcMain.handle('print:receipt', async (_event, html: string) => {
+    return new Promise<{ success: boolean; error?: string }>((resolve) => {
+      const printWin = new BrowserWindow({
+        show: false,
+        webPreferences: { sandbox: false, javascript: true },
+      })
+
+      let settled = false
+      const finish = (result: { success: boolean; error?: string }) => {
+        if (settled) return
+        settled = true
+        try { printWin.destroy() } catch { /* ignore */ }
+        resolve(result)
+      }
+
+      // Load blank page, then inject HTML once blank is ready
+      printWin.loadURL('about:blank')
+
+      printWin.webContents.once('did-finish-load', () => {
+        printWin.webContents
+          .executeJavaScript(
+            `document.open();document.write(${JSON.stringify(html)});document.close();`
+          )
+          .then(() => {
+            // Give Chromium a tick to apply CSS layout before printing
+            setTimeout(() => {
+              printWin.webContents.print(
+                { silent: false, printBackground: false },
+                (success, failureReason) => {
+                  finish(success ? { success: true } : { success: false, error: failureReason })
+                }
+              )
+            }, 150)
+          })
+          .catch((err) => finish({ success: false, error: String(err) }))
+      })
+
+      printWin.on('closed', () => finish({ success: false, error: 'cancelled' }))
+    })
+  })
+
   // ── Clean all data (admin password required) ─────────────────
   ipcMain.handle('app:cleanData', async (_event, { email, password }: { email: string; password: string }) => {
     try {

@@ -13,4 +13,8 @@ interface Window {
   appApi: {
     cleanData: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   }
+  printApi: {
+    printReceipt: (html: string) => Promise<{ success: boolean; error?: string }>
+  }
+
 }

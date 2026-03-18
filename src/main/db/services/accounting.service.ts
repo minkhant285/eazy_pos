@@ -20,7 +20,7 @@ export function getIncomeStatement(fromDate: string, toDate: string) {
 
   // Revenue, discounts, tax from completed sales
   const salesRow = db.select({
-    revenue:          sql<number>`COALESCE(SUM(${sales.totalAmount}), 0)`,
+    revenue:          sql<number>`COALESCE(SUM(${sales.totalAmount} - COALESCE(${sales.deliveryFee}, 0)), 0)`,
     discounts:        sql<number>`COALESCE(SUM(${sales.discountAmount}), 0)`,
     taxCollected:     sql<number>`COALESCE(SUM(${sales.taxAmount}), 0)`,
     transactionCount: sql<number>`COUNT(*)`,
@@ -139,7 +139,7 @@ export function getMonthlyTrend(year: number) {
 
   const revenueRows = db.select({
     month:   sql<string>`strftime('%m', ${sales.createdAt})`,
-    revenue: sql<number>`COALESCE(SUM(${sales.totalAmount}), 0)`,
+    revenue: sql<number>`COALESCE(SUM(${sales.totalAmount} - COALESCE(${sales.deliveryFee}, 0)), 0)`,
   }).from(sales).where(salesFilter)
     .groupBy(sql`strftime('%m', ${sales.createdAt})`).all();
 
