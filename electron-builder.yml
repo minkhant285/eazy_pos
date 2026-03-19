@@ -31,7 +31,7 @@ nsis:
   deleteAppDataOnUninstall: true
 mac:
   target:
-    - target: dmg
+    - target: zip
       arch:
         - arm64
   entitlementsInherit: build/entitlements.mac.plist

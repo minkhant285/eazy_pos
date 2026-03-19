@@ -4,7 +4,7 @@ import os from 'os';
 import { getMachineId } from './machineId';
 import { verifyKey } from './licenseVerifier';
 
-const TRIAL_DAYS = 5 / (24 * 60); // 5 minutes for testing
+const TRIAL_DAYS = 30;
 
 // ── License file location ─────────────────────────────────────
 

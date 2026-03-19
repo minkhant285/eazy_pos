@@ -393,7 +393,7 @@ const CreateTransferModal: React.FC<{ onClose: () => void; onSuccess: () => void
 
 	const canSubmit = !!fromLocationId && !!toLocationId && fromLocationId !== toLocationId && !!createdBy && items.length > 0;
 	const labelStyle = { color: t.textMuted, fontSize: "10.5px", fontWeight: 700, display: "block", marginBottom: "5px", textTransform: "uppercase" as const, letterSpacing: "0.5px" };
-	const selStyle   = (v: boolean) => ({ width: "100%", background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "11px", padding: "9px 12px", color: v ? t.text : t.textFaint, fontSize: "13px", outline: "none", fontFamily: "inherit", boxSizing: "border-box" as const });
+
 
 	return (
 		<div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>

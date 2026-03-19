@@ -88,11 +88,13 @@ const App: React.FC = () => {
 
 	// Validate that the persisted currentUser still exists in the DB.
 	// Handles the case where pos.db is deleted while the user session is still stored.
-	const { data: userCheck } = trpc.user.hasAny.useQuery(
-		undefined,
-		{ enabled: !!currentUser }
+	// Uses getById so we check the exact user. On NOT_FOUND (404) → logout.
+	// On any other error (IPC failure, startup race) → keep session to avoid false logouts.
+	const { error: userCheckError } = trpc.user.getById.useQuery(
+		{ id: currentUser?.id ?? '' },
+		{ enabled: !!currentUser?.id, retry: false }
 	);
-	const userGone = !!currentUser && userCheck !== undefined && !userCheck.exists;
+	const userGone = !!currentUser && userCheckError?.data?.code === 'NOT_FOUND';
 	React.useEffect(() => {
 		if (userGone) logout();
 	}, [userGone]);

@@ -140,16 +140,7 @@ const SalesHistory: React.FC<{ onShowVoucher: (sale: SaleDetail) => void }> = ({
 		return start + i
 	}).filter((p) => p >= 1 && p <= totalPages)
 
-	const inputStyle: React.CSSProperties = {
-		background: t.inputBg,
-		border: `1px solid ${t.inputBorder}`,
-		borderRadius: '11px',
-		padding: '7px 10px',
-		color: t.text,
-		fontSize: '12px',
-		outline: 'none',
-		fontFamily: 'inherit',
-	}
+
 
 	return (
 		<div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

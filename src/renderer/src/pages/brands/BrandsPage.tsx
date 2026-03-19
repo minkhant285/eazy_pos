@@ -353,7 +353,7 @@ export const BrandsPage: React.FC = () => {
   const filtered = brands.filter((b) =>
     !search || b.name.toLowerCase().includes(search.toLowerCase())
   );
-  const activeCount = brands.filter((b) => b.isActive).length;
+
 
   const handleSuccess = () => { setModal({ open: false, brand: null }); refetch(); };
   const handleDeleteSuccess = () => { setDeleteTarget(null); refetch(); };

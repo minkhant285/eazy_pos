@@ -61,7 +61,7 @@ export const DashboardPage: React.FC = () => {
 
 	const today     = useMemo(() => utcDate(0), []);
 	const yesterday = useMemo(() => utcDate(1), []);
-	const toDate    = today + "T23:59:59.999Z";
+
 
 	// ── Date range state ─────────────────────────────────────
 	const [rangePreset, setRangePreset] = React.useState<RangePreset>("this_month");
@@ -299,11 +299,6 @@ export const DashboardPage: React.FC = () => {
 		},
 	};
 
-	// ── Misc helpers ─────────────────────────────────────────
-	const inp: React.CSSProperties = {
-		background: t.inputBg, border: `1px solid ${t.inputBorder}`, borderRadius: "10px",
-		padding: "7px 12px", color: t.text, fontSize: "12px", outline: "none", fontFamily: "inherit",
-	};
 
 	const dateLabel = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 

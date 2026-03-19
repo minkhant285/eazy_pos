@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { AppSelect } from '../../components/ui/AppSelect';
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { trpc } from '../../trpc-client/trpc'
@@ -515,11 +514,6 @@ export const POSTerminal: React.FC<Props> = ({ onComplete, locationId, setLocati
 		outline: 'none',
 		fontFamily: 'inherit',
 		width: '100%',
-	}
-
-	const selectStyle: React.CSSProperties = {
-		...inputStyle,
-		cursor: 'pointer',
 	}
 
 	const smInputStyle: React.CSSProperties = {

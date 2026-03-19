@@ -450,7 +450,7 @@ export const AccountingPage: React.FC = () => {
                 <div style={row}>
                   <div>
                     <p style={{ color: t.text, fontSize: '12px' }}>Accounts Payable</p>
-                    <p style={{ color: t.textFaint, fontSize: '10px' }}>{bs?.liabilities.apOrderCount ?? 0} open purchase orders</p>
+                    <p style={{ color: t.textFaint, fontSize: '10px' }}>{bs?.liabilities.apSupplierCount ?? 0} open purchase orders</p>
                   </div>
                   <span style={{ color: '#ef4444', fontSize: '13px', fontWeight: 700 }}>{fmt(bs?.liabilities.accountsPayable ?? 0)}</span>
                 </div>

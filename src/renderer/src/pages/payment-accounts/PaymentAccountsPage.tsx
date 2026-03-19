@@ -330,12 +330,6 @@ export const PaymentAccountsPage: React.FC = () => {
 
   const { data: accounts = [], refetch } = trpc.paymentAccount.list.useQuery({ onlyActive: false })
 
-  const inputStyle: React.CSSProperties = {
-    background: t.inputBg, border: `1px solid ${t.inputBorder}`,
-    borderRadius: '10px', padding: '8px 12px', color: t.text,
-    fontSize: '13px', outline: 'none', fontFamily: 'inherit', width: '100%',
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', animation: 'slideUp 0.2s ease' }}>
 

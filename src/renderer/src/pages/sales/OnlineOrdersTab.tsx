@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
+import { skipToken } from '@tanstack/react-query'
 import { useAppStore } from '../../store/useAppStore'
 import { Icon } from '../../components/ui/Icon'
 import { trpc } from '../../trpc-client/trpc'
@@ -349,8 +350,7 @@ const OrderFormModal: React.FC<{
 
   // Addresses for selected customer
   const { data: addrData } = trpc.customerAddress.list.useQuery(
-    { customerId: selectedCustomer?.id },
-    { enabled: !!selectedCustomer?.id },
+    selectedCustomer?.id ? { customerId: selectedCustomer.id } : skipToken,
   )
   const addresses = (addrData ?? []) as any[]
 

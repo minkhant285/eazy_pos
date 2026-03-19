@@ -452,7 +452,7 @@ export const SettingsPage: React.FC = () => {
         )}
 
         {/* ── GROUP: Danger Zone ─────────────────────────────── */}
-        {currentUser?.role === 'admin' && (
+        {false && currentUser?.role === 'admin' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <GroupLabel label="Danger Zone" t={t} />
             <Section title="Clean All Data" description="Permanently delete all store data and reset the app" t={t}>

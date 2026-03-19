@@ -109,7 +109,6 @@ export const DateRangePicker: React.FC<Props> = ({
             direction="horizontal"
             showDateDisplay={false}
             moveRangeOnFirstSelection={false}
-            showSelectionPreview
           />
         </div>
       )}
